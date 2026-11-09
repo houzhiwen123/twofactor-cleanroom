@@ -1,0 +1,8 @@
+T1 public rollover: 99645 struct-log opcodes
+storage diff slots 0-127: []
+Controller-depth SSTORE: []
+Controller-depth LOG: []
+T2b supplementary direct rebalance: 32888 struct-log opcodes
+storage diff slots 0-127: [(9, '0x000000000000000000000000000000006af0b8a0000000010000000000000001', '0x000000000000000000000000000000006af60cb5000000010000000000000001')]
+Controller LOG: opcode 27153 LOG1 topic(s) ['0xdd0b75088120d7c8710dda283a070df4ff78a5f1dd0cabed37cf97185ba8f6f5']
+Controller SSTORE: opcode 32723 slot 9 value 0x6af60cb5000000010000000000000001
