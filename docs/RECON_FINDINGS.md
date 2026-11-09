@@ -74,3 +74,41 @@ vectors tsr=3, sr=1e10: jr=2.99e10 ->148809 SR; 2.999e10 ->136893 SR (lower clam
 ## Perp tokens: "cbBTC Senior"/"cbBTC-SR", "cbBTC Junior"/"cbBTC-JR", 8 decimals, direct (non-proxy), owner Safe, controller() = PerpController.
 Perp supply is ~USD-denominated (SR 95,813 tokens vs ~$96.4k value) => genesis perp units track tranche units (B*Popen/1e18). INFERRED.
 ## Bond schedule: all maturities ≡ 68400 mod 604800 (Thursdays 19:00 UTC); 28d term, new bond every 7d, 4 active.
+
+## Controller fork probes (raw: ~/work/probes/CONTROLLER_PROBES.md, 940 OBS records) — summary
+- flashMint2: perpOut = floor(underlyingIn * preSupply / preReserveValue), then fee taken in perp tokens (kept by Controller, collectedFeeBal == Controller balance == OpFees.totalFeeAmt). SR-only mint: whole cbBTC goes to SR reserve as IDLE underlying; JR side untouched (no tranching at mint).
+- flashRedeem2: gross = floor(perpIn * preReserveValue / preSupply); fee kept in cbBTC. JR redeem above floor(supply*availPerpJrLiquidity/reserveValue) -> OpDisabled() 0x07380a2e.
+- mint2: tranche value = floor(amt * trancheValue / trancheSupply) per tranche; perps from that value pro-rata.
+- rebalance(): moved 28296 underlying JR->SR, Rebalance(28296,false); immediate repeat -> LastRebalanceTooRecent().
+- upkeep()/rollover(): create new bonds, move tranche positions; flashMint2 alone did NOT lazily issue/mature.
+- pauseUserOps -> UserOpsPaused 0xb3d197c4 on flashMint2/flashRedeem2/mint2/redeem2; pauseSystemOps -> SystemOpsPaused 0x237af6f0 on rebalance/upkeep/rollover.
+- Open: rollover exact plan, fee-settlement to JR, outside-window revert, unidentified perp event topic 0xd1f...
+
+## Rollover observation #1 (fork, ts 1794510001, after upkeep issued bond 0xff73.. maturity 1796929200) — lead analysis
+Before SR tranches (bal,value,secsToMat): A 3149185188264/42084862/2135832, B 3133547705520/41875890/926232, C 3392625737181/45338138/1531032; SR U=0. JR mirrors (A 3149185188266, B 3133547705527, C 3392625737183), JR U=271549615.
+rollover(): redeemImmature of bond B (secsToMat 604799 < minMaturitySec 604800) both sides -> 77232982 cbBTC; deposit 77245228 into new latest bond (=77232982 + 12246 from JR idle); deposit 6411258 into bond A (from JR idle) -> A bal 3392625912951 ≈ C bal 3392625737181 (equalizes per-bond tranche amount?). JR U 271549615 -> 265126111 (-6423504 = 6411258+12246).
+SR side gets only senior tranches, JR side only junior; both sides' tranche counts stay equal per bond. Exact policy (amount targets) NOT yet derived -> probe PerpBalancer.computeRolloverPolicy / computePerpSrRolloverState / computeBackupRolloverPolicy / computePerpJrLiquidity directly.
+
+## Rollover allocation rule — CONFIRMED 35/35 (33 direct policy cases + 2 real rollovers; ~/work/probes/ROLLOVER_PROBES.md "Allocation rule")
+stale = SR rows with secondsToMaturity <= minMaturitySec; S = SR idle + Σ stale SR values; fresh rows ordered by maturity asc, last = latest bond.
+avgTarget = ceil((S + Σ v_fresh)/N); target = max(avgTarget, max v over fresh rows except last)
+for non-last rows in order: topUp = min(max(target - v,0), remaining); remaining -= topUp; last gets remaining.
+underlyingAmt_i = ceil(topUp_i * 1e18 / valueRatio_i)   (valueRatio from trancheData, senior side)
+Standard plan used iff its total deploy <= free + unlocked; else backup: total = min(free, 2*S) (into latest bond).
+free = max(JR idle - reservedPerpJrLiquidity, 0); unlocked = SR idle + Σ floor(jrBal * jrTotalClaim / jrSupply) over stale bonds.
+Unpaired stale SR = max(srBal - floor(jrBal*srSupply/jrSupply), 0).
+Call path: rollover() -> Balancer.computePerpSrRolloverPlan -> stale SR tranche to JR -> BondsManager.redeem pair -> perpJr.bondDepositsForRollover -> deposits -> new SR tranches JR->SR.
+Untested: varying open/current price at fixed valueRatio.
+
+## Controller probes round 2 (~/work/probes/CONTROLLER_PROBES_2.md) — CONFIRMED unless noted
+- Perp event 0xd1fb..6939 = ReserveSynced(address token, uint256 balance) (emitted on reserve balance changes).
+- reservedPerpJrLiquidity = max(floor(JR.reserveValue*perc/1e18), abs); availPerpJrLiquidity = max(JR idle - reserved, 0) (4/4). JR flashRedeem gross > avail -> OpDisabled().
+- Op fee amount = floor(gross * totalFeePerc / 1e18); totalFeePerc = FeePolicy.computeOpFees(pre/post DRs from trace) exact.
+- Op fees stay in Controller (collectedFeeBal), NOT burned/converted by upkeep/rebalance/rollover; pullProtocolFees(owner) transfers them out (supply unchanged).
+- AUM fee: on successful rebalance, minted/charged amount = floor(perp.totalSupply * aumFeePerc / 1e18) per rebalance (NOT time-proportional; 1d == 7d). Emits AumFees.
+- valueCap: above-cap double-sided revert; worsening single-sided revert; corrective single-sided OK. Crossing 1e18: UNVERIFIED.
+- updateRolloverEligibility raises maturity threshold for rollover eligibility.
+- SR-payer rebalance: transfers exactly computeSystemRebalancePlan amounts SR->JR (tranche 76375148955 units, rebalanceValue 1020657).
+- CORRECTION AUM: AUM amount floor(supply*aumPerc/1e18) is MINTED via perp.mintTo(protocolFeeCollector) on each successful rebalance (not held in Controller).
+- Fee DR inputs: pre = state before op, post = state after op (both sides combined); one computeOpFees(isFlashOp) result applied to both sides in the traced both-sided flash ops.
+- Perp token selectors: init(string,string,address,address), updateController, reserveData, reserves, transferReservesTo(address,(uint256,(address,uint256)[])), handleTransferReservesIn(...), registerTranche, mintTo, burnFrom, maxTrancheCount, underlying, recover, logBalance, controller; JR only: primeApproval, revokeApproval, bondDepositsForRollover(address,(bytes32,uint256)[]).
