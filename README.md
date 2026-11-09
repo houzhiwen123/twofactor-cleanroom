@@ -57,3 +57,11 @@ reference-model comparisons. Foundry's default fuzz run count is used.
   the provided CoreInvariants test inputs; the CoreInvariants values overlap some of those 14.
 
 These notes are behavioral boundaries, not security claims.
+
+## Phase 1b scope
+
+`src/perp/PerpToken.sol` and `src/controller/PerpController.sol` implement the evidenced core
+operations. The status matrix and explicit pending-evidence boundaries are in
+[`docs/PHASE1B_STATUS.md`](docs/PHASE1B_STATUS.md). In particular, rollover/upkeep, recovery,
+tranche removal/order changes, genesis seeding, and exact value-cap equality behavior are not
+implemented as inferred behavior.
