@@ -1,51 +1,80 @@
 # Rollover/upkeep module split design
 
-This is a future design only. No rollover or upkeep implementation is included.
+Design only; this document does not implement rollover or upkeep.
 
-## Goal
+## Boundary
 
-Keep `PerpController` under the EIP-170 runtime limit as rollover and upkeep planning are
-eventually added. The current pre-split runtime baseline is Controller `20,384` bytes and
-PerpToken `8,055` bytes (`evidence/phase1b_sizes.log`); regenerate these figures after each
-implementation change.
+Adopt only option 1: `PerpController` remains the sole coordinator and performs **all asset
+operations**. Planning stays in the existing `PerpBalancer` as pure functions invoked by the
+Controller with `STATICCALL`:
 
-## Preferred boundary
+| Planning function | Responsibility |
+|---|---|
+| `computePerpSrRolloverState` | Derive SR stale-tranche and rollover state |
+| `computePerpJrRolloverPlan` | Plan JR-side rollover amounts |
+| `computeRolloverPolicy` | Plan standard rollover deposits |
+| `computeBackupRolloverPolicy` | Plan backup-branch deposits |
+| `computePerpJrLiquidity` | Derive JR free/reserved liquidity |
+| `computeSystemRebalancePlan` | Existing system rebalance plan |
 
-Keep authorization, pause checks, reentrancy protection, user-facing errors, and durable state
-updates in `PerpController`. Move pure planning and bounded execution orchestration into a
-separate `RolloverExecutor` contract called externally by the Controller (no `delegatecall`).
-The executor should receive an explicit, immutable-per-call context containing the issuer,
-BondsManager, Perps, underlying token, thresholds, candidate tranche IDs, and the operation
-limits. It returns a structured plan/result; Controller validates the result, performs any
-Controller-only Perp calls, emits Controller events, and records timestamps only after success.
+The planning context is built by `PerpController` from its own storage: issuer, SR/JR Perps,
+BondsManager, underlying token, and the relevant thresholds and current reserve state. Users never
+pass dependency addresses. `PerpBalancer` returns plans only; it does not move tokens or mutate
+protocol state.
 
-The target Perps currently authorize one Controller address. Before moving stateful Perp calls
-into an executor, a future evidence round must establish a safe authorization model. Options are:
+`PerpController` retains issuer calls, every SR/JR Perp call, BondsManager deposits and redeems,
+cbBTC and tranche transfers, settlement, all Controller/Perp event emission, and timestamp updates.
+The last state-changing step is the timestamp update after all planned execution succeeds. A
+revert anywhere before that point reverts the whole transaction.
 
-1. Keep all Perp calls in Controller and let the executor only calculate/validate plans.
-2. Add an explicitly authorized executor role to PerpToken, with separate permission tests and
-   target evidence.
-3. Have the executor call back into Controller for each privileged action, preserving Controller
-   as the Perp caller but increasing interface and reentrancy complexity.
+## Target call-graph evidence
 
-Option 1 is the default unless bytecode measurements prove it insufficient. Do not silently change
-the Perp controller address or rely on delegatecall/library storage semantics.
+An existing target fork trace records `Controller.rollover()` calling the Balancer address with a
+selector rendered as `computePerpSrRolloverPlan` at
+`evidence/raw-logs.tar.xz::rollover_controller_trace_initial.log:5037-5038,5553`; the path is also
+summarized in `evidence/ROLLOVER_PROBES.md:135`. That name is **not** in the supplied public
+Balancer ABI. The trace confirms the observed call in that snapshot, but it does not establish
+that the public planner functions listed above are called separately: their internal invocation
+inside that Balancer call is not visible in the external call trace.
 
-## Atomicity and validation
+**TODO before implementation:** reconcile the observed selector with the supplied public ABI and
+capture a fork trace of target `rollover()` that establishes which Balancer selectors are invoked.
+Do not implement a `computePerpSrRolloverPlan` dependency or infer internal planner call order from
+the current trace.
 
-- One external Controller transaction must remain atomic across issue, reserve movement, mint/burn,
-  settlement, events, and timestamp updates.
-- Separate read-only plan construction from execution results, but validate totals and token
-  identities at the Controller boundary.
-- Keep all unverified threshold, partial-completion, candidate-order, and rollback behavior pending
-  until black-box probes establish it.
-- Add recording mocks for executor call order and fork evidence for any target call order before
-  marking behavior verified.
-- Re-run `forge build --sizes`, `script/check_runtime_sizes.py`, and the full offline suite after a
-  later implementation is proposed.
+## Controller plan-validation checklist
 
-## Alternatives
+Before executing a returned plan, Controller-side checks should cover:
 
-An external Solidity library is not selected because ordinary external library calls may compile
-to `DELEGATECALL`; the desired boundary is explicitly delegatecall-free. A staticcall-only planner
-can be considered if it reduces code while leaving all state transitions in Controller.
+- Every token is a registered tranche, and every bond belongs to BondsManager.
+- Array lengths do not exceed the configured tranche cap; no tranche is duplicated.
+- Total outflow is no greater than actual reserves.
+- SR/JR tranche amounts are correctly paired.
+- Total deposited equals the funds available to the plan.
+- Direction, maturity, and `minMaturitySec` are consistent with current state.
+- Partial completion cannot breach the JR liquidity floor.
+
+These are clean-room safety checks, not established target behavior. Before adding a check that
+could cause an extra user-visible revert, fork evidence must show it does not diverge from the
+target. If that cannot be established, retain it only as an internal assertion that cannot trigger
+for a valid target planner output; do not turn it into a new observable validation rule.
+
+## Size contingency and rejected boundaries
+
+Current runtime sizes are Controller **20,384 bytes**, PerpToken **8,055 bytes**, and PerpBalancer
+**2,467 bytes** (`evidence/phase1b_sizes.log`). Keep planning in the existing Balancer. Only if a
+measured Balancer runtime would exceed EIP-170's 24,576-byte limit should a separate stateless
+`RolloverPlanner` be considered; it would still return a plan for Controller-only execution.
+
+An executor role or callback boundary is rejected because it expands the attack surface, requires a
+Perp permission change, and adds reentrancy and call-order complexity.
+
+## Pending evidence
+
+- Backup selection behavior.
+- Partial-completion versus revert boundary.
+- Tranche removal and reserve-array reordering.
+- `recover()` behavior.
+- Genesis/first-mint behavior.
+- Exact `subDR == 1e18` value-cap behavior.
+- `updateIssuer` validation.
