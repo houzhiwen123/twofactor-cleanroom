@@ -293,6 +293,168 @@ contract Phase1BControllerTest is Test {
         assertEq(controller.protocolFeeBals(address(jr)), 100);
     }
 
+    function testZeroInputSideFeeDoesNotDisableOperations() public {
+        _assertZeroInputSideFeeIgnored(true, 0);
+        _assertZeroInputSideFeeIgnored(true, 1);
+        _assertZeroInputSideFeeIgnored(true, 2);
+        _assertZeroInputSideFeeIgnored(false, 0);
+        _assertZeroInputSideFeeIgnored(false, 1);
+        _assertZeroInputSideFeeIgnored(false, 2);
+    }
+
+    function testFlashMint2IssuesOnlyForSeniorInput() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        MockPhase1BIssuer issuer = _configureMockIssuer();
+        underlying.mint(USER, 1_000_000);
+        vm.startPrank(USER);
+        underlying.approve(address(controller), type(uint256).max);
+        (uint256 srOut, uint256 jrOut,,) = controller.flashMint2(1_000_000, 0, 0, 0);
+        vm.stopPrank();
+        assertGt(srOut, 0);
+        assertEq(jrOut, 0);
+        assertEq(issuer.issueCalls(), 1);
+    }
+
+    function testFlashMint2JuniorOnlyDoesNotIssue() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        MockPhase1BIssuer issuer = _configureMockIssuer();
+        underlying.mint(USER, 1_000_000);
+        vm.startPrank(USER);
+        underlying.approve(address(controller), type(uint256).max);
+        (uint256 srOut, uint256 jrOut,,) = controller.flashMint2(0, 1_000_000, 0, 0);
+        vm.stopPrank();
+        assertEq(srOut, 0);
+        assertGt(jrOut, 0);
+        assertEq(issuer.issueCalls(), 0);
+    }
+
+    function testMint2RejectsRegisteredNonLatestTranche() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        MockReserveTranche oldSr = _addMint2Tranche(sr, 1, 0, 1, 0, true);
+        _addMint2Tranche(jr, 1, 0, 1, 0, false);
+        _configureMockIssuer();
+        vm.expectRevert(PerpController.UnexpectedAsset.selector);
+        vm.prank(USER);
+        controller.mint2(PerpController.TokenAmount(address(oldSr), 1), PerpController.TokenAmount(address(0), 0), 0, 0);
+    }
+
+    function testAumFeeZeroAmountMintsZeroAndEmits() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        feePolicy.setAum(1, 1);
+        uint256 srSupply = sr.totalSupply();
+        uint256 jrSupply = jr.totalSupply();
+        vm.warp(64_800 + 86_400 * 10);
+        vm.recordLogs();
+        controller.rebalance();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 aumEventCount;
+        uint256 zeroMintCount;
+        bytes32 aumTopic = keccak256("AumFees(address,uint256)");
+        bytes32 transferTopic = keccak256("Transfer(address,address,uint256)");
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter == address(controller) && logs[i].topics.length != 0 && logs[i].topics[0] == aumTopic) {
+                ++aumEventCount;
+                uint256 amount =
+                    logs[i].topics.length > 1 ? abi.decode(logs[i].data, (uint256)) : _decodeAumAmount(logs[i].data);
+                assertEq(amount, 0);
+            }
+            if (
+                (logs[i].emitter == address(sr) || logs[i].emitter == address(jr)) && logs[i].topics.length == 3
+                    && logs[i].topics[0] == transferTopic && address(uint160(uint256(logs[i].topics[1]))) == address(0)
+            ) {
+                ++zeroMintCount;
+            }
+        }
+        assertEq(aumEventCount, 2);
+        assertEq(zeroMintCount, 2);
+        assertEq(sr.totalSupply(), srSupply);
+        assertEq(jr.totalSupply(), jrSupply);
+    }
+
+    function testAumFeeZeroRateDoesNotEmit() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        feePolicy.setAum(0, 0);
+        vm.warp(64_800 + 86_400 * 10);
+        vm.recordLogs();
+        controller.rebalance();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        bytes32 aumTopic = keccak256("AumFees(address,uint256)");
+        bytes32 transferTopic = keccak256("Transfer(address,address,uint256)");
+        uint256 zeroMintCount;
+        for (uint256 i; i < logs.length; ++i) {
+            assertFalse(
+                logs[i].emitter == address(controller) && logs[i].topics.length != 0 && logs[i].topics[0] == aumTopic
+            );
+            if (
+                (logs[i].emitter == address(sr) || logs[i].emitter == address(jr)) && logs[i].topics.length == 3
+                    && logs[i].topics[0] == transferTopic && address(uint160(uint256(logs[i].topics[1]))) == address(0)
+            ) {
+                ++zeroMintCount;
+            }
+        }
+        assertEq(zeroMintCount, 0);
+    }
+
+    function testValueCapBalancedPreSubWadAboveCapReverts() public {
+        _seed(1_000_000, 100_000_000, 1_000_000, 100_000_000);
+        feePolicy.setFees(0, 0, 0);
+        controller.updateDRTargets(WAD, WAD);
+        controller.updateValueCap(199_999_999);
+        (uint256 preSub,) = controller.systemDeviations();
+        assertEq(preSub, WAD);
+        underlying.mint(USER, 1_000);
+        vm.startPrank(USER);
+        underlying.approve(address(controller), type(uint256).max);
+        vm.expectRevert(PerpController.ValueCapExceeded.selector);
+        controller.flashMint2(1_000, 0, 0, 0);
+        vm.stopPrank();
+    }
+
+    function testValueCapUnderCapPostOverCapAllowsOnlyCorrectiveSide() public {
+        _seed(1_000_000, 100_000_000, 1_000_000, 106_423_365);
+        feePolicy.setFees(0, 0, 0);
+        controller.updateDRTargets(WAD, WAD);
+        (uint256 preSub,) = controller.systemDeviations();
+        assertGt(preSub, WAD);
+        uint256 preValue = 206_423_365;
+        controller.updateValueCap(preValue);
+        assertGt(preValue + 1, controller.valueCap());
+        underlying.mint(USER, 2);
+        vm.startPrank(USER);
+        underlying.approve(address(controller), type(uint256).max);
+        vm.expectRevert(PerpController.ValueCapExceeded.selector);
+        controller.flashMint2(0, 1, 0, 0);
+        controller.flashMint2(1, 0, 0, 0);
+        vm.stopPrank();
+        (PerpController.SystemState memory state,,) = controller.systemReserveState();
+        assertGt(state.perpSr.reserveValue + state.perpJr.reserveValue, controller.valueCap());
+    }
+
+    function testRebalanceAllowsRandomCallerWhenKeeperDiffers() public {
+        _assertPermissionlessRebalance(USER);
+    }
+
+    function testRebalanceAllowsOwnerCallerWhenKeeperDiffers() public {
+        _assertPermissionlessRebalance(address(this));
+    }
+
+    function testRebalanceAllowsConfiguredKeeperCaller() public {
+        _assertPermissionlessRebalance(address(0xCAFE));
+    }
+
+    function testRebalanceCooldownWindowStartAndFrequencyBoundaries() public {
+        _assertRebalanceCooldownBoundary(0);
+        _assertRebalanceCooldownBoundary(1);
+        _assertRebalanceCooldownBoundary(2);
+    }
+
+    function testRebalanceSecondCallInSameWindowIsTooRecent() public {
+        vm.warp(64_800 + 86_400 * 20);
+        controller.rebalance();
+        vm.expectRevert(PerpController.LastRebalanceTooRecent.selector);
+        controller.rebalance();
+    }
+
     function testRebalanceSettlesCollectedFeesAndMintsAumOnZeroPlan() public {
         _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
         feePolicy.setFees(41_476_256_828_777_681, 41_476_256_828_777_681, 50_000_000_000_000);
@@ -357,19 +519,17 @@ contract Phase1BControllerTest is Test {
         controller.pauseSystemOps(false);
 
         uint256 center = 64_800 + 86_400 * 20;
-        uint256[5] memory timestamps = [center - 1, center, center + 86_399, center + 86_400, center + 86_401];
+        uint256[5] memory timestamps = [center - 1, center, center + 3_599, center + 3_600, center + 3_601];
         for (uint256 i; i < timestamps.length; ++i) {
             (MockERC20 u, PerpToken s, PerpToken j, PerpController c, MockPhase1BFeePolicy f) = _deployFixture();
             u;
             s;
             j;
             f;
+            c.updateRebalanceWindow(86_400, 64_800, 3_600);
             vm.warp(timestamps[i]);
+            if (i == 0 || i >= 3) vm.expectRevert(PerpController.OutOfRebalanceWindow.selector);
             c.rebalance();
-            if (i == 1) {
-                vm.expectRevert(PerpController.LastRebalanceTooRecent.selector);
-                c.rebalance();
-            }
         }
     }
 
@@ -463,6 +623,99 @@ contract Phase1BControllerTest is Test {
         sr.mintTo(address(1), srSupply);
         vm.prank(address(controller));
         jr.mintTo(address(1), jrSupply);
+    }
+
+    function _assertZeroInputSideFeeIgnored(bool srInput, uint8 operation) private {
+        (underlying, sr, jr, controller, feePolicy) = _deployFixture();
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        feePolicy.setFees(srInput ? 0 : WAD, srInput ? WAD : 0, 0);
+
+        if (operation == 0) {
+            underlying.mint(USER, 1_000_000);
+            vm.startPrank(USER);
+            underlying.approve(address(controller), type(uint256).max);
+            (uint256 srOut, uint256 jrOut, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
+                controller.flashMint2(srInput ? 1_000_000 : 0, srInput ? 0 : 1_000_000, 0, 0);
+            vm.stopPrank();
+            if (srInput) {
+                assertGt(srOut, 0);
+                assertEq(jrOut, 0);
+            } else {
+                assertEq(srOut, 0);
+                assertGt(jrOut, 0);
+            }
+            assertEq(srFee.totalFeePerc, srInput ? 0 : WAD);
+            assertEq(jrFee.totalFeePerc, srInput ? WAD : 0);
+            return;
+        }
+
+        vm.prank(address(controller));
+        if (srInput) sr.mintTo(USER, 1_000_000);
+        else jr.mintTo(USER, 1_000_000);
+
+        vm.startPrank(USER);
+        sr.approve(address(controller), type(uint256).max);
+        jr.approve(address(controller), type(uint256).max);
+        if (operation == 1) {
+            (uint256 underlyingOut, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
+                controller.flashRedeem2(srInput ? 1_000_000 : 0, srInput ? 0 : 1_000_000, 0);
+            assertGt(underlyingOut, 0);
+            assertEq(srFee.totalFeePerc, srInput ? 0 : WAD);
+            assertEq(jrFee.totalFeePerc, srInput ? WAD : 0);
+        } else {
+            (
+                PerpBalancer.ReserveAmounts memory srOut,
+                PerpBalancer.ReserveAmounts memory jrOut,
+                PerpController.FeePerc memory srFee,
+                PerpController.FeePerc memory jrFee
+            ) = controller.redeem2(srInput ? 1_000_000 : 0, srInput ? 0 : 1_000_000, 0);
+            assertGt(srInput ? srOut.underlyingAmt : jrOut.underlyingAmt, 0);
+            assertEq(srFee.totalFeePerc, srInput ? 0 : WAD);
+            assertEq(jrFee.totalFeePerc, srInput ? WAD : 0);
+        }
+        vm.stopPrank();
+    }
+
+    function _configureMockIssuer() private returns (MockPhase1BIssuer issuer) {
+        MockReserveTranche srLatest = _addMint2Tranche(sr, 1, 0, 1, 0, true);
+        MockReserveTranche jrLatest = _addMint2Tranche(jr, 1, 0, 1, 0, false);
+        issuer = new MockPhase1BIssuer(address(srLatest), address(jrLatest));
+        controller.updateIssuer(address(issuer));
+    }
+
+    function _decodeAumAmount(bytes memory data) private pure returns (uint256 amount) {
+        (, amount) = abi.decode(data, (address, uint256));
+    }
+
+    function _assertPermissionlessRebalance(address caller) private {
+        address configuredKeeper = address(0xCAFE);
+        controller.updateKeeper(configuredKeeper);
+        uint256 timestamp = 64_800 + 86_400 * 10;
+        vm.warp(timestamp);
+        (uint64 windowStart,) = controller.rebalanceWindow(timestamp);
+        vm.prank(caller);
+        controller.rebalance();
+        assertEq(controller.lastRebalanceTimestampSec(), windowStart);
+    }
+
+    function _assertRebalanceCooldownBoundary(uint8 probeCase) private {
+        (underlying, sr, jr, controller, feePolicy) = _deployFixture();
+        uint256 frequency = controller.rebalanceFreqSec();
+        uint256 start = 64_800 + frequency * (20 + probeCase);
+        uint256 end = start + controller.rebalanceWindowLengthSec();
+        vm.warp(end - 1);
+        controller.rebalance();
+        assertEq(controller.lastRebalanceTimestampSec(), start);
+
+        uint256 timestamp =
+            probeCase == 0 ? start + frequency : probeCase == 1 ? start + frequency + 1 : start + frequency - 1;
+        vm.warp(timestamp);
+        if (probeCase == 2) vm.expectRevert(PerpController.LastRebalanceTooRecent.selector);
+        controller.rebalance();
+        if (probeCase != 2) {
+            (uint64 windowStart,) = controller.rebalanceWindow(timestamp);
+            assertEq(controller.lastRebalanceTimestampSec(), windowStart);
+        }
     }
 
     function _addMint2Tranche(

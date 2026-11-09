@@ -314,7 +314,10 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         MintQuote memory quote = _quoteUnderlyingMint(underlyingAmtIntoPerpSr, underlyingAmtIntoPerpJr);
         perpSrFeePerc = quote.srFeePerc;
         perpJrFeePerc = quote.jrFeePerc;
-        if (perpSrFeePerc.totalFeePerc >= WAD || perpJrFeePerc.totalFeePerc >= WAD) revert OpDisabled();
+        if (
+            (underlyingAmtIntoPerpSr != 0 && perpSrFeePerc.totalFeePerc >= WAD)
+                || (underlyingAmtIntoPerpJr != 0 && perpJrFeePerc.totalFeePerc >= WAD)
+        ) revert OpDisabled();
         _checkValueCap(quote.preState, quote.postState, underlyingAmtIntoPerpSr, underlyingAmtIntoPerpJr);
         (perpSrAmt, perpJrAmt) = _recordMintFees(quote, minPerpSrAmtOut, minPerpJrAmtOut);
 
@@ -333,7 +336,10 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         FlashRedeemQuote memory quote = _quoteFlashRedeem(perpSrAmtRedeemed, perpJrAmtRedeemed);
         perpSrFeePerc = quote.srFeePerc;
         perpJrFeePerc = quote.jrFeePerc;
-        if (perpSrFeePerc.totalFeePerc >= WAD || perpJrFeePerc.totalFeePerc >= WAD) revert OpDisabled();
+        if (
+            (perpSrAmtRedeemed != 0 && perpSrFeePerc.totalFeePerc >= WAD)
+                || (perpJrAmtRedeemed != 0 && perpJrFeePerc.totalFeePerc >= WAD)
+        ) revert OpDisabled();
         if (quote.jrGross > availPerpJrLiquidity()) revert InsufficientLiquidity();
 
         uint256 srFeeAmt = Math.mulDiv(quote.srGross, perpSrFeePerc.totalFeePerc, WAD);
@@ -406,9 +412,8 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
 
     function rebalance() external nonReentrant {
         if (systemOpsPaused) revert SystemOpsPaused();
-        if (msg.sender != keeper) revert UnauthorizedCall();
         (uint64 windowStart, uint64 windowEnd) = rebalanceWindow(block.timestamp);
-        if (block.timestamp < windowStart || block.timestamp > windowEnd) revert OutOfRebalanceWindow();
+        if (block.timestamp < windowStart || block.timestamp >= windowEnd) revert OutOfRebalanceWindow();
         if (lastRebalanceTimestampSec != 0 && block.timestamp < uint256(lastRebalanceTimestampSec) + rebalanceFreqSec) {
             revert LastRebalanceTooRecent();
         }
@@ -431,7 +436,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
 
         _mintAumFee(perpSr, IFeePolicyController(feePolicy).perpSrAUMFeePerc());
         _mintAumFee(perpJr, IFeePolicyController(feePolicy).perpJrAUMFeePerc());
-        lastRebalanceTimestampSec = SafeCast.toUint64(block.timestamp);
+        lastRebalanceTimestampSec = windowStart;
     }
 
     function pullProtocolFees(address token, address to, uint256 amount) external {
@@ -535,7 +540,6 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         if (feePerc == 0) return;
         uint256 supply = IPerpToken(perp).totalSupply();
         uint256 amount = Math.mulDiv(supply, feePerc, WAD - feePerc);
-        if (amount == 0) return;
         IPerpToken(perp).mintTo(IFeePolicyController(feePolicy).protocolFeeCollector(), amount);
         emit AumFees(perp, amount);
     }
@@ -602,7 +606,10 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         SystemState memory postState =
             _postFlashRedeem(preState, quote.srRd, quote.jrRd, srInput, jrInput, srGross, jrGross, true);
         (quote.srFeePerc, quote.jrFeePerc) = _computeFeePercs(preState, postState, false);
-        if (quote.srFeePerc.totalFeePerc >= WAD || quote.jrFeePerc.totalFeePerc >= WAD) revert OpDisabled();
+        if (
+            (srInput != 0 && quote.srFeePerc.totalFeePerc >= WAD)
+                || (jrInput != 0 && quote.jrFeePerc.totalFeePerc >= WAD)
+        ) revert OpDisabled();
         quote.srFeePerp = Math.mulDiv(srInput, quote.srFeePerc.totalFeePerc, WAD);
         quote.jrFeePerp = Math.mulDiv(jrInput, quote.jrFeePerc.totalFeePerc, WAD);
         quote.srNet = srInput - quote.srFeePerp;
