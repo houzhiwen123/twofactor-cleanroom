@@ -14,8 +14,9 @@ All data here came from local Base forks (chainId 8453, blocks 53494912 and 5499
 | ROUND7_PROBES.md, round7_integrated_probe.log | Round 7 Perp ABI/ownership/permissions, Controller admin roles/validation, reserve sync, and nonzero rebalance ordering; version lock |
 | ROUND8_PROBES.md, round8_review_probe.log, round8_setter_followup.log, round8_rebalance_trace.log | Round 8 tuple ABI, SR approval selector, setter boundary results, and trace-level rebalance call order |
 | ROUND9_PROBES.md, probe-tests/Round9TraceProbe.t.sol, round9_*.log | Round 9 public rollover, upkeep (issuance/rebalance/no-op), lazy SR flash-mint traces, planner inputs/returns, and Controller timestamp opcode ordering |
+| ROUND10_PROBES.md, probe-tests/Round10Probe.t.sol, round10_*.log | Round 10 caller matrices, separate matured-before-issue state, 15 planner-selection cases, exact public/lazy liquidity edges, and zero-amount call traces |
 | probe-tests/*.sol | Foundry fork probes that produced the records, including Round6ControllerProbe.t.sol and Round7ReviewProbe.t.sol (not compiled by this repo) |
 | LOG_SHA256SUMS.txt | SHA-256 manifest for all archived probe `.log` files |
-| raw-logs.tar.xz | Archive of probe `.log` files, including Round 6, Round 7, Round 8, and Round 9 logs |
+| raw-logs.tar.xz | Archive of probe `.log` files, including Round 6, Round 7, Round 8, Round 9, and Round 10 logs |
 
 Spec items in docs/SPEC_CONTROLLER_ZH.md reference these reports.

@@ -66,6 +66,90 @@ transactions are recorded in `round9_anvil_feed_setup.log`,
 default-struct traces and callTracer outputs are in the correspondingly named
 `round9_*_debug_trace.log` and `round9_*_calltrace.log` files.
 
+## Oracle and test-stub archive
+
+At the pinned fork block `54990962`, the oracle's Chainlink price feed is
+`0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D` (`decimals() = 8`) and the
+sequencer feed is `0xBCF85224fc0756B9Fa45aA7892530B47e10b6433`
+(`decimals() = 0`). Before overrides, their `latestRoundData()` values were:
+
+| Feed | Exact pinned-block return `(roundId, answer, startedAt, updatedAt, answeredInRound)` |
+|---|---|
+| Price | `(36893488147419122458, 7482940645796, 1794187614, 1794187627, 36893488147419122458)` |
+| Sequencer | `(18446744073709551636, 0, 1782491507, 1794158703, 18446744073709551636)` |
+
+For Round 9's Foundry tests, `_warpAndRefresh` uses selector-level
+`vm.mockCall` for `latestRoundData()` only (`Round9TraceProbe.t.sol:156-169`).
+At timestamp `t`, the exact mocked tuples are:
+
+```text
+price:     (36893488147419122458, 7482940645796, t,       t, 36893488147419122458)
+sequencer: (18446744073709551636, 0,             t - 3601, t, 18446744073709551636)
+```
+
+Thus T1, T2a, and T3 use `t=1794510001`; T2b uses `t=1794160801`; and T2c
+uses `t=1794160799`. These selector mocks do not replace runtime code, so
+`decimals()` remained the fork values above.
+
+For the separate direct Anvil trace, `anvil_setCode` installed the compiled
+`Round9FreshFeedStub` runtime at both feed addresses (not `vm.etch`). Its
+runtime codehash is
+`0xaa3851d307ce61f618d0e96760865ea9fc1f8e76d5b4e58619e9c53a48539de9`.
+The exact stub return uses `t=block.timestamp`:
+
+```text
+price:     (36893488147419122458, 7482940645796, t,       t, 36893488147419122458)
+sequencer: (18446744073709551636, 0,             t - 3601, t, 18446744073709551636)
+```
+
+The local transactions ran at blocks/timestamps `54990963/1794510001`
+(oracle refresh), `54990964/1794510002` (`upkeep()`), and
+`54990965/1794510003` (`rollover()`). The code-replacement stub does not
+implement `decimals()`; the recorded `8` / `0` values are the original fork
+feed values before `anvil_setCode`.
+
+### Cross-round mock inventory
+
+The earlier oracle-mock rounds are **2, 3, 4, 5, 6, and 7**. Round 8 used no
+oracle or code stub. The feed address and decimals are common across these
+forks: price feed `0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D`
+(`decimals() = 8`) and sequencer feed
+`0xBCF85224fc0756B9Fa45aA7892530B47e10b6433` (`decimals() = 0`). The pinned
+Round 9 pre-override feed codehashes were not captured. Selector-level mocks
+leave the fork feed runtimes and decimals unchanged; a separate stub runtime
+codehash is not applicable for these mocks.
+
+| Round | Exact `latestRoundData()` override | Method and runtime | Other local stubs |
+|---|---|---|---|
+| 2 | Price `(36893488147419122458, 7482940645796, t, t, 36893488147419122458)`; sequencer `(18446744073709551636, 0, t-3601, t, 18446744073709551636)`. `t` is the warped timestamp in each `local_oracle_refresh` record. | `vm.mockCall` on `latestRoundData()` only; no runtime replacement or stub codehash. | FeePolicy `computeRebalanceVal(uint256,uint256,uint256)` returned `(0,false)` at the configured FeePolicy. |
+| 3 | Same base tuple as Round 2; the price answer also varied to `5238058452057` (−30%) and `9727822839534` (+30%), with the same round IDs and timestamp fields. | Selector `vm.mockCall`; no runtime replacement or stub codehash. | None identified in the archived Round 3 oracle cases. |
+| 4 | Price `(36893488147419122458, priceAnswer, t, t, 36893488147419122458)`; sequencer `(18446744073709551636, 0, t-3601, t, 18446744073709551636)`. `priceAnswer` and `t` are the values read/emitted by that case. | Selector `vm.mockCall` in `Round4Probe.t.sol:94-116`; no runtime replacement or stub codehash. | BondsManager `isValidBond(bytes32)` returned `true`; `srTranche(bytes32)` / `jrTranche(bytes32)` returned test-deployed `Round4MockTranche` addresses. Their per-instance runtime codehashes were not captured in the Round 4 logs and remain unknown. |
+| 5 | Price answers `5986352516636`, `7482940645796`, and `9353675807245`; each tuple uses the test's live `roundId` and `answeredInRound`, `(t,t)` timestamps. Sequencer `(roundId, 0, t-3601, t, answeredInRound)`. | Selector `vm.mockCall` in `Round5Probe.t.sol:468-485`; no runtime replacement or stub codehash. | A tranche's `isMature()` returned `true` in `_tryMockedMaturityUpkeep` at `Round5Probe.t.sol:335-336`. |
+| 6 | Price `(36893488147419122458, 7482940645796, t, t, 36893488147419122458)`; sequencer `(18446744073709551636, 0, t-3601, t, 18446744073709551636)`. Each `t` and answer is recorded by label in `round6_controller_probes.log` / `round6_lazy_issue_probes.log`. | Selector `vm.mockCall` in `Round6ControllerProbe.t.sol:490-505`; no runtime replacement or stub codehash. | No non-oracle stub identified in Round 6. |
+| 7 | Price `(1, 7482940645796, t, t, 1)`; sequencer `(1, 0, t-3601, t, 1)`. | Selector `vm.mockCall` in `Round7ReviewProbe.t.sol:517-529`; no runtime replacement or stub codehash. | FeePolicy `computeOpFees` returned `(1e15,0)`, `computeRebalanceVal` returned `(100,false)`, and `perpSrAUMFeePerc` / `perpJrAUMFeePerc` returned `1e17` / `5e16`. |
+| 9 Foundry probes | Price `(36893488147419122458, 7482940645796, t, t, 36893488147419122458)`; sequencer `(18446744073709551636, 0, t-3601, t, 18446744073709551636)`. | Selector `vm.mockCall` at `Round9TraceProbe.t.sol:156-169`; no runtime replacement in Foundry tests. | None beyond the oracle refresh. |
+| 9 direct Anvil trace | Same tuples, with `t=block.timestamp`, at both feed addresses. | Local `anvil_setCode` installed `Round9FreshFeedStub` (not `vm.etch`); runtime codehash `0xaa3851d307ce61f618d0e96760865ea9fc1f8e76d5b4e58619e9c53a48539de9`. The stub does not implement `decimals()`; `8` / `0` above are the original fork values. | None beyond the feed code replacement. |
+| 10 | Price `(pinnedRoundId, answer, t, t, pinnedAnsweredInRound)`; sequencer `(pinnedRoundId, 0, t-3601, t, pinnedAnsweredInRound)`. The per-case answer and `t` are emitted in the Round 10 logs. | Selector `vm.mockCall` on `latestRoundData()` only; no runtime replacement or stub codehash. | No non-oracle runtime stub. |
+
+### Other local selector/code stubs
+
+Selector-level `vm.mockCall` entries do not install runtime bytecode, so there
+is no separate stub runtime codehash for those entries; the called contracts'
+fork code remains in place.
+
+| Round | Target and mocked method | Exact mocked return | Address / runtime notes |
+|---|---|---|---|
+| 2 | FeePolicy `computeRebalanceVal(uint256,uint256,uint256)` | `(0, false)` | FeePolicy proxy `0x1E3DbDc2aDF4d5fDd1efDFB9FF05e4154D0c00E8`; `vm.mockCall` in `ControllerProbe.t.sol:1145-1149`; no runtime replacement. |
+| 4 | BondsManager `isValidBond(bytes32)`, then `srTranche(bytes32)` or `jrTranche(bytes32)` | `true`, then the test-deployed `Round4MockTranche` address | BondsManager proxy `0xe8c13955caED9c009fd2b335A10986407958fde3`; `vm.mockCall` in `Round4PerpProbe.t.sol:469-475,485-492`. The mocked bond IDs are `bytes32(100000 + p*1000 + i)` and `bytes32(999999 + p)` (`p=0` SR, `p=1` JR). The generated tranche addresses and per-instance runtime codehashes were not captured in the archived Round 4 raw logs, so remain unknown. |
+| 5 | Selected tranche `isMature()` | `true` | The target is the `tranche` argument to `_tryMockedMaturityUpkeep`; `vm.mockCall` in `Round5Probe.t.sol:335-336`. The exact selected tranche addresses were not preserved in the archived raw logs; this selector mock does not replace runtime code. |
+| 7 | FeePolicy `computeOpFees`, `computeRebalanceVal`, `perpSrAUMFeePerc`, `perpJrAUMFeePerc` | `(1e15, 0)`, `(100, false)`, `1e17`, `5e16`, respectively | FeePolicy proxy `0x1E3DbDc2aDF4d5fDd1efDFB9FF05e4154D0c00E8`; `vm.mockCall` in `Round7ReviewProbe.t.sol:365-372`; no runtime replacement. |
+
+No probe used `vm.etch`. `vm.mockCall` overrides selector responses without
+replacing code; the Round 9 direct Anvil trace is the only listed runtime
+replacement. All exact tuple formulas above are tied to the values logged for
+each call, rather than implying that a single timestamp was used throughout a
+round.
+
 ## Ordered observations
 
 The full Foundry traces list every nested call, call kind, target, selector or
@@ -76,13 +160,13 @@ not show raw output-byte lengths for every nested call; direct callTracer output
 sizes are therefore reported where available, and planner output sizes are
 measured from the raw return payloads.
 
-| Scenario | Observed calls and events, in order |
-|---|---|
-| **T1 — `upkeep()` then public `rollover()`** | The setup `upkeep()` calls issuer `issue()` (trace lines 454–455), then registers the newly issued SR and JR tranches on the Perps (531–540). Public `rollover()` starts at line 695; it obtains reserve data, calls the Balancer planner at 1227, transfers the stale tranche, redeems the bond pair, then calls BondsManager deposits (1338, 1352, 1394) and transfers the newly minted SR tranche back. The trace interleaves `BondMature`, the issuer's bond-created event, Perp `ReserveSynced`, ERC-20 `Transfer`, `TranchesRedeemed`, and BondsManager `BondDeposit` events in that order. See `round9_t1_rollover.log:227-1394`. |
-| **T2a — issuance due, rollover otherwise needed** | `upkeep()` calls issuer `issue()` at 453–454, emits the new-bond event at 512, and calls `registerTranche` on SR/JR at 530–539. No `computePerpSrRolloverPlan` or rollover deposits follow in this `upkeep()` call. See `round9_t2a_upkeep.log:453-539`. |
-| **T2b — rebalance window open** | At timestamp `1,794,160,801` with window `(frequency, offset, length)=(1,0,1)`, `upkeep()` attempts the maturity/issuance substeps, then reverts `NoOp()` at lines 599–600. No planner or successful rebalance is part of this `upkeep()` call, and its logs are rolled back. See `round9_t2b_upkeep_rebalance.log:583-600`. A separate successful direct `rebalance()` transaction is used only for the timestamp-opcode comparison below. |
-| **T2c — nothing due** | At timestamp `1,794,160,799`, `upkeep()` likewise ends in `NoOp()` at lines 460–461; no rollover planner or successful rebalance runs. See `round9_t2c_upkeep_noop.log:444-461`. |
-| **T3 — SR-only `flashMint2` after issue time** | The input transfer and SR `ReserveSynced` occur at 406–419; issuance runs at 438–439, and SR/JR `registerTranche` calls follow at 515–524. The Controller then calls the planner at 559, transfers the planned reserves and performs rollover deposits beginning at 565 and 681–740. The trace records the ordered `Transfer`, `ReserveSynced`, bond-created, redemption, and `BondDeposit` events. See `round9_t3_lazy_flashmint.log:406-740`. |
+| Scenario | Caller | Observed calls and events, in order |
+|---|---|---|
+| **T1 — `upkeep()` then public `rollover()`** | `0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d`, the configured keeper and owner Safe at the pinned block, calls both operations via `vm.prank(controller.keeper())`. | The setup `upkeep()` calls issuer `issue()` (trace lines 454–455), then registers the newly issued SR and JR tranches on the Perps (531–540). Public `rollover()` starts at line 695; it obtains reserve data, calls the Balancer planner at 1227, transfers the stale tranche, redeems the bond pair, then calls BondsManager deposits (1338, 1352, 1394) and transfers the newly minted SR tranche back. The trace interleaves `BondMature`, the issuer's bond-created event, Perp `ReserveSynced`, ERC-20 `Transfer`, `TranchesRedeemed`, and BondsManager `BondDeposit` events in that order. See `round9_t1_rollover.log:227-1394` and `round9_t1_rollover_anvil.log:7`. |
+| **T2a — issuance due, rollover otherwise needed** | `0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d`, configured keeper and owner Safe, calls `upkeep()` via `vm.prank(controller.keeper())`. | `upkeep()` calls issuer `issue()` at 453–454, emits the new-bond event at 512, and calls `registerTranche` on SR/JR at 530–539. No `computePerpSrRolloverPlan` or rollover deposits follow in this `upkeep()` call. See `round9_t2a_upkeep.log:453-539`. |
+| **T2b — rebalance window open** | `0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d`, owner Safe and configured keeper, sets the test window and calls `upkeep()`; both roles map to the same address at the pinned block. | At timestamp `1,794,160,801` with window `(frequency, offset, length)=(1,0,1)`, this snapshot's `upkeep()` attempts the maturity/issuance substeps, then reverts `NoOp()` at lines 599–600. In this snapshot upkeep() did not trigger rebalance; does not establish that upkeep never rebalances. Its reverted logs are rolled back. See `round9_t2b_upkeep_rebalance.log:583-600`. A separate successful direct `rebalance()` transaction is used only for the timestamp-opcode comparison below. |
+| **T2c — nothing due** | `0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d`, configured keeper and owner Safe, calls `upkeep()` via `vm.prank(controller.keeper())`. | At timestamp `1,794,160,799`, `upkeep()` likewise ends in `NoOp()` at lines 460–461; no rollover planner or successful rebalance runs in this snapshot. See `round9_t2c_upkeep_noop.log:444-461`. |
+| **T3 — SR-only `flashMint2` after issue time** | Random EOA `0x000000000000000000000000000000000000bEEF` calls `flashMint2` via `vm.prank(USER)`. | The input transfer and SR `ReserveSynced` occur at 406–419; issuance runs at 438–439, and SR/JR `registerTranche` calls follow at 515–524. The Controller then calls the planner at 559, transfers the planned reserves and performs rollover deposits beginning at 565 and 681–740. The trace records the ordered `Transfer`, `ReserveSynced`, bond-created, redemption, and `BondDeposit` events. See `round9_t3_lazy_flashmint.log:406-740`. |
 
 ## Answers to the requested questions
 
