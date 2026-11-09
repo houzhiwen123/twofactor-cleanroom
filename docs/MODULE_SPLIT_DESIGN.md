@@ -8,14 +8,24 @@ Adopt only option 1: `PerpController` remains the sole coordinator and performs 
 operations**. Planning stays in the existing `PerpBalancer` as pure functions invoked by the
 Controller with `STATICCALL`:
 
-| Planning function | Responsibility |
-|---|---|
-| `computePerpSrRolloverState` | Derive SR stale-tranche and rollover state |
-| `computePerpSrRolloverPlan` | Plan SR rollover (stale tranches out, deposits, new SR tranches in) |
-| `computeRolloverPolicy` | Plan standard rollover deposits |
-| `computeBackupRolloverPolicy` | Plan backup-branch deposits |
-| `computePerpJrLiquidity` | Derive JR free/reserved liquidity |
-| `computeSystemRebalancePlan` | Existing system rebalance plan |
+Controller calls **one** planner entry point for rollover: `computePerpSrRolloverPlan` (the only
+Balancer rollover selector observed in the target trace below). The other public pure functions are
+used inside `PerpBalancer`:
+
+```text
+PerpController
+    -> PerpBalancer.computePerpSrRolloverPlan(srReserveData, jrReserveData, bondsManager,
+                                              minMaturitySec, reservedPerpJrLiquidity)   // STATICCALL, pure
+PerpBalancer (internal)
+    |- computePerpSrRolloverState
+    |- computePerpJrLiquidity
+    |- computeRolloverPolicy
+    `- computeBackupRolloverPolicy
+```
+
+Whether target Controller also calls any of the inner functions directly is unproven; until a trace
+shows it, the clean room calls only the single entry point. `computeSystemRebalancePlan` remains the
+separate rebalance entry point.
 
 The planning context is built by `PerpController` from its own storage: issuer, SR/JR Perps,
 BondsManager, underlying token, and the relevant thresholds and current reserve state. Users never
@@ -24,8 +34,10 @@ protocol state.
 
 `PerpController` retains issuer calls, every SR/JR Perp call, BondsManager deposits and redeems,
 cbBTC and tranche transfers, settlement, all Controller/Perp event emission, and timestamp updates.
-The last state-changing step is the timestamp update after all planned execution succeeds. A
-revert anywhere before that point reverts the whole transaction.
+The rollover/rebalance timestamp is committed only after every external asset operation has
+succeeded, so no external call can observe a timestamp for an operation that has not completed.
+The exact position of the timestamp write relative to events is fixed from the target trace, not
+assumed. Any revert reverts the whole transaction.
 
 ## Target call-graph evidence
 
@@ -42,6 +54,25 @@ external call trace of that snapshot.
 **TODO before implementation:** capture fork traces of target `rollover()`, `upkeep()` and the
 SR flash-mint lazy rollover path, and record every Balancer selector each one calls. Do not infer
 internal planner call order beyond what those traces show.
+
+## Plan format
+
+The return type is fixed by the public Balancer ABI and is kept bit-compatible:
+
+```text
+RolloverPlan {
+    (uint256 underlyingAmt, (address token, uint256 amount)[] trancheAmts) stale;
+    (bytes32 bondID, uint256 underlyingAmt)[] freshBondDepositAmts;
+    (address token, uint256 amount)[] freshSrTrAmts;
+    uint256 underlyingValRolled;
+}
+```
+
+The plan therefore carries tranche addresses and bond IDs, not indices. Because every planner
+function is `pure`, it can only return addresses/IDs derived from the Controller-built input. The
+Controller validates by membership: each `token` must appear in the reserve data it passed in, and
+each `bondID` must belong to a tranche in that input. Index-based plans were considered and rejected
+because they would change the public Balancer ABI.
 
 ## Controller plan-validation checklist
 
