@@ -33,11 +33,15 @@ pass dependency addresses. `PerpBalancer` returns plans only; it does not move t
 protocol state.
 
 `PerpController` retains issuer calls, every SR/JR Perp call, BondsManager deposits and redeems,
-cbBTC and tranche transfers, settlement, all Controller/Perp event emission, and timestamp updates.
+cbBTC and tranche transfers, settlement, Controller event emission, and timestamp updates.
+`PerpToken` emits its own events (`Transfer`, `ReserveSynced`, ...) when the Controller calls it.
 The rollover/rebalance timestamp is committed only after every external asset operation has
 succeeded, so no external call can observe a timestamp for an operation that has not completed.
-The exact position of the timestamp write relative to events is fixed from the target trace, not
-assumed. Any revert reverts the whole transaction.
+A normal call trace does not show the order of internal `SSTORE`s relative to events; proving the
+target's timestamp-vs-event order requires an opcode/storage trace (e.g. `debug_traceTransaction`
+with the struct logger on the fork). Until that is captured, "timestamp after all external asset
+operations" is a clean-room safety design, not verified target behavior. Any revert reverts the
+whole transaction.
 
 ## Target call-graph evidence
 
@@ -68,11 +72,23 @@ RolloverPlan {
 }
 ```
 
-The plan therefore carries tranche addresses and bond IDs, not indices. Because every planner
-function is `pure`, it can only return addresses/IDs derived from the Controller-built input. The
-Controller validates by membership: each `token` must appear in the reserve data it passed in, and
-each `bondID` must belong to a tranche in that input. Index-based plans were considered and rejected
-because they would change the public Balancer ABI.
+The plan therefore carries tranche addresses and bond IDs, not indices. Index-based plans were
+considered and rejected because they would change the public Balancer ABI.
+
+`pure` + `STATICCALL` only guarantee that the Balancer cannot read or modify protocol state. They do
+**not** guarantee that returned addresses/IDs come from the input: a pure function can still return
+hard-coded or arbitrarily computed values. The Controller membership checks are therefore mandatory:
+
+- every stale tranche `token` must come from the SR/JR reserve data the Controller passed to the
+  Balancer;
+- every fresh `bondID` must come from the candidate bond set the Controller builds from
+  Issuer/BondsManager state (a freshly issued bond need not already appear in pre-operation reserve
+  data);
+- every `freshSrTrAmts` token must be the senior tranche that BondsManager maps to one of those fresh
+  `bondID`s.
+
+How the candidate set is built (in particular for a bond issued in the same transaction) is fixed
+from the pending issue→rollover call trace.
 
 ## Controller plan-validation checklist
 
