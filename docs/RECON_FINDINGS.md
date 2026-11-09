@@ -112,3 +112,26 @@ Untested: varying open/current price at fixed valueRatio.
 - CORRECTION AUM: AUM amount floor(supply*aumPerc/1e18) is MINTED via perp.mintTo(protocolFeeCollector) on each successful rebalance (not held in Controller).
 - Fee DR inputs: pre = state before op, post = state after op (both sides combined); one computeOpFees(isFlashOp) result applied to both sides in the traced both-sided flash ops.
 - Perp token selectors: init(string,string,address,address), updateController, reserveData, reserves, transferReservesTo(address,(uint256,(address,uint256)[])), handleTransferReservesIn(...), registerTranche, mintTo, burnFrom, maxTrancheCount, underlying, recover, logBalance, controller; JR only: primeApproval, revokeApproval, bondDepositsForRollover(address,(bytes32,uint256)[]).
+
+## External review hypotheses, round 1 (~/work/probes/CODEX_REVIEW_PROBES.md) — black-box only
+- Fees: two computeOpFees calls (SR/JR flags) sharing pre/post DRs; distinct params -> distinct pct. EXACT.
+- redeem2: feePerp=floor(in*fee/1e18); out_i=floor(bal_i*net/preSupply); supply -= net. EXACT (2 cases).
+- AUM gross-up: floor(S*p/(1e18-p)) at p=10%,5%; per-rebalance, no time scaling. EXACT. (supersedes earlier floor(S*p/1e18)).
+- JR over-avail with fee<1e18 -> InsufficientLiquidity() 0xbb55fd27; fee>=1e18 -> OpDisabled().
+- Rebalance window: 5 edge timestamps all succeed (seamless).
+- Lazy: SR-input flashMint2 issues new bond after issue time and rolls over stale; JR-only does not. SR lazy with high minCleanupVal succeeds, input left idle.
+- Fee settlement on successful rebalance: SR/JR fee perps burned, cbBTC fee -> perpJR; JR-input mints don't settle. collected = balance - protocolFeeBals. Collector pulls exact protocol bal; random -> 0x7bf6a16f.
+- valueCap: corrective crossing subDR=1 -> ValueCapExceeded() 0x8f61fa9a.
+- Versions pinned (identical at 53494912 and 54990962): see probes/reviewer_fork_versions.log.
+## Round 2
+- mint2 accepts only latest-bond tranche pair (else UnexpectedAsset 0x59102332); mint2 first attempts issue+register (trace), so after issue time the old pair becomes non-latest and reverts.
+- Rebalance fee settlement: SR fee perps burned, no SR->JR reserve move; settles even with zero transfer plan; protocolFeeBals preserved.
+- pullProtocolFees(address,address,uint256): only protocolFeeCollector (owner -> 0x7bf6a16f); over-withdraw -> Panic 0x11.
+- SR flashMint lazy rollover gated by minCleanupVal (skip at 1e8, trigger at 1e6 for 2e6 input). JR-payer rebalance with zero JR avail: underlying-only, no rollover.
+- Public rollover with minCleanupVal 1e8 & no free JR liquidity -> InsufficientRollover 0xbbb27b39.
+## Round 3
+- Backup total = min(free, floor(S*1e18/vr_selected)); 2S is the vr=0.5 special case. Selected row: latest at -30%, previous fresh at +30% (selection rule UNRESOLVED).
+- Standard allocation rule holds at shifted prices.
+- Public rollover can partially complete (41,875,890 -> 14,656,562 stale).
+- SR lazy rollover trigger: post-input SR idle > minCleanupVal (strict).
+- valueCap adjacent boundary: SR max success 6,423,365 (post subDR 1.000000004321734011), +1 fails; JR mirrored max 10,184,377. Exact-equality unresolved.
