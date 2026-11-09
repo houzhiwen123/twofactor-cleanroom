@@ -5,7 +5,7 @@ Black-box observations from the local Base Anvil fork at block `54990962`
 the fork. No target source/frontend bundle was read and no clean-room repo
 files were changed.
 
-Full raw traces and the Foundry harness are in `/home/ubuntu/work/probes`:
+Full raw traces and the Foundry harness are in `evidence/raw-logs.tar.xz`:
 
 - `controller_probe2_traces.log` — Controller/perp call traces for flash mint,
   flash redeem, mint, redeem, rebalance, rollover, and upkeep.

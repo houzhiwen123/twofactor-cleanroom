@@ -1,8 +1,8 @@
 # Round 5 Black-Box Probes
 
-Repro command: `cd /home/ubuntu/work/probes && BASE_RPC_URL=http://127.0.0.1:8545 forge test --offline --via-ir --fork-url http://127.0.0.1:8545 --match-path test/Round5Probe.t.sol -vvvv`
+Repro command: `cd evidence/raw-logs.tar.xz && BASE_RPC_URL=http://127.0.0.1:8545 forge test --offline --via-ir --fork-url http://127.0.0.1:8545 --match-path test/Round5Probe.t.sol -vvvv`
 
-All Round 5 Foundry cases used the local Base Anvil fork at `http://127.0.0.1:8545`, chain ID `8453`, fork block `54,990,962`. No verified source or frontend bundle was accessed, no real-chain transaction was sent, and no clean-room repository file was changed. Raw logs are listed below; the SHA-256 manifest is `/home/ubuntu/work/probes/LOG_SHA256SUMS.txt`.
+All Round 5 Foundry cases used the local Base Anvil fork at `http://127.0.0.1:8545`, chain ID `8453`, fork block `54,990,962`. No verified source or frontend bundle was accessed, no real-chain transaction was sent, and no clean-room repository file was changed. Raw logs are listed below; the SHA-256 manifest is `evidence/raw-logs.tar.xz::LOG_SHA256SUMS.txt`.
 
 ## Summary
 
@@ -64,7 +64,7 @@ These observations are consistent with partial public cleanup and a strict `post
 
 ## Q3 — `recover()` balances and events
 
-The available Perp address JSON under `/home/ubuntu/work/abis` is selector-match metadata and contains no `abi` field. The exercised signature was the no-argument `recover()` (`cast sig` selector `0xce746024`); the supplied ABI material did not establish whether overloads exist. No arguments were available to vary.
+The available Perp address JSON under `provided public ABI metadata` is selector-match metadata and contains no `abi` field. The exercised signature was the no-argument `recover()` (`cast sig` selector `0xce746024`); the supplied ABI material did not establish whether overloads exist. No arguments were available to vary.
 
 For each Perp, the test dealt `101` cbBTC, `202` of its latest registered tranche, `303` USDC, and `404` of the Perp token to the Perp, then called `recover()` as Controller. Both calls succeeded with empty return data. Before/after balances were unchanged in every category; Controller and owner cbBTC deltas were `0`. Each call emitted six `ReserveSynced(address,uint256)` events (topic `0xd1fbbd81a5fd46d869b5cd6883d99108cd295072be1b09d36381bbc78b686939`) for the three SR/JR tranche pairs; no tested token was transferred out.
 
@@ -89,17 +89,17 @@ No Round 5 execution was performed for Q5, Q7, Q8, or Q10. Q6 only has the earli
 
 Primary Round 5 logs:
 
-- `/home/ubuntu/work/probes/round5_all_tests.log`
-- `/home/ubuntu/work/probes/round5_q1_independent_prices_exact_tie.log`
-- `/home/ubuntu/work/probes/round5_q3_recover.log`
-- `/home/ubuntu/work/probes/round5_q4_reserve_order_partial_live.log`
+- `evidence/raw-logs.tar.xz::round5_all_tests.log`
+- `evidence/raw-logs.tar.xz::round5_q1_independent_prices_exact_tie.log`
+- `evidence/raw-logs.tar.xz::round5_q3_recover.log`
+- `evidence/raw-logs.tar.xz::round5_q4_reserve_order_partial_live.log`
 
 Earlier/inconclusive Q4 harness attempts are also retained and included in the manifest:
 
-- `/home/ubuntu/work/probes/round5_q1_independent_prices.log`
-- `/home/ubuntu/work/probes/round5_q4_reserve_order.log`
-- `/home/ubuntu/work/probes/round5_q4_reserve_order_live_tokens.log`
-- `/home/ubuntu/work/probes/round5_q4_reserve_order_after_prefill.log`
-- `/home/ubuntu/work/probes/round5_q4_reserve_order_deposit.log`
+- `evidence/raw-logs.tar.xz::round5_q1_independent_prices.log`
+- `evidence/raw-logs.tar.xz::round5_q4_reserve_order.log`
+- `evidence/raw-logs.tar.xz::round5_q4_reserve_order_live_tokens.log`
+- `evidence/raw-logs.tar.xz::round5_q4_reserve_order_after_prefill.log`
+- `evidence/raw-logs.tar.xz::round5_q4_reserve_order_deposit.log`
 
-`/home/ubuntu/work/probes/LOG_SHA256SUMS.txt` contains SHA-256 hashes for all `.log` files in the probes directory.
+`evidence/raw-logs.tar.xz::LOG_SHA256SUMS.txt` contains SHA-256 hashes for all `.log` files in the probes directory.

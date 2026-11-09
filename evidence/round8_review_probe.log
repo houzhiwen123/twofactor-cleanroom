@@ -1,0 +1,84 @@
+Compiling 1 files with Solc 0.8.24
+Solc 0.8.24 finished in 3.60s
+Compiler run successful with warnings:
+Warning (2018): Function state mutability can be restricted to view
+  --> test/Round8ReviewProbe.t.sol:58:5:
+   |
+58 |     function testR8LiveReserveTupleMatchesTokenBalances() public {
+   |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 3 tests for test/Round8ReviewProbe.t.sol:Round8ReviewProbe
+[PASS] testR8ControllerSetterInputMatrix() (gas: 4072474)
+Logs:
+  OBS:R8_SETTER {"case":"dr_zero_system","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"targetSystemRatio":2847475019000000000,"targetPerpJrVM":1333333333000000000}}
+  OBS:R8_SETTER {"case":"dr_zero_jr","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"targetSystemRatio":2847475019000000000,"targetPerpJrVM":1333333333000000000}}
+  OBS:R8_SETTER {"case":"dr_one_wad","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"targetSystemRatio":2847475019000000000,"targetPerpJrVM":1333333333000000000}}
+  OBS:R8_SETTER {"case":"dr_wad_wad","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"targetSystemRatio":2847475019000000000,"targetPerpJrVM":1333333333000000000}}
+  OBS:R8_SETTER {"case":"dr_wad_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"targetSystemRatio":2847475019000000000,"targetPerpJrVM":1333333333000000000}}
+  OBS:R8_SETTER {"case":"dr_wad_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"targetSystemRatio":1000000000000000001,"targetPerpJrVM":1000000000000000001}}
+  OBS:R8_SETTER {"case":"fee_policy_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"feePolicy":0}}
+  OBS:R8_SETTER {"case":"fee_policy_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"feePolicy":1}}
+  OBS:R8_SETTER {"case":"issuer_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"issuer":1127097429881915868209972920696828410289228606384}}
+  OBS:R8_SETTER {"case":"issuer_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"issuer":1127097429881915868209972920696828410289228606384}}
+  OBS:R8_SETTER {"case":"keeper_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"keeper":0}}
+  OBS:R8_SETTER {"case":"keeper_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"keeper":1}}
+  OBS:R8_SETTER {"case":"balancer_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"balancer":0}}
+  OBS:R8_SETTER {"case":"balancer_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"balancer":1}}
+  OBS:R8_SETTER {"case":"liquidity_zero_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"perpJrReservedUnderlyingAmt":0,"perpJrReservedUnderlyingPerc":0}}
+  OBS:R8_SETTER {"case":"liquidity_one_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"perpJrReservedUnderlyingAmt":1,"perpJrReservedUnderlyingPerc":1}}
+  OBS:R8_SETTER {"case":"liquidity_wad_minus_one_wad_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"perpJrReservedUnderlyingAmt":999999999999999999,"perpJrReservedUnderlyingPerc":999999999999999999}}
+  OBS:R8_SETTER {"case":"liquidity_wad_wad","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"perpJrReservedUnderlyingAmt":1000000000000000000,"perpJrReservedUnderlyingPerc":1000000000000000000}}
+  OBS:R8_SETTER {"case":"liquidity_wad_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"perpJrReservedUnderlyingAmt":1000000000000000001,"perpJrReservedUnderlyingPerc":1000000000000000000}}
+  OBS:R8_SETTER {"case":"liquidity_perc_wad_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xcdc6269200000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"perpJrReservedUnderlyingAmt":1000000,"perpJrReservedUnderlyingPerc":10000000000000000}}
+  OBS:R8_SETTER {"case":"cleanup_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":0}}
+  OBS:R8_SETTER {"case":"cleanup_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":1}}
+  OBS:R8_SETTER {"case":"cleanup_wad_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":999999999999999999}}
+  OBS:R8_SETTER {"case":"cleanup_wad","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":1000000000000000000}}
+  OBS:R8_SETTER {"case":"cleanup_wad_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":1000000000000000001}}
+  OBS:R8_SETTER {"case":"cleanup_max","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minCleanupVal":115792089237316195423570985008687907853269984665640564039457584007913129639935}}
+  OBS:R8_SETTER {"case":"eligibility_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"minMaturitySec":604800}}
+  OBS:R8_SETTER {"case":"eligibility_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minMaturitySec":1}}
+  OBS:R8_SETTER {"case":"eligibility_current_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minMaturitySec":604799}}
+  OBS:R8_SETTER {"case":"eligibility_current","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minMaturitySec":604800}}
+  OBS:R8_SETTER {"case":"eligibility_current_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minMaturitySec":604801}}
+  OBS:R8_SETTER {"case":"eligibility_max","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"minMaturitySec":4294967295}}
+  OBS:R8_SETTER {"case":"value_cap_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":0}}
+  OBS:R8_SETTER {"case":"value_cap_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":1}}
+  OBS:R8_SETTER {"case":"value_cap_wad_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":999999999999999999}}
+  OBS:R8_SETTER {"case":"value_cap_wad","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":1000000000000000000}}
+  OBS:R8_SETTER {"case":"value_cap_wad_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":1000000000000000001}}
+  OBS:R8_SETTER {"case":"value_cap_max","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"valueCap":115792089237316195423570985008687907853269984665640564039457584007913129639935}}
+  OBS:R8_SETTER {"case":"pause_user_false","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"userOpsPaused":0}}
+  OBS:R8_SETTER {"case":"pause_user_true","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"userOpsPaused":1}}
+  OBS:R8_SETTER {"case":"pause_system_false","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"systemOpsPaused":0}}
+  OBS:R8_SETTER {"case":"pause_system_true","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"systemOpsPaused":1}}
+  OBS:R8_SETTER {"case":"window_freq_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86400}}
+  OBS:R8_SETTER {"case":"window_offset_freq_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":86399,"rebalanceWindowLengthSec":3600}}
+  OBS:R8_SETTER {"case":"window_offset_freq","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":86400,"rebalanceWindowLengthSec":3600}}
+  OBS:R8_SETTER {"case":"window_offset_freq_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86400}}
+  OBS:R8_SETTER {"case":"window_length_zero","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86400}}
+  OBS:R8_SETTER {"case":"window_length_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":1}}
+  OBS:R8_SETTER {"case":"window_length_freq_minus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86399}}
+  OBS:R8_SETTER {"case":"window_length_freq","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86400}}
+  OBS:R8_SETTER {"case":"window_length_freq_plus_one","caller":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4,"getters":{"rebalanceFreqSec":86400,"rebalanceWindowOffsetSec":64800,"rebalanceWindowLengthSec":86400}}
+
+[PASS] testR8LiveReserveTupleMatchesTokenBalances() (gas: 342121)
+Logs:
+  OBS:R8_RESERVES {"perp":"0x4be28E7597A928835245a10E9161E0c44687b70b","returndataLength":320,"underlyingBal":0,"count":3,"allBalancesMatch":true}
+  OBS:R8_RESERVE_ITEM {"perp":"0x4be28E7597A928835245a10E9161E0c44687b70b","index":0,"token":"0x2b97045571Ec78aE1010Df47b3e275eCdAE53300","amount":3149185188264,"directBalance":3149185188264}
+  OBS:R8_RESERVE_ITEM {"perp":"0x4be28E7597A928835245a10E9161E0c44687b70b","index":1,"token":"0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B","amount":3133547705520,"directBalance":3133547705520}
+  OBS:R8_RESERVE_ITEM {"perp":"0x4be28E7597A928835245a10E9161E0c44687b70b","index":2,"token":"0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68","amount":3392625737181,"directBalance":3392625737181}
+  OBS:R8_RESERVES {"perp":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","returndataLength":320,"underlyingBal":271549615,"count":3,"allBalancesMatch":true}
+  OBS:R8_RESERVE_ITEM {"perp":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","index":0,"token":"0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414","amount":3149185188266,"directBalance":3149185188266}
+  OBS:R8_RESERVE_ITEM {"perp":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","index":1,"token":"0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1","amount":3133547705527,"directBalance":3133547705527}
+  OBS:R8_RESERVE_ITEM {"perp":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","index":2,"token":"0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582","amount":3392625737183,"directBalance":3392625737183}
+
+[PASS] testR8SeniorApprovalSelectorsHaveEmptyRevertData() (gas: 81352)
+Logs:
+  OBS:R8_SR_APPROVAL_SELECTOR {"selector":"0x397e327f00000000000000000000000000000000000000000000000000000000","success":false,"revertData":"0x"}
+  OBS:R8_SR_APPROVAL_SELECTOR {"selector":"0x484685b000000000000000000000000000000000000000000000000000000000","success":false,"revertData":"0x"}
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 111.32ms (104.36ms CPU time)
+
+Ran 1 test suite in 113.71ms (111.32ms CPU time): 3 tests passed, 0 failed, 0 skipped (3 total tests)

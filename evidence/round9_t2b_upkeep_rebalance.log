@@ -1,0 +1,725 @@
+Compiling 1 files with Solc 0.8.24
+Solc 0.8.24 finished in 1.03s
+Compiler run successful!
+
+Ran 1 test for evidence/probe-tests/Round9TraceProbe.t.sol:Round9TraceProbeTest
+[PASS] testT2bUpkeepWithRebalanceWindowOpen() (gas: 1389355)
+Logs:
+  ROUND9:{"label":"T2b_initial","timestamp":1794188568,"minCleanupVal":1000000,"minMaturitySec":604800,"reservedPerpJrLiquidity":3864657,"lastRebalanceTimestampSec":1794160800,"latestBond":"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"}
+  ROUND9:{"label":"T2b_before_upkeep","timestamp":1794160801,"minCleanupVal":1000000,"minMaturitySec":604800,"reservedPerpJrLiquidity":3864657,"lastRebalanceTimestampSec":1794160800,"latestBond":"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"}
+  ROUND9:{"label":"T2b_after_upkeep","timestamp":1794160801,"minCleanupVal":1000000,"minMaturitySec":604800,"reservedPerpJrLiquidity":3864657,"lastRebalanceTimestampSec":1794160800,"latestBond":"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"}
+
+Traces:
+  [220300] Round9TraceProbeTest::setUp()
+    ├─ [7178] 0x682F3a053B0260daD4EbEee3924B1618B330A200::underlyingOracle() [staticcall]
+    │   ├─ [2337] 0x16e324BAe2098317477129a5E71f770bFf51f02a::underlyingOracle() [delegatecall]
+    │   │   └─ ← [Return] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a
+    │   └─ ← [Return] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a
+    ├─ [193] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::FEED() [staticcall]
+    │   └─ ← [Return] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D
+    ├─ [322] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::SEQUENCER_FEED() [staticcall]
+    │   └─ ← [Return] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433
+    ├─ [269] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::GRACE_PERIOD() [staticcall]
+    │   └─ ← [Return] 3600
+    ├─ [15642] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   ├─ [7409] 0x51cE3091Cf646587E02Cad83b580992f8723e718::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 19226 [1.922e4], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 19226 [1.922e4]
+    │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 36893488147419122458 [3.689e19]
+    ├─ [13532] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   ├─ [5299] 0x606c6ecBD272E2174F6710b5974F23fE9899602e::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 20, 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 20
+    │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 18446744073709551636 [1.844e19]
+    ├─ [7911] 0x682F3a053B0260daD4EbEee3924B1618B330A200::owner() [staticcall]
+    │   ├─ [3070] 0x16e324BAe2098317477129a5E71f770bFf51f02a::owner() [delegatecall]
+    │   │   └─ ← [Return] 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d
+    │   └─ ← [Return] 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d
+    ├─ [0] VM::assertEq(0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d, 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d) [staticcall]
+    │   └─ ← [Return]
+    └─ ← [Stop]
+
+  [1389355] Round9TraceProbeTest::testT2bUpkeepWithRebalanceWindowOpen()
+    ├─ [33659] 0x682F3a053B0260daD4EbEee3924B1618B330A200::latestBondInfo() [staticcall]
+    │   ├─ [28806] 0x16e324BAe2098317477129a5E71f770bFf51f02a::latestBondInfo() [delegatecall]
+    │   │   ├─ [22874] 0xc56CCbF6219B780c879544FEe0404bD3B49fEBB0::latestBondInfo() [staticcall]
+    │   │   │   ├─ [18021] 0xE024Bd4967185456df3dE7D2365919B5fb89763B::latestBondInfo() [delegatecall]
+    │   │   │   │   ├─ [10077] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    ├─ [0] VM::toString(1794188568 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794188568"
+    ├─ [7402] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minCleanupVal() [staticcall]
+    │   ├─ [2561] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minCleanupVal() [delegatecall]
+    │   │   └─ ← [Return] 1000000 [1e6]
+    │   └─ ← [Return] 1000000 [1e6]
+    ├─ [0] VM::toString(1000000 [1e6]) [staticcall]
+    │   └─ ← [Return] "1000000"
+    ├─ [8024] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minMaturitySec() [staticcall]
+    │   ├─ [3183] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minMaturitySec() [delegatecall]
+    │   │   └─ ← [Return] 604800 [6.048e5]
+    │   └─ ← [Return] 604800 [6.048e5]
+    ├─ [0] VM::toString(604800 [6.048e5]) [staticcall]
+    │   └─ ← [Return] "604800"
+    ├─ [224552] 0x682F3a053B0260daD4EbEee3924B1618B330A200::reservedPerpJrLiquidity() [staticcall]
+    │   ├─ [219711] 0x16e324BAe2098317477129a5E71f770bFf51f02a::reservedPerpJrLiquidity() [delegatecall]
+    │   │   ├─ [204573] 0x8cd04668292dC32F519972495C179E4f02C0e8AB::reserveData() [staticcall]
+    │   │   │   ├─ [199427] 0x8e9ED1138060434E56A5f7965017391C93631529::reserveData() [delegatecall]
+    │   │   │   │   ├─ [9785] 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2553] 0x7458bfDC30034EB860B265E6068121D18Fa5Aa72::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   ├─ [5254] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   ├─ [74862] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::data() [staticcall]
+    │   │   │   │   │   ├─ [74618] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [63303] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [58384] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   ├─ [36593] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [13532] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [5299] 0x606c6ecBD272E2174F6710b5974F23fE9899602e::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 20, 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 20
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [15642] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [7409] 0x51cE3091Cf646587E02Cad83b580992f8723e718::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 19226 [1.922e4], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 19226 [1.922e4]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   ├─ [35362] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::data() [staticcall]
+    │   │   │   │   │   ├─ [35118] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [26303] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [25884] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   ├─ [8593] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [3032] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [1299] 0x606c6ecBD272E2174F6710b5974F23fE9899602e::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 20, 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 20
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [3142] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [1409] 0x51cE3091Cf646587E02Cad83b580992f8723e718::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 19226 [1.922e4], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 19226 [1.922e4]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   ├─ [35362] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::data() [staticcall]
+    │   │   │   │   │   ├─ [35118] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [26303] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [25884] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   ├─ [8593] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [3032] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [1299] 0x606c6ecBD272E2174F6710b5974F23fE9899602e::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 20, 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 20
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1782491507 [1.782e9], 1794158703 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [3142] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   ├─ [1409] 0x51cE3091Cf646587E02Cad83b580992f8723e718::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 19226 [1.922e4], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 19226 [1.922e4]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794187614 [1.794e9], 1794187627 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2135832 [2.135e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 926232 [9.262e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1531032 [1.531e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   └─ ← [Return] 3864657 [3.864e6]
+    │   └─ ← [Return] 3864657 [3.864e6]
+    ├─ [0] VM::toString(3864657 [3.864e6]) [staticcall]
+    │   └─ ← [Return] "3864657"
+    ├─ [7348] 0x682F3a053B0260daD4EbEee3924B1618B330A200::lastRebalanceTimestampSec() [staticcall]
+    │   ├─ [2507] 0x16e324BAe2098317477129a5E71f770bFf51f02a::lastRebalanceTimestampSec() [delegatecall]
+    │   │   └─ ← [Return] 1794160800 [1.794e9]
+    │   └─ ← [Return] 1794160800 [1.794e9]
+    ├─ [0] VM::toString(1794160800 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794160800"
+    ├─ [0] VM::toString(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   └─ ← [Return] "0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"
+    ├─ [0] console::log("ROUND9:{\"label\":\"T2b_initial\",\"timestamp\":1794188568,\"minCleanupVal\":1000000,\"minMaturitySec\":604800,\"reservedPerpJrLiquidity\":3864657,\"lastRebalanceTimestampSec\":1794160800,\"latestBond\":\"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8\"}") [staticcall]
+    │   └─ ← [Stop]
+    ├─ [0] VM::prank(0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d)
+    │   └─ ← [Return]
+    ├─ [34504] 0x682F3a053B0260daD4EbEee3924B1618B330A200::updateRebalanceWindow(1, 0, 1)
+    │   ├─ [8182] 0x16e324BAe2098317477129a5E71f770bFf51f02a::updateRebalanceWindow(1, 0, 1) [delegatecall]
+    │   │   ├─  storage changes:
+    │   │   │   @ 9: 0x000000000000000000000000000000006af0b8a0000151800000fd2000015180 → 0x000000000000000000000000000000006af0b8a0000000010000000000000001
+    │   │   └─ ← [Return]
+    │   └─ ← [Return]
+    ├─ [0] VM::warp(1794160801 [1.794e9])
+    │   └─ ← [Return]
+    ├─ [0] VM::mockCall(0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D, 0xfeaf968c, 0x0000000000000000000000000000000000000000000000020000000000004b1a000000000000000000000000000000000000000000000000000006ce4204e1a4000000000000000000000000000000000000000000000000000000006af0b8a1000000000000000000000000000000000000000000000000000000006af0b8a10000000000000000000000000000000000000000000000020000000000004b1a)
+    │   └─ ← [Return]
+    ├─ [0] VM::mockCall(0xBCF85224fc0756B9Fa45aA7892530B47e10b6433, 0xfeaf968c, 0x00000000000000000000000000000000000000000000000100000000000000140000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000006af0aa90000000000000000000000000000000000000000000000000000000006af0b8a10000000000000000000000000000000000000000000000010000000000000014)
+    │   └─ ← [Return]
+    ├─ [28527] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::cachePrice()
+    │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   └─ ← [Stop]
+    ├─ [33659] 0x682F3a053B0260daD4EbEee3924B1618B330A200::latestBondInfo() [staticcall]
+    │   ├─ [28806] 0x16e324BAe2098317477129a5E71f770bFf51f02a::latestBondInfo() [delegatecall]
+    │   │   ├─ [22874] 0xc56CCbF6219B780c879544FEe0404bD3B49fEBB0::latestBondInfo() [staticcall]
+    │   │   │   ├─ [18021] 0xE024Bd4967185456df3dE7D2365919B5fb89763B::latestBondInfo() [delegatecall]
+    │   │   │   │   ├─ [10077] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    ├─ [0] VM::toString(1794160801 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794160801"
+    ├─ [7402] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minCleanupVal() [staticcall]
+    │   ├─ [2561] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minCleanupVal() [delegatecall]
+    │   │   └─ ← [Return] 1000000 [1e6]
+    │   └─ ← [Return] 1000000 [1e6]
+    ├─ [0] VM::toString(1000000 [1e6]) [staticcall]
+    │   └─ ← [Return] "1000000"
+    ├─ [8024] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minMaturitySec() [staticcall]
+    │   ├─ [3183] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minMaturitySec() [delegatecall]
+    │   │   └─ ← [Return] 604800 [6.048e5]
+    │   └─ ← [Return] 604800 [6.048e5]
+    ├─ [0] VM::toString(604800 [6.048e5]) [staticcall]
+    │   └─ ← [Return] "604800"
+    ├─ [183030] 0x682F3a053B0260daD4EbEee3924B1618B330A200::reservedPerpJrLiquidity() [staticcall]
+    │   ├─ [178189] 0x16e324BAe2098317477129a5E71f770bFf51f02a::reservedPerpJrLiquidity() [delegatecall]
+    │   │   ├─ [163051] 0x8cd04668292dC32F519972495C179E4f02C0e8AB::reserveData() [staticcall]
+    │   │   │   ├─ [157905] 0x8e9ED1138060434E56A5f7965017391C93631529::reserveData() [delegatecall]
+    │   │   │   │   ├─ [9785] 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2553] 0x7458bfDC30034EB860B265E6068121D18Fa5Aa72::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   ├─ [5254] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   ├─ [45688] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::data() [staticcall]
+    │   │   │   │   │   ├─ [45444] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [34129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [29210] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   ├─ [7419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   ├─ [29188] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::data() [staticcall]
+    │   │   │   │   │   ├─ [28944] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [20129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [19710] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   ├─ [2419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   ├─ [29188] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::data() [staticcall]
+    │   │   │   │   │   ├─ [28944] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [20129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [19710] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   ├─ [2419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   └─ ← [Return] 3864657 [3.864e6]
+    │   └─ ← [Return] 3864657 [3.864e6]
+    ├─ [0] VM::toString(3864657 [3.864e6]) [staticcall]
+    │   └─ ← [Return] "3864657"
+    ├─ [7348] 0x682F3a053B0260daD4EbEee3924B1618B330A200::lastRebalanceTimestampSec() [staticcall]
+    │   ├─ [2507] 0x16e324BAe2098317477129a5E71f770bFf51f02a::lastRebalanceTimestampSec() [delegatecall]
+    │   │   └─ ← [Return] 1794160800 [1.794e9]
+    │   └─ ← [Return] 1794160800 [1.794e9]
+    ├─ [0] VM::toString(1794160800 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794160800"
+    ├─ [0] VM::toString(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   └─ ← [Return] "0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"
+    ├─ [0] console::log("ROUND9:{\"label\":\"T2b_before_upkeep\",\"timestamp\":1794160801,\"minCleanupVal\":1000000,\"minMaturitySec\":604800,\"reservedPerpJrLiquidity\":3864657,\"lastRebalanceTimestampSec\":1794160800,\"latestBond\":\"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8\"}") [staticcall]
+    │   └─ ← [Stop]
+    ├─ [8058] 0x682F3a053B0260daD4EbEee3924B1618B330A200::keeper() [staticcall]
+    │   ├─ [3217] 0x16e324BAe2098317477129a5E71f770bFf51f02a::keeper() [delegatecall]
+    │   │   └─ ← [Return] 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d
+    │   └─ ← [Return] 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d
+    ├─ [0] VM::prank(0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d)
+    │   └─ ← [Return]
+    ├─ [377413] 0x682F3a053B0260daD4EbEee3924B1618B330A200::upkeep()
+    │   ├─ [351507] 0x16e324BAe2098317477129a5E71f770bFf51f02a::upkeep() [delegatecall]
+    │   │   ├─ [7463] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::cachePrice()
+    │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   └─ ← [Stop]
+    │   │   ├─ [62400] 0xc56CCbF6219B780c879544FEe0404bD3B49fEBB0::cleanupMature()
+    │   │   │   ├─ [57559] 0xE024Bd4967185456df3dE7D2365919B5fb89763B::cleanupMature() [delegatecall]
+    │   │   │   │   ├─ [9022] 0xe8c13955caED9c009fd2b335A10986407958fde3::tryMature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8)
+    │   │   │   │   │   ├─ [4178] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tryMature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   ├─ [3212] 0xe8c13955caED9c009fd2b335A10986407958fde3::mature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8)
+    │   │   │   │   │   │   │   ├─ [2867] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::mature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [3363] 0xe8c13955caED9c009fd2b335A10986407958fde3::isMature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [3019] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::isMature(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [4522] 0xe8c13955caED9c009fd2b335A10986407958fde3::tryMature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d)
+    │   │   │   │   │   ├─ [4178] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tryMature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [delegatecall]
+    │   │   │   │   │   │   ├─ [3212] 0xe8c13955caED9c009fd2b335A10986407958fde3::mature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d)
+    │   │   │   │   │   │   │   ├─ [2867] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::mature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [delegatecall]
+    │   │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [3363] 0xe8c13955caED9c009fd2b335A10986407958fde3::isMature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [staticcall]
+    │   │   │   │   │   ├─ [3019] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::isMature(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [4522] 0xe8c13955caED9c009fd2b335A10986407958fde3::tryMature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963)
+    │   │   │   │   │   ├─ [4178] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tryMature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [delegatecall]
+    │   │   │   │   │   │   ├─ [3212] 0xe8c13955caED9c009fd2b335A10986407958fde3::mature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963)
+    │   │   │   │   │   │   │   ├─ [2867] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::mature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [delegatecall]
+    │   │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [3363] 0xe8c13955caED9c009fd2b335A10986407958fde3::isMature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [staticcall]
+    │   │   │   │   │   ├─ [3019] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::isMature(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [4522] 0xe8c13955caED9c009fd2b335A10986407958fde3::tryMature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f)
+    │   │   │   │   │   ├─ [4178] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tryMature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f) [delegatecall]
+    │   │   │   │   │   │   ├─ [3212] 0xe8c13955caED9c009fd2b335A10986407958fde3::mature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f)
+    │   │   │   │   │   │   │   ├─ [2867] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::mature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f) [delegatecall]
+    │   │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   │   └─ ← [Revert] ImmaturableBond()
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   ├─ [3363] 0xe8c13955caED9c009fd2b335A10986407958fde3::isMature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f) [staticcall]
+    │   │   │   │   │   ├─ [3019] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::isMature(0x72b690a18bb8c7b31702dbfa82d4ad74ca207bd7e71cd58992753279b4e4b22f) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   │   └─ ← [Return] false
+    │   │   │   │   └─ ← [Return] false
+    │   │   │   └─ ← [Return] false
+    │   │   ├─ [137192] 0x4be28E7597A928835245a10E9161E0c44687b70b::recover()
+    │   │   │   ├─ [132351] 0x96fC14b136300f9136C0d589Ed7a787B66571574::recover() [delegatecall]
+    │   │   │   │   ├─ [5101] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8
+    │   │   │   │   │   └─ ← [Return] 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8
+    │   │   │   │   ├─ [5577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   ├─ [2754] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188264 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188264 [3.149e12]
+    │   │   │   │   ├─ [2754] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [3945] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 3149185188264 [3.149e12], 0)
+    │   │   │   │   │   ├─ [3577] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 3149185188264 [3.149e12], 0) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, amount: 0 }), TokenAmount({ token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, amount: 0 }), TokenAmount({ token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, amount: 0 })
+    │   │   │   │   ├─ [754] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188264 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188264 [3.149e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, balance: 3149185188264 [3.149e12])
+    │   │   │   │   ├─ [754] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, balance: 0)
+    │   │   │   │   ├─ [2601] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963
+    │   │   │   │   │   └─ ← [Return] 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963
+    │   │   │   │   ├─ [5577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1
+    │   │   │   │   │   └─ ← [Return] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1
+    │   │   │   │   ├─ [2754] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705520 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705520 [3.133e12]
+    │   │   │   │   ├─ [2754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [3945] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, 3133547705520 [3.133e12], 0)
+    │   │   │   │   │   ├─ [3577] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, 3133547705520 [3.133e12], 0) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, amount: 0 }), TokenAmount({ token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, amount: 0 }), TokenAmount({ token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, amount: 0 })
+    │   │   │   │   ├─ [754] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705520 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705520 [3.133e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, balance: 3133547705520 [3.133e12])
+    │   │   │   │   ├─ [754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, balance: 0)
+    │   │   │   │   ├─ [2601] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d
+    │   │   │   │   │   └─ ← [Return] 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d
+    │   │   │   │   ├─ [5577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582
+    │   │   │   │   │   └─ ← [Return] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582
+    │   │   │   │   ├─ [2754] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737181 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737181 [3.392e12]
+    │   │   │   │   ├─ [2754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [3945] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 3392625737181 [3.392e12], 0)
+    │   │   │   │   │   ├─ [3577] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 3392625737181 [3.392e12], 0) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, amount: 0 }), TokenAmount({ token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, amount: 0 }), TokenAmount({ token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, amount: 0 })
+    │   │   │   │   ├─ [754] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737181 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737181 [3.392e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, balance: 3392625737181 [3.392e12])
+    │   │   │   │   ├─ [754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x4be28E7597A928835245a10E9161E0c44687b70b) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, balance: 0)
+    │   │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   ├─ [107836] 0x8cd04668292dC32F519972495C179E4f02C0e8AB::recover()
+    │   │   │   ├─ [102995] 0x8e9ED1138060434E56A5f7965017391C93631529::recover() [delegatecall]
+    │   │   │   │   ├─ [2601] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8
+    │   │   │   │   │   └─ ← [Return] 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8
+    │   │   │   │   ├─ [1577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [1230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   ├─ [2754] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [2754] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   ├─ [3925] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 0, 3149185188266 [3.149e12])
+    │   │   │   │   │   ├─ [3557] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 0, 3149185188266 [3.149e12]) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, amount: 0 }), TokenAmount({ token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, amount: 0 }), TokenAmount({ token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, amount: 0 })
+    │   │   │   │   ├─ [754] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, balance: 0)
+    │   │   │   │   ├─ [754] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, balance: 3149185188266 [3.149e12])
+    │   │   │   │   ├─ [2601] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963
+    │   │   │   │   │   └─ ← [Return] 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963
+    │   │   │   │   ├─ [1577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [staticcall]
+    │   │   │   │   │   ├─ [1230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1
+    │   │   │   │   │   └─ ← [Return] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1
+    │   │   │   │   ├─ [2754] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [2754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   ├─ [3925] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, 0, 3133547705527 [3.133e12])
+    │   │   │   │   │   ├─ [3557] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, 0, 3133547705527 [3.133e12]) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, amount: 0 }), TokenAmount({ token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, amount: 0 }), TokenAmount({ token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, amount: 0 })
+    │   │   │   │   ├─ [754] 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, balance: 0)
+    │   │   │   │   ├─ [754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, balance: 3133547705527 [3.133e12])
+    │   │   │   │   ├─ [2601] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::manager() [staticcall]
+    │   │   │   │   │   ├─ [2435] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::manager() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   │   └─ ← [Return] 0xe8c13955caED9c009fd2b335A10986407958fde3
+    │   │   │   │   ├─ [2575] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::bondID() [staticcall]
+    │   │   │   │   │   ├─ [2409] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::bondID() [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d
+    │   │   │   │   │   └─ ← [Return] 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d
+    │   │   │   │   ├─ [1577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [staticcall]
+    │   │   │   │   │   ├─ [1230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582
+    │   │   │   │   │   └─ ← [Return] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582
+    │   │   │   │   ├─ [2754] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ [2754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   ├─ [3925] 0xe8c13955caED9c009fd2b335A10986407958fde3::redeem(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 0, 3392625737183 [3.392e12])
+    │   │   │   │   │   ├─ [3557] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::redeem(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 0, 3392625737183 [3.392e12]) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, amount: 0 }), TokenAmount({ token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, amount: 0 })
+    │   │   │   │   │   └─ ← [Return] 0, TokenAmount({ token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, amount: 0 }), TokenAmount({ token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, amount: 0 })
+    │   │   │   │   ├─ [754] 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   │   └─ ← [Return] 0
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, balance: 0)
+    │   │   │   │   ├─ [754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   ├─ emit ReserveSynced(token: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, balance: 3392625737183 [3.392e12])
+    │   │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   ├─ [8559] 0xc56CCbF6219B780c879544FEe0404bD3B49fEBB0::issue()
+    │   │   │   ├─ [8200] 0xE024Bd4967185456df3dE7D2365919B5fb89763B::issue() [delegatecall]
+    │   │   │   │   ├─ [1577] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [1230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   └─ ← [Return] false, BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   │   └─ ← [Return] false, BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   ├─ [1159] 0x4be28E7597A928835245a10E9161E0c44687b70b::registerTranche(0x2b97045571Ec78aE1010Df47b3e275eCdAE53300)
+    │   │   │   ├─ [815] 0x96fC14b136300f9136C0d589Ed7a787B66571574::registerTranche(0x2b97045571Ec78aE1010Df47b3e275eCdAE53300) [delegatecall]
+    │   │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   ├─ [1181] 0x8cd04668292dC32F519972495C179E4f02C0e8AB::registerTranche(0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414)
+    │   │   │   ├─ [837] 0x8e9ED1138060434E56A5f7965017391C93631529::registerTranche(0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414) [delegatecall]
+    │   │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   │   └─ ← [Return] 0x0000000000000000000000000000000000000000000000000000000000000000
+    │   │   └─ ← [Revert] NoOp()
+    │   └─ ← [Revert] NoOp()
+    ├─ [0] VM::assertFalse(false) [staticcall]
+    │   └─ ← [Return]
+    ├─ [0] VM::assertEq(0x00219cf100000000000000000000000000000000000000000000000000000000, 0x00219cf100000000000000000000000000000000000000000000000000000000) [staticcall]
+    │   └─ ← [Return]
+    ├─ [33659] 0x682F3a053B0260daD4EbEee3924B1618B330A200::latestBondInfo() [staticcall]
+    │   ├─ [28806] 0x16e324BAe2098317477129a5E71f770bFf51f02a::latestBondInfo() [delegatecall]
+    │   │   ├─ [22874] 0xc56CCbF6219B780c879544FEe0404bD3B49fEBB0::latestBondInfo() [staticcall]
+    │   │   │   ├─ [18021] 0xE024Bd4967185456df3dE7D2365919B5fb89763B::latestBondInfo() [delegatecall]
+    │   │   │   │   ├─ [10077] 0xe8c13955caED9c009fd2b335A10986407958fde3::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   │   │   │   │   ├─ [5230] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::tranches(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   │   └─ ← [Return] 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414
+    │   │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    │   └─ ← [Return] BondInfo({ manager: 0xe8c13955caED9c009fd2b335A10986407958fde3, bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, srTranche: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, jrTranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 })
+    ├─ [0] VM::toString(1794160801 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794160801"
+    ├─ [7402] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minCleanupVal() [staticcall]
+    │   ├─ [2561] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minCleanupVal() [delegatecall]
+    │   │   └─ ← [Return] 1000000 [1e6]
+    │   └─ ← [Return] 1000000 [1e6]
+    ├─ [0] VM::toString(1000000 [1e6]) [staticcall]
+    │   └─ ← [Return] "1000000"
+    ├─ [8024] 0x682F3a053B0260daD4EbEee3924B1618B330A200::minMaturitySec() [staticcall]
+    │   ├─ [3183] 0x16e324BAe2098317477129a5E71f770bFf51f02a::minMaturitySec() [delegatecall]
+    │   │   └─ ← [Return] 604800 [6.048e5]
+    │   └─ ← [Return] 604800 [6.048e5]
+    ├─ [0] VM::toString(604800 [6.048e5]) [staticcall]
+    │   └─ ← [Return] "604800"
+    ├─ [183030] 0x682F3a053B0260daD4EbEee3924B1618B330A200::reservedPerpJrLiquidity() [staticcall]
+    │   ├─ [178189] 0x16e324BAe2098317477129a5E71f770bFf51f02a::reservedPerpJrLiquidity() [delegatecall]
+    │   │   ├─ [163051] 0x8cd04668292dC32F519972495C179E4f02C0e8AB::reserveData() [staticcall]
+    │   │   │   ├─ [157905] 0x8e9ED1138060434E56A5f7965017391C93631529::reserveData() [delegatecall]
+    │   │   │   │   ├─ [9785] 0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2553] 0x7458bfDC30034EB860B265E6068121D18Fa5Aa72::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   │   └─ ← [Return] 271549615 [2.715e8]
+    │   │   │   │   ├─ [5254] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   ├─ [45688] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::data() [staticcall]
+    │   │   │   │   │   ├─ [45444] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [34129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [29210] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3149185188266 [3.149e12]
+    │   │   │   │   │   │   │   │   ├─ [7419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   ├─ [29188] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::data() [staticcall]
+    │   │   │   │   │   ├─ [28944] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [20129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [19710] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3133547705527 [3.133e12]
+    │   │   │   │   │   │   │   │   ├─ [2419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   ├─ [2754] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [staticcall]
+    │   │   │   │   │   ├─ [2582] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::balanceOf(0x8cd04668292dC32F519972495C179E4f02C0e8AB) [delegatecall]
+    │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   ├─ [29188] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::data() [staticcall]
+    │   │   │   │   │   ├─ [28944] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::data() [delegatecall]
+    │   │   │   │   │   │   ├─ [20129] 0xe8c13955caED9c009fd2b335A10986407958fde3::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [staticcall]
+    │   │   │   │   │   │   │   ├─ [19710] 0x427758ed7ba97d3602125f957CD9e6716fddAaC2::trancheData(0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, false) [delegatecall]
+    │   │   │   │   │   │   │   │   ├─ [2466] 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582::totalSupply() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [2300] 0xA901011D8BC1068468877788DF33CF676aF5f1B0::totalSupply() [delegatecall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 3392625737183 [3.392e12]
+    │   │   │   │   │   │   │   │   ├─ [2419] 0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a::getValidPrice() [staticcall]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0xBCF85224fc0756B9Fa45aA7892530B47e10b6433::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 18446744073709551636 [1.844e19], 0, 1794157200 [1.794e9], 1794160801 [1.794e9], 18446744073709551636 [1.844e19]
+    │   │   │   │   │   │   │   │   │   ├─ [0] 0x07DA0E54543a844a80ABE69c8A12F22B3aA59f9D::latestRoundData() [staticcall]
+    │   │   │   │   │   │   │   │   │   │   └─ ← [Return] 36893488147419122458 [3.689e19], 7482940645796 [7.482e12], 1794160801 [1.794e9], 1794160801 [1.794e9], 36893488147419122458 [3.689e19]
+    │   │   │   │   │   │   │   │   │   └─ ← [Return] 74829406457960000000000 [7.482e22]
+    │   │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   │   └─ ← [Return] TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 })
+    │   │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   │   └─ ← [Return] ReserveData({ underlyingBal: 271549615 [2.715e8], trancheData: [ReserveTrancheData({ data: TrancheData({ trancheSupply: 3149185188266 [3.149e12], trancheClaim: 40852120 [4.085e7], totalClaim: 82936982 [8.293e7], volatilityMultiplier: 2030175716706990972 [2.03e18], underlyingOpenPrice: 75941640373000000000000 [7.594e22], isMature: false, secondsToMaturity: 2163599 [2.163e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 492568200757534196 [4.925e17], bondID: 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, isSenior: false, tranche: 0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414, counterpart: 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3149185188266 [3.149e12], value: 40852120 [4.085e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3133547705527 [3.133e12], trancheClaim: 35357092 [3.535e7], totalClaim: 77232982 [7.723e7], volatilityMultiplier: 2184370309639718108 [2.184e18], underlyingOpenPrice: 81145332071360000000000 [8.114e22], isMature: false, secondsToMaturity: 953999 [9.539e5], trancheRatio: 500000000000000000 [5e17], valueRatio: 457797835644880318 [4.577e17], bondID: 0x845535d5c774b4204fe67ddcdd33292c39defdaa7092f1d562bdb50a3b102963, isSenior: false, tranche: 0xF012e0Fc76306aE1374B577483Cf6b79dE8cf9b1, counterpart: 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3133547705527 [3.133e12], value: 35357092 [3.535e7] }), ReserveTrancheData({ data: TrancheData({ trancheSupply: 3392625737183 [3.392e12], trancheClaim: 38706913 [3.87e7], totalClaim: 84045051 [8.404e7], volatilityMultiplier: 2171318880428413397 [2.171e18], underlyingOpenPrice: 80733507551340000000000 [8.073e22], isMature: false, secondsToMaturity: 1558799 [1.558e6], trancheRatio: 500000000000000000 [5e17], valueRatio: 460549580724271319 [4.605e17], bondID: 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, isSenior: false, tranche: 0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582, counterpart: 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, manager: 0xe8c13955caED9c009fd2b335A10986407958fde3 }), balance: 3392625737183 [3.392e12], value: 38706913 [3.87e7] })] })
+    │   │   └─ ← [Return] 3864657 [3.864e6]
+    │   └─ ← [Return] 3864657 [3.864e6]
+    ├─ [0] VM::toString(3864657 [3.864e6]) [staticcall]
+    │   └─ ← [Return] "3864657"
+    ├─ [7348] 0x682F3a053B0260daD4EbEee3924B1618B330A200::lastRebalanceTimestampSec() [staticcall]
+    │   ├─ [2507] 0x16e324BAe2098317477129a5E71f770bFf51f02a::lastRebalanceTimestampSec() [delegatecall]
+    │   │   └─ ← [Return] 1794160800 [1.794e9]
+    │   └─ ← [Return] 1794160800 [1.794e9]
+    ├─ [0] VM::toString(1794160800 [1.794e9]) [staticcall]
+    │   └─ ← [Return] "1794160800"
+    ├─ [0] VM::toString(0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8) [staticcall]
+    │   └─ ← [Return] "0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8"
+    ├─ [0] console::log("ROUND9:{\"label\":\"T2b_after_upkeep\",\"timestamp\":1794160801,\"minCleanupVal\":1000000,\"minMaturitySec\":604800,\"reservedPerpJrLiquidity\":3864657,\"lastRebalanceTimestampSec\":1794160800,\"latestBond\":\"0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8\"}") [staticcall]
+    │   └─ ← [Stop]
+    └─ ← [Stop]
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 34.82ms (31.27ms CPU time)
+
+Ran 1 test suite in 39.30ms (34.82ms CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)

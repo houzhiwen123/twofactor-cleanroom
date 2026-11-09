@@ -57,3 +57,16 @@ reference-model comparisons. Foundry's default fuzz run count is used.
   the provided CoreInvariants test inputs; the CoreInvariants values overlap some of those 14.
 
 These notes are behavioral boundaries, not security claims.
+
+## Phase 1b scope
+
+`src/perp/PerpToken.sol` and `src/controller/PerpController.sol` implement the evidenced core
+operations. The status matrix and explicit pending-evidence boundaries are in
+[`docs/PHASE1B_STATUS.md`](docs/PHASE1B_STATUS.md). In particular, rollover/upkeep, recovery,
+tranche removal/order changes, genesis seeding, the exact post-operation value-cap equality boundary,
+and `mint2`'s zero-input-side `OpDisabled` behavior remain pending evidence.
+
+Round 6 fork probes confirmed permissionless rebalance calls, an inclusive-start/exclusive-end
+rebalance window, input-side-only `OpDisabled` checks for `flashMint2`, `flashRedeem2`, and `redeem2`,
+and zero-amount AUM fee events when the configured rate is positive. See
+[`evidence/ROUND6_PROBES.md`](evidence/ROUND6_PROBES.md) for raw values and logs.

@@ -1,6 +1,6 @@
 # PerpController local-fork probes
 
-Investigation-only behavioral observations. No repository contract code was changed, and no transaction was broadcast beyond the local Anvil fork. The probe used public ABI data and black-box observations only; no target source or frontend bundles were read. The harness and all probe logs are under `/home/ubuntu/work/probes`.
+Investigation-only behavioral observations. No repository contract code was changed, and no transaction was broadcast beyond the local Anvil fork. The probe used public ABI data and black-box observations only; no target source or frontend bundles were read. The harness and all probe logs are under `evidence/raw-logs.tar.xz`.
 
 ## Fork and baseline
 

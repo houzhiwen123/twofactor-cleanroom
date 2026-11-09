@@ -10,7 +10,13 @@ All data here came from local Base forks (chainId 8453, blocks 53494912 and 5499
 | ROUND5_PROBES.md, LOG_SHA256SUMS.txt | Independent open-price backup selection (refutes closest-to-0.5), recover(), reserve array attempts; sha256 of all logs |
 | ROUND4_PROBES.md | Backup bond selection, rollover thresholds, Perp token permission matrix, fresh-proxy genesis, rebalance window regression |
 | CODEX_REVIEW_PROBES.md | Rounds 1-3 verification of the external review (lazy issue/rollover, per-side fees, AUM gross-up, fee settlement, protocol fees, redeem2, valueCap boundary, backup cap at shifted prices, partial rollover) |
-| probe-tests/*.sol | Foundry fork probes that produced the records (not compiled by this repo) |
-| raw-logs.tar.xz | Raw forge logs and JSONL observations |
+| ROUND6_PROBES.md | Round 6 Controller authorization, rebalance window/cooldown, fee-guard, AUM, value-cap, and lazy-issue observations; exact reproduction commands and version lock |
+| ROUND7_PROBES.md, round7_integrated_probe.log | Round 7 Perp ABI/ownership/permissions, Controller admin roles/validation, reserve sync, and nonzero rebalance ordering; version lock |
+| ROUND8_PROBES.md, round8_review_probe.log, round8_setter_followup.log, round8_rebalance_trace.log | Round 8 tuple ABI, SR approval selector, setter boundary results, and trace-level rebalance call order |
+| ROUND9_PROBES.md, probe-tests/Round9TraceProbe.t.sol, round9_*.log | Round 9 public rollover, upkeep (issuance/rebalance/no-op), lazy SR flash-mint traces, planner inputs/returns, and Controller timestamp opcode ordering |
+| ROUND10_PROBES.md, probe-tests/Round10Probe.t.sol, round10_*.log | Round 10 caller matrices, separate matured-before-issue state, 15 planner-selection cases, exact public/lazy liquidity edges, and zero-amount call traces |
+| probe-tests/*.sol | Foundry fork probes that produced the records, including Round6ControllerProbe.t.sol and Round7ReviewProbe.t.sol (not compiled by this repo) |
+| LOG_SHA256SUMS.txt | SHA-256 manifest for all archived probe `.log` files |
+| raw-logs.tar.xz | Archive of probe `.log` files, including Round 6, Round 7, Round 8, Round 9, and Round 10 logs |
 
 Spec items in docs/SPEC_CONTROLLER_ZH.md reference these reports.

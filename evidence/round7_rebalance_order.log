@@ -1,0 +1,37 @@
+Compiling 1 files with Solc 0.8.24
+Solc 0.8.24 finished in 18.76s
+Compiler run successful with warnings:
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/Round7ReviewProbe.t.sol:460:5:
+    |
+460 |     function _logRebalanceOrderEvent(uint256 index, string memory kind, address emitter, uint256 amount) private {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/Round7ReviewProbe.t.sol:558:5:
+    |
+558 |     function _logRaw(address perp, string memory label, string memory method, bool success, bytes memory returndata)
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (2018): Function state mutability can be restricted to pure
+   --> test/Round7ReviewProbe.t.sol:813:5:
+    |
+813 |     function _logOwnershipObservation(address perp, R7OwnershipObservation memory o) private view {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 1 test for test/Round7ReviewProbe.t.sol:Round7ReviewProbe
+[PASS] testR7RebalanceSettlementPlanAumOrder() (gas: 2664350)
+Logs:
+  OBS:R7_REBALANCE_ORDER_INPUT {"srCollected":74102043,"jrCollected":87590731,"cbBtcCollected":198,"rebalancePlanValue":100,"srAumFeePerc":100000000000000000,"jrAumFeePerc":50000000000000000,"timestamp":1794420000}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":27,"kind":"feePerpBurnSR","emitter":"0x4be28E7597A928835245a10E9161E0c44687b70b","amount":74102043}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":28,"kind":"feePerpBurnJR","emitter":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","amount":87590731}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":29,"kind":"cbBtcFeeTransferToJR","emitter":"0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf","amount":198}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":31,"kind":"Rebalance","emitter":"0x682F3a053B0260daD4EbEee3924B1618B330A200","amount":100}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":32,"kind":"reserveTransferJRtoSR","emitter":"0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf","amount":100}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":36,"kind":"AumFeesSR","emitter":"0x4be28E7597A928835245a10E9161E0c44687b70b","amount":1071993013534}
+  OBS:R7_REBALANCE_ORDER_EVENT {"index":38,"kind":"AumFeesJR","emitter":"0x8cd04668292dC32F519972495C179E4f02C0e8AB","amount":1785766833181}
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 16.99ms (6.71ms CPU time)
+
+Ran 1 test suite in 18.69ms (16.99ms CPU time): 1 tests passed, 0 failed, 0 skipped (1 total tests)
