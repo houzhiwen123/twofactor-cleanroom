@@ -75,9 +75,12 @@ RolloverPlan {
 The plan therefore carries tranche addresses and bond IDs, not indices. Index-based plans were
 considered and rejected because they would change the public Balancer ABI.
 
-`pure` + `STATICCALL` only guarantee that the Balancer cannot read or modify protocol state. They do
-**not** guarantee that returned addresses/IDs come from the input: a pure function can still return
-hard-coded or arbitrarily computed values. The Controller membership checks are therefore mandatory:
+`STATICCALL` forbids, at runtime, any state modification by the Balancer and its whole call chain;
+it does not forbid reading chain state. `pure` is a compile-time constraint of the current
+`PerpBalancer` implementation, not a runtime guarantee about an arbitrary replacement contract set
+by governance. The Balancer address is therefore a governed, trusted planning module, and nothing
+guarantees that returned addresses/IDs come from the input (a planner can return hard-coded or
+arbitrarily computed values). The Controller membership checks are therefore mandatory:
 
 - every stale tranche `token` must come from the SR/JR reserve data the Controller passed to the
   Balancer;
@@ -94,7 +97,10 @@ from the pending issue→rollover call trace.
 
 Before executing a returned plan, Controller-side checks should cover:
 
-- Every token is a registered tranche, and every bond belongs to BondsManager.
+- Every stale tranche token is an already-registered reserve tranche; every bond belongs to
+  BondsManager. Fresh SR tranches may be issued in the same transaction: whether and when they must
+  be registered is decided by the pending issue→rollover trace, so the "already registered" check
+  is not applied to fresh tranches unconditionally.
 - Array lengths do not exceed the configured tranche cap; no tranche is duplicated.
 - Total outflow is no greater than actual reserves.
 - SR/JR tranche amounts are correctly paired.
