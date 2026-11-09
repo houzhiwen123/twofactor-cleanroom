@@ -259,7 +259,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     }
 
     function updateDRTargets(uint256 targetSystemRatio_, uint256 targetPerpJrVM_) external onlyOwner {
-        if (targetSystemRatio_ == 0 || targetPerpJrVM_ == 0) revert InvalidParamDefn();
+        if (targetSystemRatio_ <= WAD || targetPerpJrVM_ == 0) revert InvalidParamDefn();
         targetSystemRatio = targetSystemRatio_;
         targetPerpJrVM = targetPerpJrVM_;
     }
@@ -300,6 +300,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     }
 
     function updateRolloverEligibility(uint32 minMaturitySec_) external onlyOwner {
+        if (minMaturitySec_ == 0) revert InvalidParamDefn();
         minMaturitySec = minMaturitySec_;
     }
 

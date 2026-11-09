@@ -2,7 +2,7 @@
 
 ## Scope and verdicts
 
-All new calls used the local Base Anvil fork at `http://127.0.0.1:8545` with Foundry `--offline`; the Perp permission suite selected block `54_990_962`. No real-chain transactions were sent. No verified source or frontend bundle was accessed, and no clean-room repository files were changed. The report and test harnesses are under `/home/ubuntu/work/probes`.
+All new calls used the local Base Anvil fork at `http://127.0.0.1:8545` with Foundry `--offline`; the Perp permission suite selected block `54_990_962`. No real-chain transactions were sent. No verified source or frontend bundle was accessed, and no clean-room repository files were changed. The report and test harnesses are under `evidence/raw-logs.tar.xz`.
 
 “Exact” below means the observed values distinguish the named alternatives for the tested cases. “Partial” means the data supports a rule for the tested cases but does not resolve the full requested matrix or establish a universal rule.
 
@@ -144,7 +144,7 @@ A zero-reserve/nonzero-supply state was constructible by controller-minting `100
 
 ## P5 — Rebalance-window regression
 
-Standalone Foundry regression: `/home/ubuntu/work/probes/test/Round4Probe.t.sol`. Each edge was run with an isolated timestamp and a sufficiently old `lastRebalanceTimestamp`. In the first row, the tested `windowStart` boundary is `1,794,506,400`; its preceding timestamp is the prior interval's `windowEnd−1`.
+Standalone Foundry regression: `evidence/raw-logs.tar.xz::test/Round4Probe.t.sol`. Each edge was run with an isolated timestamp and a sufficiently old `lastRebalanceTimestamp`. In the first row, the tested `windowStart` boundary is `1,794,506,400`; its preceding timestamp is the prior interval's `windowEnd−1`.
 
 | Case | Timestamp | Getter `windowStart` / `windowEnd` before | `lastRebalanceTimestampSec` before | Result | Last timestamp after |
 |---|---:|---:|---:|---|---:|
@@ -161,9 +161,9 @@ The observed getter interval rolls at the exact end: at `1,794,592,799`, the int
 
 | Probe | Verification result | Raw evidence |
 |---|---|---|
-| P1 synthetic selection and standard allocations | `testRound4BackupBondSelectionCandidates`: 1 passed, 0 failed. An arithmetic checker independently matched the standard deposit formula on all 6 direct cases. | `/home/ubuntu/work/probes/round4_backup_selection_final.log` |
-| P1 shifted-price actual/policy comparisons | Existing forced-backup actual tests succeeded at both price directions; the direct comparisons and raw transfer logs are in the report's source log. | `/home/ubuntu/work/probes/review_round3_price_shift_actual_backup.log` |
-| P2 public/lazy observations | Prior Round 3 logs; no new full-matrix test was run. | `/home/ubuntu/work/probes/review_round3_public_partial_65pct.log`; `/home/ubuntu/work/probes/review_round3_r4_final.log` |
-| P3 Perp matrix | 6 passed, 0 failed. | `/home/ubuntu/work/probes/round4_perp_isolated.log` |
-| P4 fresh proxies/genesis | 1 passed, 0 failed. | `/home/ubuntu/work/probes/round4_genesis_verified.log` |
-| P5 rebalance edges | 1 passed, 0 failed. | `/home/ubuntu/work/probes/round4_rebalance_window_edges.log`; test file `/home/ubuntu/work/probes/test/Round4Probe.t.sol` |
+| P1 synthetic selection and standard allocations | `testRound4BackupBondSelectionCandidates`: 1 passed, 0 failed. An arithmetic checker independently matched the standard deposit formula on all 6 direct cases. | `evidence/raw-logs.tar.xz::round4_backup_selection_final.log` |
+| P1 shifted-price actual/policy comparisons | Existing forced-backup actual tests succeeded at both price directions; the direct comparisons and raw transfer logs are in the report's source log. | `evidence/raw-logs.tar.xz::review_round3_price_shift_actual_backup.log` |
+| P2 public/lazy observations | Prior Round 3 logs; no new full-matrix test was run. | `evidence/raw-logs.tar.xz::review_round3_public_partial_65pct.log`; `evidence/raw-logs.tar.xz::review_round3_r4_final.log` |
+| P3 Perp matrix | 6 passed, 0 failed. | `evidence/raw-logs.tar.xz::round4_perp_isolated.log` |
+| P4 fresh proxies/genesis | 1 passed, 0 failed. | `evidence/raw-logs.tar.xz::round4_genesis_verified.log` |
+| P5 rebalance edges | 1 passed, 0 failed. | `evidence/raw-logs.tar.xz::round4_rebalance_window_edges.log`; test file `evidence/raw-logs.tar.xz::test/Round4Probe.t.sol` |

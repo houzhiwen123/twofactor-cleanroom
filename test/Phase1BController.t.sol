@@ -410,10 +410,9 @@ contract Phase1BControllerTest is Test {
     }
 
     function testValueCapBalancedPreSubWadAboveCapReverts() public {
-        _seed(1_000_000, 100_000_000, 1_000_000, 100_000_000);
+        _seed(1_000_000, 1_000_000_000, 1_000_000, 2_847_475_019);
         feePolicy.setFees(0, 0, 0);
-        controller.updateDRTargets(WAD, WAD);
-        controller.updateValueCap(199_999_999);
+        controller.updateValueCap(3_847_475_018);
         (uint256 preSub,) = controller.systemDeviations();
         assertEq(preSub, WAD);
         underlying.mint(USER, 1_000);
@@ -425,12 +424,11 @@ contract Phase1BControllerTest is Test {
     }
 
     function testValueCapUnderCapPostOverCapAllowsOnlyCorrectiveSide() public {
-        _seed(1_000_000, 100_000_000, 1_000_000, 106_423_365);
+        _seed(1_000_000, 100_000_000, 1_000_000, 284_757_502);
         feePolicy.setFees(0, 0, 0);
-        controller.updateDRTargets(WAD, WAD);
         (uint256 preSub,) = controller.systemDeviations();
         assertGt(preSub, WAD);
-        uint256 preValue = 206_423_365;
+        uint256 preValue = 384_757_502;
         controller.updateValueCap(preValue);
         assertGt(preValue + 1, controller.valueCap());
         underlying.mint(USER, 2);
@@ -522,9 +520,49 @@ contract Phase1BControllerTest is Test {
         assertGt(fees.underlying, 0);
 
         vm.warp(64_800 + 86_400 * 10);
+        uint256 srAumAmount = _mulDiv(sr.totalSupply() - fees.sr, 1e17, 9e17);
+        uint256 jrAumAmount = _mulDiv(jr.totalSupply() - fees.jr, 5e16, 95e16);
+        PerpBalancer.ReserveAmounts memory feeUnderlying;
+        feeUnderlying.underlyingAmt = fees.underlying;
+        feeUnderlying.trancheAmts = new PerpBalancer.TokenAmount[](0);
+        PerpBalancer.ReserveAmounts memory plan;
+        plan.underlyingAmt = 100;
+        plan.trancheAmts = new PerpBalancer.TokenAmount[](0);
+        vm.expectCall(
+            address(sr),
+            abi.encodeWithSignature("burnFrom(address,uint256)", address(controller), fees.sr)
+        );
+        vm.expectCall(
+            address(jr),
+            abi.encodeWithSignature("burnFrom(address,uint256)", address(controller), fees.jr)
+        );
+        vm.expectCall(
+            address(underlying),
+            abi.encodeWithSignature("transfer(address,uint256)", address(jr), fees.underlying)
+        );
+        vm.expectCall(
+            address(jr),
+            abi.encodeWithSignature("handleTransferReservesIn((uint256,(address,uint256)[]))", feeUnderlying)
+        );
+        vm.expectCall(address(feePolicy), abi.encodeWithSelector(IFeePolicyController.computeRebalanceVal.selector));
+        vm.expectCall(
+            controller.balancer(),
+            abi.encodeWithSelector(PerpBalancer.computeSystemRebalancePlan.selector)
+        );
+        vm.expectCall(
+            address(jr),
+            abi.encodeWithSignature("transferReservesTo(address,(uint256,(address,uint256)[]))", address(sr), plan)
+        );
+        vm.expectCall(
+            address(sr),
+            abi.encodeWithSignature("handleTransferReservesIn((uint256,(address,uint256)[]))", plan)
+        );
+        vm.expectCall(address(sr), abi.encodeWithSignature("mintTo(address,uint256)", address(0xCAFE), srAumAmount));
+        vm.expectCall(address(jr), abi.encodeWithSignature("mintTo(address,uint256)", address(0xCAFE), jrAumAmount));
         vm.recordLogs();
         controller.rebalance();
         _assertRebalanceLogOrder(vm.getRecordedLogs(), fees);
+        assertEq(controller.lastRebalanceTimestampSec(), 64_800 + 86_400 * 10);
     }
 
     function testValueCapCorrectiveBoundaries() public {
@@ -532,6 +570,29 @@ contract Phase1BControllerTest is Test {
         _assertValueCapCase(true, 6_423_366, true);
         _assertValueCapCase(false, 10_184_377, false);
         _assertValueCapCase(false, 10_184_378, true);
+    }
+
+    function _assertSetterCall(bytes memory callData, address caller, bool expectedSuccess, bytes4 expectedSelector)
+        private
+    {
+        vm.prank(caller);
+        (bool success, bytes memory returndata) = address(controller).call(callData);
+        assertEq(success, expectedSuccess);
+        if (!expectedSuccess) assertEq(_selector(returndata), expectedSelector);
+    }
+
+    function _assertWindowSetter(uint32 freq, uint32 offset, uint32 length, bool expectedSuccess) private {
+        _assertSetterCall(
+            abi.encodeWithSignature("updateRebalanceWindow(uint32,uint32,uint32)", freq, offset, length),
+            address(this),
+            expectedSuccess,
+            PerpController.InvalidParamDefn.selector
+        );
+        if (expectedSuccess) {
+            assertEq(controller.rebalanceFreqSec(), freq);
+            assertEq(controller.rebalanceWindowOffsetSec(), offset);
+            assertEq(controller.rebalanceWindowLengthSec(), length);
+        }
     }
 
     function testJrLiquidityAndFeePriority() public {
@@ -640,6 +701,150 @@ contract Phase1BControllerTest is Test {
         controller.updateDRTargets(targetSystemRatio, targetPerpJrVM);
     }
 
+    function testDRTargetBoundaryMatchesRound8Probe() public {
+        uint256 jrTarget = controller.targetPerpJrVM();
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateDRTargets(WAD - 1, jrTarget);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateDRTargets(WAD, jrTarget);
+        controller.updateDRTargets(WAD + 1, WAD - 1);
+        assertEq(controller.targetSystemRatio(), WAD + 1);
+        assertEq(controller.targetPerpJrVM(), WAD - 1);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateDRTargets(WAD + 1, 0);
+    }
+
+    function testControllerSetterValuesFromRound8Probe() public {
+        _assertSetterCall(abi.encodeWithSignature("updateFeePolicy(address)", address(0)), address(this), true, 0);
+        assertEq(controller.feePolicy(), address(0));
+        _assertSetterCall(abi.encodeWithSignature("updateFeePolicy(address)", address(1)), address(this), true, 0);
+        assertEq(controller.feePolicy(), address(1));
+
+        address currentIssuer = controller.issuer();
+        _assertSetterCall(abi.encodeWithSignature("updateIssuer(address)", currentIssuer), address(this), true, 0);
+        assertEq(controller.issuer(), currentIssuer);
+        _assertSetterCall(abi.encodeWithSignature("updatePerpBalancer(address)", address(0)), address(this), true, 0);
+        assertEq(controller.balancer(), address(0));
+        _assertSetterCall(abi.encodeWithSignature("updatePerpBalancer(address)", address(1)), address(this), true, 0);
+        assertEq(controller.balancer(), address(1));
+
+        _assertSetterCall(abi.encodeWithSignature("updateKeeper(address)", address(0)), address(this), true, 0);
+        assertEq(controller.keeper(), address(0));
+        address testKeeper = address(0xCAFE);
+        _assertSetterCall(abi.encodeWithSignature("updateKeeper(address)", testKeeper), address(this), true, 0);
+        assertEq(controller.keeper(), testKeeper);
+
+        uint256[] memory cleanupValues = new uint256[](6);
+        cleanupValues[0] = 0;
+        cleanupValues[1] = 1;
+        cleanupValues[2] = WAD - 1;
+        cleanupValues[3] = WAD;
+        cleanupValues[4] = WAD + 1;
+        cleanupValues[5] = type(uint256).max;
+        for (uint256 i; i < cleanupValues.length; ++i) {
+            _assertSetterCall(
+                abi.encodeWithSignature("updateMinCleanupVal(uint256)", cleanupValues[i]),
+                address(this),
+                true,
+                0
+            );
+            assertEq(controller.minCleanupVal(), cleanupValues[i]);
+        }
+
+        _assertSetterCall(
+            abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", 0, 0),
+            address(this),
+            true,
+            0
+        );
+        assertEq(controller.perpJrReservedUnderlyingAmt(), 0);
+        assertEq(controller.perpJrReservedUnderlyingPerc(), 0);
+        _assertSetterCall(
+            abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", 1, 1),
+            address(this),
+            true,
+            0
+        );
+        _assertSetterCall(
+            abi.encodeWithSignature(
+                "updateLiquidityThresholds(uint256,uint64)", WAD - 1, uint64(WAD - 1)
+            ),
+            address(this),
+            true,
+            0
+        );
+        _assertSetterCall(
+            abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", WAD, uint64(WAD)),
+            address(this),
+            true,
+            0
+        );
+        _assertSetterCall(
+            abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", WAD + 1, uint64(WAD)),
+            address(this),
+            true,
+            0
+        );
+        _assertSetterCall(
+            abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", 0, uint64(WAD + 1)),
+            address(this),
+            false,
+            PerpController.InvalidPerc.selector
+        );
+
+        uint32 oldEligibility = controller.minMaturitySec();
+        _assertSetterCall(
+            abi.encodeWithSignature("updateRolloverEligibility(uint32)", 0),
+            address(this),
+            false,
+            PerpController.InvalidParamDefn.selector
+        );
+        uint32[5] memory eligibilityValues =
+            [uint32(1), oldEligibility - 1, oldEligibility, oldEligibility + 1, type(uint32).max];
+        for (uint256 i; i < eligibilityValues.length; ++i) {
+            _assertSetterCall(
+                abi.encodeWithSignature("updateRolloverEligibility(uint32)", eligibilityValues[i]),
+                address(this),
+                true,
+                0
+            );
+            assertEq(controller.minMaturitySec(), eligibilityValues[i]);
+        }
+
+        uint32 frequency = controller.rebalanceFreqSec();
+        _assertWindowSetter(0, 0, 1, false);
+        _assertWindowSetter(frequency, frequency - 1, 1, true);
+        _assertWindowSetter(frequency, frequency, 1, true);
+        _assertWindowSetter(frequency, frequency + 1, 1, false);
+        _assertWindowSetter(frequency, 0, 0, false);
+        _assertWindowSetter(frequency, 0, 1, true);
+        _assertWindowSetter(frequency, 0, frequency - 1, true);
+        _assertWindowSetter(frequency, 0, frequency, true);
+        _assertWindowSetter(frequency, 0, frequency + 1, false);
+
+        uint256[] memory caps = new uint256[](6);
+        caps[0] = 0;
+        caps[1] = 1;
+        caps[2] = WAD - 1;
+        caps[3] = WAD;
+        caps[4] = WAD + 1;
+        caps[5] = type(uint256).max;
+        for (uint256 i; i < caps.length; ++i) {
+            _assertSetterCall(
+                abi.encodeWithSignature("updateValueCap(uint256)", caps[i]), testKeeper, true, 0
+            );
+            assertEq(controller.valueCap(), caps[i]);
+        }
+        _assertSetterCall(abi.encodeWithSignature("pauseUserOps(bool)", false), testKeeper, true, 0);
+        assertFalse(controller.userOpsPaused());
+        _assertSetterCall(abi.encodeWithSignature("pauseUserOps(bool)", true), testKeeper, true, 0);
+        assertTrue(controller.userOpsPaused());
+        _assertSetterCall(abi.encodeWithSignature("pauseSystemOps(bool)", false), testKeeper, true, 0);
+        assertFalse(controller.systemOpsPaused());
+        _assertSetterCall(abi.encodeWithSignature("pauseSystemOps(bool)", true), testKeeper, true, 0);
+        assertTrue(controller.systemOpsPaused());
+    }
+
     function testPerpPermissionsCapDuplicateAndJuniorApproval() public {
         address manager = address(0x1234);
         PerpToken token = new PerpToken("SR", "SR", address(underlying), manager, address(this), false, address(this));
@@ -739,6 +944,10 @@ contract Phase1BControllerTest is Test {
             address(senior).call(abi.encodeWithSignature("primeApproval(address)", manager));
         assertFalse(seniorPrimeSuccess);
         assertEq(seniorPrimeReturndata.length, 0);
+        (bool seniorRevokeSuccess, bytes memory seniorRevokeReturndata) =
+            address(senior).call(abi.encodeWithSignature("revokeApproval(address)", manager));
+        assertFalse(seniorRevokeSuccess);
+        assertEq(seniorRevokeReturndata.length, 0);
     }
 
     function testPerpOwnable2StepAndHolderTransfers() public {
@@ -821,13 +1030,75 @@ contract Phase1BControllerTest is Test {
         assertEq(reserve.trancheData[0].value, 3);
     }
 
+    function testReservesRawTupleOrderAmountsAndDuplicateRegistration() public {
+        PerpToken token =
+            new PerpToken("SR", "SR", address(underlying), address(0xD00D), address(this), false, address(this));
+        MockReserveTranche first = new MockReserveTranche();
+        MockReserveTranche second = new MockReserveTranche();
+        first.setData(
+            IBondsManager.TrancheData({
+                trancheSupply: 3,
+                trancheClaim: 2,
+                totalClaim: 3,
+                volatilityMultiplier: WAD,
+                underlyingOpenPrice: WAD,
+                isMature: false,
+                secondsToMaturity: 1,
+                trancheRatio: 5e17,
+                valueRatio: 5e17,
+                bondID: bytes32(uint256(1)),
+                isSenior: true,
+                tranche: address(first),
+                counterpart: address(second),
+                manager: address(0xD00D)
+            })
+        );
+        second.setData(
+            IBondsManager.TrancheData({
+                trancheSupply: 5,
+                trancheClaim: 3,
+                totalClaim: 3,
+                volatilityMultiplier: WAD,
+                underlyingOpenPrice: WAD,
+                isMature: false,
+                secondsToMaturity: 2,
+                trancheRatio: 5e17,
+                valueRatio: 5e17,
+                bondID: bytes32(uint256(2)),
+                isSenior: true,
+                tranche: address(second),
+                counterpart: address(first),
+                manager: address(0xD00D)
+            })
+        );
+        token.registerTranche(address(first));
+        token.registerTranche(address(second));
+        first.mint(address(token), 5);
+        second.mint(address(token), 7);
+        underlying.mint(address(token), 123);
+        token.registerTranche(address(first));
+
+        (bool success, bytes memory returndata) = address(token).staticcall(abi.encodeWithSignature("reserves()"));
+        assertTrue(success);
+        IPerpToken.ReserveTokens memory reserves = abi.decode(returndata, (IPerpToken.ReserveTokens));
+        assertEq(reserves.underlyingBal, 123);
+        assertEq(reserves.trancheTokens.length, 2);
+        assertEq(reserves.trancheTokens[0].token, address(first));
+        assertEq(reserves.trancheTokens[0].amount, 5);
+        assertEq(reserves.trancheTokens[1].token, address(second));
+        assertEq(reserves.trancheTokens[1].amount, 7);
+    }
+
     function _assertValueCapCase(bool srPayer, uint256 amount, bool shouldFail) private {
         (MockERC20 u, PerpToken s, PerpToken j, PerpController c, MockPhase1BFeePolicy f) = _deployFixture();
         f.setFees(0, 0, 0);
-        c.updateDRTargets(WAD, WAD);
         c.updateValueCap(1);
-        uint256 srReserve = 100_000_000;
-        uint256 jrReserve = srPayer ? 106_423_365 : 89_815_623;
+        uint256 srReserve = 1_000_000_000;
+        uint256 ratio = c.targetSystemRatio();
+        uint256 boundaryAmount = srPayer ? 6_423_365 : 10_184_377;
+        uint256 jrReserve = srPayer
+            ? ((srReserve + boundaryAmount) * ratio + WAD - 1) / WAD
+            : (srReserve * ratio / WAD) - boundaryAmount;
         u.mint(address(s), srReserve);
         u.mint(address(j), jrReserve);
         (uint256 preSub,) = c.systemDeviations();

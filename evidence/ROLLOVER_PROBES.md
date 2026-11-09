@@ -4,12 +4,12 @@
 
 Investigation-only; no repo files were changed. All stateful executions were run in Foundry against the local Anvil Base fork at `http://127.0.0.1:8545`. The probe warped locally, refreshed the local Oracle using test-only feed mocks, called `upkeep()`, then either directly `staticcall`ed the public Balancer functions or impersonated the configured keeper for `rollover()`. No transaction was broadcast to Base.
 
-The harness is `/home/ubuntu/work/probes/test/RolloverProbe.t.sol`. Raw decoded `OBS` input/output records for direct Balancer calls are in `/home/ubuntu/work/probes/rollover_direct_functions.log`. Full `forge test -vvvv` call traces are in:
+The harness is `evidence/raw-logs.tar.xz::test/RolloverProbe.t.sol`. Raw decoded `OBS` input/output records for direct Balancer calls are in `evidence/raw-logs.tar.xz::rollover_direct_functions.log`. Full `forge test -vvvv` call traces are in:
 
-- `/home/ubuntu/work/probes/rollover_first_actual_trace.log`
-- `/home/ubuntu/work/probes/rollover_second_actual_trace.log`
+- `evidence/raw-logs.tar.xz::rollover_first_actual_trace.log`
+- `evidence/raw-logs.tar.xz::rollover_second_actual_trace.log`
 
-The older, full-field Controller snapshots are in `/home/ubuntu/work/probes/controller_probe_v2.log` and `/home/ubuntu/work/probes/CONTROLLER_PROBES.md`.
+The older, full-field Controller snapshots are in `evidence/raw-logs.tar.xz::controller_probe_v2.log` and `evidence/raw-logs.tar.xz::CONTROLLER_PROBES.md`.
 
 The public ABI signatures used were:
 
@@ -136,7 +136,7 @@ The actual external Controller path is verified as `rollover() → computePerpSr
 
 ## Allocation rule
 
-This section tests the per-bond allocation hypothesis against the 23 saved standard-policy cases, the two actual rollover traces, and ten new direct calls. The additional harness calls and full decoded inputs/outputs are in `/home/ubuntu/work/probes/rollover_allocation_cases.log`; the harness is `/home/ubuntu/work/probes/test/RolloverProbe.t.sol`. The compact reserve rows in the new log append `underlyingOpenPrice` after the earlier fields. `/home/ubuntu/work/probes/analyze_rollover_allocation.py` reproduces the per-case match counts from both logs.
+This section tests the per-bond allocation hypothesis against the 23 saved standard-policy cases, the two actual rollover traces, and ten new direct calls. The additional harness calls and full decoded inputs/outputs are in `evidence/raw-logs.tar.xz::rollover_allocation_cases.log`; the harness is `evidence/raw-logs.tar.xz::test/RolloverProbe.t.sol`. The compact reserve rows in the new log append `underlyingOpenPrice` after the earlier fields. `evidence/raw-logs.tar.xz::analyze_rollover_allocation.py` reproduces the per-case match counts from both logs.
 
 ### Refined target and allocation
 
