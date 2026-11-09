@@ -11,7 +11,7 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
 | BondsManager | 0xe8c13955…fde3 | 0x427758ed…aac2 | 0xb2318665…16c6 |
 | PerpSR | 0x4be28E75…b70b | 0x96fc14b1…1574 | 0x1d57fb7d…1a53 |
 | PerpJR | 0x8cd04668…e8AB | 0x8e9ed113…1529 | 0xa34e6fcb…0ebb |
-完整值见 ~/work/probes/reviewer_fork_versions.log。
+完整地址和 codehash 见 evidence/reviewer_fork_versions.log。
 
 证据来源：docs/RECON_FINDINGS.md（链上只读调用 + 本地 Base 分叉实测，共约 1000 条原始记录，原始数据在 ~/work/probes）。
 标记：✅ 已和链上逐位比对；⚠️ 方向已观察到，但边界没有逐位验证；❌ 未验证，实现时按标注的假设处理，并在 README 中列出。
@@ -33,7 +33,7 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
   - 手续费 = floor(份额 × fee% ÷ 1e18)，以 Perp 代币形式留在 Controller；用户实际得到 份额 − 手续费。✅
 - flashRedeem2(srIn, jrIn, minOut)：
   - 应得 cbBTC = floor(赎回份额 × 储备价值 ÷ 总份额)，手续费按向下取整从中扣除，以 cbBTC 留在 Controller。✅
-  - JR 应得超过 availPerpJrLiquidity 时，回滚并报 OpDisabled()。✅
+  - 错误的判断顺序（见第 3 节“手续费和错误码”）：先计算手续费，totalFee ≥ 1e18 时报 OpDisabled()；否则，JR 应得金额 > availPerpJrLiquidity 时报 InsufficientLiquidity()。✅
 - mint2(srTranche, jrTranche, ...)：
   - 存入价值 = floor(tranche 数量 × trancheClaim ÷ trancheSupply)，份额按储备价值比例计算，手续费以 Perp 代币扣下。✅
 - redeem2(srIn, jrIn, minValOut)：
@@ -60,6 +60,10 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
 ## 5. rebalance（Funding）
 - 只在时间窗口内可调用；与上一次调用间隔太近时报 LastRebalanceTooRecent()。窗口参数：频率 86400，偏移 64800，窗口长度 86400。✅
   - 窗口开始前 1 秒、开始那一秒、结束前 1 秒、结束那一秒、结束后 1 秒，5 个时间点全部成功，窗口之间无缝衔接。✅
+  - 测试前提：每个时间点都从同一个快照开始单独测，上次 rebalance 已经过去很久
+  - “开始前 1 秒”其实落在上一个窗口里
+  - 同一个窗口内连续调用，第二次会先报 LastRebalanceTooRecent()
+  - 这几个时间点的回归测试正在第四轮固化 ⚠️
   - 外部审核认为“结束那一秒会被拒”，实测结果相反
 - 金额由 FeePolicy.computeRebalanceVal 算出。✅
 - 资产搬运计划由 Balancer.computeSystemRebalancePlan 给出：先用闲置 cbBTC，再按到期先后使用 tranche。从付款方转到收款方。✅
