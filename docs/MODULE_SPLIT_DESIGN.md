@@ -11,7 +11,7 @@ Controller with `STATICCALL`:
 | Planning function | Responsibility |
 |---|---|
 | `computePerpSrRolloverState` | Derive SR stale-tranche and rollover state |
-| `computePerpJrRolloverPlan` | Plan JR-side rollover amounts |
+| `computePerpSrRolloverPlan` | Plan SR rollover (stale tranches out, deposits, new SR tranches in) |
 | `computeRolloverPolicy` | Plan standard rollover deposits |
 | `computeBackupRolloverPolicy` | Plan backup-branch deposits |
 | `computePerpJrLiquidity` | Derive JR free/reserved liquidity |
@@ -29,18 +29,19 @@ revert anywhere before that point reverts the whole transaction.
 
 ## Target call-graph evidence
 
-An existing target fork trace records `Controller.rollover()` calling the Balancer address with a
-selector rendered as `computePerpSrRolloverPlan` at
+An existing target fork trace records `Controller.rollover()` calling
+`PerpBalancer.computePerpSrRolloverPlan` (public Balancer ABI selector) at
 `evidence/raw-logs.tar.xz::rollover_controller_trace_initial.log:5037-5038,5553`; the path is also
-summarized in `evidence/ROLLOVER_PROBES.md:135`. That name is **not** in the supplied public
-Balancer ABI. The trace confirms the observed call in that snapshot, but it does not establish
-that the public planner functions listed above are called separately: their internal invocation
-inside that Balancer call is not visible in the external call trace.
+summarized in `evidence/ROLLOVER_PROBES.md:135`. The public Balancer ABI contains
+`computeBackupRolloverPolicy`, `computePerpJrLiquidity`, `computePerpSrRolloverPlan`,
+`computePerpSrRolloverState`, `computeRolloverPolicy` and `computeSystemRebalancePlan`.
+Whether the other planner functions are reached only internally (inside
+`computePerpSrRolloverPlan`) or also called directly by the Controller is not visible in the
+external call trace of that snapshot.
 
-**TODO before implementation:** reconcile the observed selector with the supplied public ABI and
-capture a fork trace of target `rollover()` that establishes which Balancer selectors are invoked.
-Do not implement a `computePerpSrRolloverPlan` dependency or infer internal planner call order from
-the current trace.
+**TODO before implementation:** capture fork traces of target `rollover()`, `upkeep()` and the
+SR flash-mint lazy rollover path, and record every Balancer selector each one calls. Do not infer
+internal planner call order beyond what those traces show.
 
 ## Controller plan-validation checklist
 
