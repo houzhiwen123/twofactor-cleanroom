@@ -63,7 +63,7 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
   - 测试前提：每个时间点都从同一个快照开始单独测，上次 rebalance 已经过去很久
   - “开始前 1 秒”其实落在上一个窗口里
   - 同一个窗口内连续调用，第二次会先报 LastRebalanceTooRecent()
-  - 这几个时间点的回归测试正在第四轮固化 ⚠️
+  - 这几个时间点和连续调用的情况已经固化成回归测试（evidence/probe-tests/Round4Probe.t.sol）✅
   - 外部审核认为“结束那一秒会被拒”，实测结果相反
 - 金额由 FeePolicy.computeRebalanceVal 算出。✅
 - 资产搬运计划由 Balancer.computeSystemRebalancePlan 给出：先用闲置 cbBTC，再按到期先后使用 tranche。从付款方转到收款方。✅
@@ -96,7 +96,10 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
   - 备用方案总额 = min(free, floor(S × 1e18 ÷ 选中那期的 senior valueRatio)) ✅
     - 价格 −30%、+30% 两种情况都逐位对上
     - “2S”只是 valueRatio = 0.5 时的特例，原来那 23 组正好都是这种情况
-  - 选中哪一期：价格 −30% 时选的是最新一期，+30% 时选的是上一期。选择规则 ⚠️ 还没确定
+  - 选中哪一期 ⚠️：目前最吻合的规则是选 senior valueRatio 最接近 0.5e18 的那期，距离相同时选 ≥ 0.5e18 的
+    - 6 组直接调用 Balancer 的合成案例全部吻合；其他候选规则只吻合 1–4 组
+    - 价格 ±30% 的两次实际 rollover 也吻合
+    - 还没有在真实发行、开仓价各不相同的多期 Bond 上验证，所以只算“最佳拟合”，不算确认
   - 标准方案的逐期分配规则，在价格移动后仍然逐位成立 ✅
   - free = avail
   - unlocked = SR 闲置 + Σ floor(jr 持有量 × jrTotalClaim ÷ jrSupply)
@@ -120,7 +123,22 @@ chainId 8453；参考区块 53494912 和 54990962，两个区块上的实现完�
   - 超额提取报算术溢出 Panic(0x11) ✅
   - 提取后 protocolFeeBals 正好减少对应数量 ✅
 
+## 7b. Perp SR / JR 代币（第四轮实测）
+- 名称 / 代号 / 精度：SR 为 "cbBTC Senior" / cbBTC-SR / 8，JR 为 "cbBTC Junior" / cbBTC-JR / 8 ✅
+- 只有 controller 能调用 recover、registerTranche、transferReservesTo、handleTransferReservesIn、mintTo、burnFrom、logBalance；其他地址调用报 0x7bf6a16f ✅
+- updateController 只有 owner 能调用；其他地址调用报 OwnableUnauthorizedAccount（0x118cdaa7）✅
+- maxTrancheCount = 50。注册第 51 个报 ReserveOverflow()（0x446c8cc9）✅
+- 重复注册已经登记的 tranche 不报错，也不改变列表 ✅
+- JR 的 primeApproval：只有 controller 能调用，作用是把 cbBTC 对 BondsManager 的授权设为最大值 ✅
+- SR 调用 primeApproval / revokeApproval 时空返回失败，可能根本没有这个函数 ⚠️
+- recover()：放进去的 cbBTC 和 USDC 都没有被转走，语义不明 ❌
+- tranche 什么时候被移出列表、移出后列表顺序怎么变 ❌
+- 首次铸造：新部署的空系统里，总供应为 0 时调 flashMint2 会 Panic（0x4e487b71）✅。也就是说空系统不能直接铸造，genesis 怎么建立 ❌
+- AUM 费率：设成 1e18 − 1 可以成功；设成 1e18 或更大报 InvalidPerc()（0xcdc62692）✅，所以分母 1e18 − p 不会为 0
+
 ## 8. 尚未闭环的部分（实现时列为 ❌）
+- genesis 和首次铸造、recover 的语义、tranche 移出列表的规则
+- rollover 什么时候部分完成、什么时候回滚的完整边界（已知能部分完成）
 - 备用方案选哪一期 Bond（目前只有两个价格点的观察）
 - valueCap 中 post subDR 正好等于 1e18 的情况
 - upkeep 的完整内部步骤，以及 stale tranche 清理阈值 minCleanupVal 的具体作用
