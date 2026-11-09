@@ -167,6 +167,11 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     mapping(address => uint256) public protocolFeeBals;
     BondInfo private _latestBondInfo;
 
+    modifier onlyKeeper() {
+        if (msg.sender != keeper) revert UnauthorizedCall();
+        _;
+    }
+
     constructor() {
         _disableInitializers();
     }
@@ -245,15 +250,16 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         windowEnd = SafeCast.toUint64(start + rebalanceWindowLengthSec);
     }
 
-    function pauseUserOps(bool paused) external onlyOwner {
+    function pauseUserOps(bool paused) external onlyKeeper {
         userOpsPaused = paused;
     }
 
-    function pauseSystemOps(bool paused) external onlyOwner {
+    function pauseSystemOps(bool paused) external onlyKeeper {
         systemOpsPaused = paused;
     }
 
     function updateDRTargets(uint256 targetSystemRatio_, uint256 targetPerpJrVM_) external onlyOwner {
+        if (targetSystemRatio_ == 0 || targetPerpJrVM_ == 0) revert InvalidParamDefn();
         targetSystemRatio = targetSystemRatio_;
         targetPerpJrVM = targetPerpJrVM_;
     }
@@ -271,6 +277,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     }
 
     function updateLiquidityThresholds(uint256 amount_, uint64 percentage_) external onlyOwner {
+        if (percentage_ > WAD) revert InvalidPerc();
         perpJrReservedUnderlyingAmt = amount_;
         perpJrReservedUnderlyingPerc = percentage_;
     }
@@ -284,7 +291,9 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     }
 
     function updateRebalanceWindow(uint32 freqSec, uint32 windowOffsetSec, uint32 windowLengthSec) external onlyOwner {
-        if (freqSec == 0 || windowOffsetSec >= freqSec || windowLengthSec == 0) revert InvalidParamDefn();
+        if (
+            freqSec == 0 || windowOffsetSec > freqSec || windowLengthSec == 0 || windowLengthSec > freqSec
+        ) revert InvalidParamDefn();
         rebalanceFreqSec = freqSec;
         rebalanceWindowOffsetSec = windowOffsetSec;
         rebalanceWindowLengthSec = windowLengthSec;
@@ -294,7 +303,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         minMaturitySec = minMaturitySec_;
     }
 
-    function updateValueCap(uint256 valueCap_) external onlyOwner {
+    function updateValueCap(uint256 valueCap_) external onlyKeeper {
         valueCap = valueCap_;
     }
 

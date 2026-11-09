@@ -3,10 +3,12 @@ pragma solidity 0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {IBondsManager} from "../src/interfaces/IBondsManager.sol";
+import {IPerpToken} from "../src/interfaces/IPerpToken.sol";
 import {PerpToken} from "../src/perp/PerpToken.sol";
 import {PerpController, IFeePolicyController, IBondIssuerController} from "../src/controller/PerpController.sol";
 import {PerpBalancer} from "../src/policy/PerpBalancer.sol";
@@ -85,6 +87,18 @@ contract MockPhase1BIssuer is IBondIssuerController {
 contract Phase1BControllerTest is Test {
     uint256 private constant WAD = 1e18;
     address private constant USER = address(0xBEEF);
+
+    struct RebalanceFees {
+        uint256 sr;
+        uint256 jr;
+        uint256 underlying;
+    }
+
+    struct RebalanceLogState {
+        uint256 stage;
+        uint256 aumCount;
+        uint256 reserveSyncedCount;
+    }
 
     MockERC20 private underlying;
     PerpToken private sr;
@@ -486,6 +500,33 @@ contract Phase1BControllerTest is Test {
         assertEq(controller.protocolFeeBals(address(jr)), jrProtocol);
     }
 
+    function testRebalanceOrdersFeeSettlementPlanAndAumLogs() public {
+        _seed(9_581_311_974_479, 129_298_890, 33_850_817_003_440, 386_465_740);
+        feePolicy.setFees(41_476_256_828_777_681, 41_476_256_828_777_681, 50_000_000_000_000);
+        feePolicy.setAum(1e17, 5e16);
+        feePolicy.setRebalance(100, false);
+        underlying.mint(USER, 150_000_000);
+        vm.startPrank(USER);
+        underlying.approve(address(controller), type(uint256).max);
+        controller.flashMint2(50_000_000, 100_000_000, 0, 0);
+        controller.flashRedeem2(1_000_000_000, 1_000_000_000, 0);
+        vm.stopPrank();
+
+        RebalanceFees memory fees = RebalanceFees({
+            sr: controller.collectedFeeBal(address(sr)),
+            jr: controller.collectedFeeBal(address(jr)),
+            underlying: controller.collectedFeeBal(address(underlying))
+        });
+        assertGt(fees.sr, 0);
+        assertGt(fees.jr, 0);
+        assertGt(fees.underlying, 0);
+
+        vm.warp(64_800 + 86_400 * 10);
+        vm.recordLogs();
+        controller.rebalance();
+        _assertRebalanceLogOrder(vm.getRecordedLogs(), fees);
+    }
+
     function testValueCapCorrectiveBoundaries() public {
         _assertValueCapCase(true, 6_423_365, false);
         _assertValueCapCase(true, 6_423_366, true);
@@ -533,6 +574,72 @@ contract Phase1BControllerTest is Test {
         }
     }
 
+    function testControllerAdminRoleAndValidationMatrix() public {
+        address keeper = address(0xCA11);
+        address random = address(0xBEEF);
+        controller.updateKeeper(keeper);
+
+        bytes memory pauseUser = abi.encodeWithSignature("pauseUserOps(bool)", true);
+        bytes memory pauseSystem = abi.encodeWithSignature("pauseSystemOps(bool)", true);
+        bytes4 unauthorized = PerpController.UnauthorizedCall.selector;
+        _assertAdminCall(address(controller), address(this), pauseUser, false, unauthorized);
+        _assertAdminCall(address(controller), keeper, pauseUser, true, bytes4(0));
+        _assertAdminCall(address(controller), random, pauseUser, false, unauthorized);
+        assertTrue(controller.userOpsPaused());
+        _assertAdminCall(address(controller), address(this), pauseSystem, false, unauthorized);
+        _assertAdminCall(address(controller), keeper, pauseSystem, true, bytes4(0));
+        _assertAdminCall(address(controller), random, pauseSystem, false, unauthorized);
+        assertTrue(controller.systemOpsPaused());
+
+        bytes memory updateValueCap = abi.encodeWithSignature("updateValueCap(uint256)", 123);
+        _assertAdminCall(address(controller), address(this), updateValueCap, false, unauthorized);
+        _assertAdminCall(address(controller), keeper, updateValueCap, true, bytes4(0));
+        _assertAdminCall(address(controller), random, updateValueCap, false, unauthorized);
+        assertEq(controller.valueCap(), 123);
+
+        bytes[] memory ownerOnlySetters = new bytes[](9);
+        ownerOnlySetters[0] = abi.encodeWithSignature(
+            "updateDRTargets(uint256,uint256)", controller.targetSystemRatio(), controller.targetPerpJrVM()
+        );
+        ownerOnlySetters[1] = abi.encodeWithSignature("updateFeePolicy(address)", address(feePolicy));
+        ownerOnlySetters[2] = abi.encodeWithSignature("updateIssuer(address)", address(0x1234));
+        ownerOnlySetters[3] = abi.encodeWithSignature("updateKeeper(address)", keeper);
+        ownerOnlySetters[4] = abi.encodeWithSignature("updateLiquidityThresholds(uint256,uint64)", 0, 1e18);
+        ownerOnlySetters[5] = abi.encodeWithSignature("updateMinCleanupVal(uint256)", 123);
+        ownerOnlySetters[6] = abi.encodeWithSignature("updatePerpBalancer(address)", address(0x9999));
+        ownerOnlySetters[7] = abi.encodeWithSignature("updateRebalanceWindow(uint32,uint32,uint32)", 86_400, 86_400, 3_600);
+        ownerOnlySetters[8] = abi.encodeWithSignature("updateRolloverEligibility(uint32)", 123);
+        bytes4 ownerUnauthorized = Ownable.OwnableUnauthorizedAccount.selector;
+        for (uint256 i; i < ownerOnlySetters.length; ++i) {
+            _assertAdminCall(address(controller), address(this), ownerOnlySetters[i], true, bytes4(0));
+            _assertAdminCall(address(controller), keeper, ownerOnlySetters[i], false, ownerUnauthorized);
+            _assertAdminCall(address(controller), random, ownerOnlySetters[i], false, ownerUnauthorized);
+        }
+
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateRebalanceWindow(0, 0, 1);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateRebalanceWindow(86_400, 86_401, 3_600);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateRebalanceWindow(86_400, 64_800, 0);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateRebalanceWindow(86_400, 64_800, 86_401);
+        controller.updateRebalanceWindow(86_400, 86_400, 3_600);
+        assertEq(controller.rebalanceWindowOffsetSec(), 86_400);
+
+        vm.expectRevert(PerpController.InvalidPerc.selector);
+        controller.updateLiquidityThresholds(0, uint64(WAD + 1));
+        controller.updateLiquidityThresholds(0, uint64(WAD));
+
+        uint256 targetSystemRatio = controller.targetSystemRatio();
+        uint256 targetPerpJrVM = controller.targetPerpJrVM();
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateDRTargets(0, targetPerpJrVM);
+        vm.expectRevert(PerpController.InvalidParamDefn.selector);
+        controller.updateDRTargets(targetSystemRatio, 0);
+        controller.updateDRTargets(targetSystemRatio, targetPerpJrVM);
+    }
+
     function testPerpPermissionsCapDuplicateAndJuniorApproval() public {
         address manager = address(0x1234);
         PerpToken token = new PerpToken("SR", "SR", address(underlying), manager, address(this), false, address(this));
@@ -561,6 +668,114 @@ contract Phase1BControllerTest is Test {
         assertEq(underlying.allowance(address(junior), manager), 0);
     }
 
+    function testPerpControllerReplacementPermissionMatrix() public {
+        address oldController = address(0xD00D);
+        address newController = address(0xCA11);
+        address random = address(0xBEEF);
+        address manager = address(0x1234);
+        PerpToken senior = new PerpToken(
+            "SR", "SR", address(underlying), manager, oldController, false, address(this)
+        );
+        PerpToken junior = new PerpToken(
+            "JR", "JR", address(underlying), manager, oldController, true, address(this)
+        );
+        MockReserveTranche tranche = new MockReserveTranche();
+        senior.updateController(newController);
+        junior.updateController(newController);
+
+        address[4] memory callers = [address(this), oldController, newController, random];
+        bytes memory updateCall = abi.encodeWithSignature("updateController(address)", newController);
+        for (uint256 i; i < callers.length; ++i) {
+            address caller = callers[i];
+            vm.prank(caller);
+            (bool success, bytes memory returndata) = address(senior).call(updateCall);
+            if (caller == address(this)) {
+                assertTrue(success);
+            } else {
+                assertFalse(success);
+                assertEq(_selector(returndata), Ownable.OwnableUnauthorizedAccount.selector);
+            }
+
+            vm.prank(caller);
+            (success, returndata) = address(junior).call(updateCall);
+            if (caller == address(this)) {
+                assertTrue(success);
+            } else {
+                assertFalse(success);
+                assertEq(_selector(returndata), Ownable.OwnableUnauthorizedAccount.selector);
+            }
+        }
+
+        PerpBalancer.ReserveAmounts memory emptyAmounts;
+        emptyAmounts.trancheAmts = new PerpBalancer.TokenAmount[](0);
+        bytes[] memory seniorActions = new bytes[](6);
+        seniorActions[0] = abi.encodeWithSignature("mintTo(address,uint256)", USER, 0);
+        seniorActions[1] = abi.encodeWithSignature("burnFrom(address,uint256)", USER, 0);
+        seniorActions[2] = abi.encodeWithSignature("registerTranche(address)", address(tranche));
+        seniorActions[3] =
+            abi.encodeWithSignature("transferReservesTo(address,(uint256,(address,uint256)[]))", USER, emptyAmounts);
+        seniorActions[4] = abi.encodeWithSignature("handleTransferReservesIn((uint256,(address,uint256)[]))", emptyAmounts);
+        seniorActions[5] = abi.encodeWithSignature("logBalance(address)", address(underlying));
+
+        _assertControllerActionMatrix(address(senior), callers, seniorActions, newController);
+        _assertControllerActionMatrix(address(junior), callers, seniorActions, newController);
+
+        bytes[] memory juniorApprovalActions = new bytes[](2);
+        juniorApprovalActions[0] = abi.encodeWithSignature("primeApproval(address)", manager);
+        juniorApprovalActions[1] = abi.encodeWithSignature("revokeApproval(address)", manager);
+        _assertControllerActionMatrix(address(junior), callers, juniorApprovalActions, newController);
+        assertEq(underlying.allowance(address(junior), manager), 0);
+
+        vm.prank(newController);
+        (bool primeSuccess,) = address(junior).call(abi.encodeWithSignature("primeApproval(address)", manager));
+        assertTrue(primeSuccess);
+        assertEq(underlying.allowance(address(junior), manager), type(uint256).max);
+        vm.prank(newController);
+        (bool revokeSuccess,) = address(junior).call(abi.encodeWithSignature("revokeApproval(address)", manager));
+        assertTrue(revokeSuccess);
+        assertEq(underlying.allowance(address(junior), manager), 0);
+
+        (bool seniorPrimeSuccess, bytes memory seniorPrimeReturndata) =
+            address(senior).call(abi.encodeWithSignature("primeApproval(address)", manager));
+        assertFalse(seniorPrimeSuccess);
+        assertEq(seniorPrimeReturndata.length, 0);
+    }
+
+    function testPerpOwnable2StepAndHolderTransfers() public {
+        address oldController = address(0xD00D);
+        address nextOwner = address(0xCA11);
+        PerpToken token = new PerpToken(
+            "SR", "SR", address(underlying), address(0x1234), oldController, false, address(this)
+        );
+        assertEq(token.decimals(), 8);
+        token.transferOwnership(nextOwner);
+        assertEq(token.pendingOwner(), nextOwner);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, USER));
+        vm.prank(USER);
+        token.acceptOwnership();
+        vm.prank(nextOwner);
+        token.acceptOwnership();
+        assertEq(token.owner(), nextOwner);
+        vm.prank(nextOwner);
+        token.renounceOwnership();
+        assertEq(token.owner(), address(0));
+
+        PerpToken transferable = new PerpToken(
+            "SR", "SR", address(underlying), address(0x1234), address(this), false, address(this)
+        );
+        assertEq(transferable.decimals(), 8);
+        transferable.mintTo(USER, 1_000);
+        vm.startPrank(USER);
+        transferable.transfer(address(0xCAFE), 400);
+        transferable.approve(address(0xD00D), 500);
+        vm.stopPrank();
+        vm.prank(address(0xD00D));
+        transferable.transferFrom(USER, address(this), 300);
+        assertEq(transferable.balanceOf(USER), 300);
+        assertEq(transferable.balanceOf(address(0xCAFE)), 400);
+        assertEq(transferable.balanceOf(address(this)), 300);
+    }
+
     function testReserveDataTrancheValueFloors() public {
         PerpToken token =
             new PerpToken("SR", "SR", address(underlying), address(0xD00D), address(this), false, address(this));
@@ -585,7 +800,22 @@ contract Phase1BControllerTest is Test {
         );
         token.registerTranche(address(tranche));
         tranche.mint(address(token), 5);
-        PerpBalancer.ReserveData memory reserve = token.reserveData();
+        underlying.mint(address(token), 123);
+        (bool reservesSuccess, bytes memory reservesReturndata) =
+            address(token).staticcall(abi.encodeWithSignature("reserves()"));
+        assertTrue(reservesSuccess);
+        IPerpToken.ReserveTokens memory reserves =
+            abi.decode(reservesReturndata, (IPerpToken.ReserveTokens));
+        assertEq(reserves.underlyingBal, 123);
+        assertEq(reserves.trancheTokens.length, 1);
+        assertEq(reserves.trancheTokens[0].token, address(tranche));
+        assertEq(reserves.trancheTokens[0].amount, 5);
+
+        (bool reserveDataSuccess, bytes memory reserveDataReturndata) =
+            address(token).staticcall(abi.encodeWithSignature("reserveData()"));
+        assertTrue(reserveDataSuccess);
+        PerpBalancer.ReserveData memory reserve =
+            abi.decode(reserveDataReturndata, (PerpBalancer.ReserveData));
         assertEq(reserve.trancheData.length, 1);
         assertEq(reserve.trancheData[0].balance, 5);
         assertEq(reserve.trancheData[0].value, 3);
@@ -614,6 +844,128 @@ contract Phase1BControllerTest is Test {
         }
         c.flashMint2(srPayer ? amount : 0, srPayer ? 0 : amount, 0, 0);
         vm.stopPrank();
+    }
+
+    function _assertControllerActionMatrix(
+        address target,
+        address[4] memory callers,
+        bytes[] memory actions,
+        address expectedController
+    ) private {
+        for (uint256 i; i < actions.length; ++i) {
+            for (uint256 j; j < callers.length; ++j) {
+                vm.prank(callers[j]);
+                (bool success, bytes memory returndata) = target.call(actions[i]);
+                if (callers[j] == expectedController) {
+                    assertTrue(success);
+                } else {
+                    assertFalse(success);
+                    assertEq(_selector(returndata), PerpToken.UnauthorizedCall.selector);
+                }
+            }
+        }
+    }
+
+    function _assertRebalanceLogOrder(Vm.Log[] memory logs, RebalanceFees memory fees) private {
+        RebalanceLogState memory state;
+        bytes32 transferTopic = keccak256("Transfer(address,address,uint256)");
+        bytes32 rebalanceTopic = keccak256("Rebalance(uint256,bool)");
+        bytes32 aumTopic = keccak256("AumFees(address,uint256)");
+        bytes32 reserveSyncedTopic = keccak256("ReserveSynced(address,uint256)");
+
+        for (uint256 i; i < logs.length; ++i) {
+            Vm.Log memory entry = logs[i];
+            if (entry.topics.length == 0) continue;
+            if (entry.topics[0] == transferTopic && entry.topics.length == 3) {
+                _assertRebalanceTransfer(entry, fees, state);
+            } else if (entry.emitter == address(controller) && entry.topics[0] == rebalanceTopic) {
+                assertEq(state.stage, 3);
+                (uint256 rebalanceValue, bool srPays) = abi.decode(entry.data, (uint256, bool));
+                assertEq(rebalanceValue, 100);
+                assertFalse(srPays);
+                state.stage = 4;
+            } else if (entry.emitter == address(controller) && entry.topics[0] == aumTopic) {
+                _assertAumLog(entry, state);
+            } else if (
+                (entry.emitter == address(sr) || entry.emitter == address(jr))
+                    && entry.topics[0] == reserveSyncedTopic
+            ) {
+                (address token, uint256 balance) = abi.decode(entry.data, (address, uint256));
+                assertEq(token, address(underlying));
+                assertGt(balance, 0);
+                ++state.reserveSyncedCount;
+            }
+        }
+
+        assertEq(state.stage, 6);
+        assertEq(state.aumCount, 2);
+        assertEq(state.reserveSyncedCount, 3);
+    }
+
+    function _assertRebalanceTransfer(
+        Vm.Log memory entry,
+        RebalanceFees memory fees,
+        RebalanceLogState memory state
+    ) private {
+        address from = address(uint160(uint256(entry.topics[1])));
+        address to = address(uint160(uint256(entry.topics[2])));
+        uint256 amount = abi.decode(entry.data, (uint256));
+
+        if (entry.emitter == address(sr) && from == address(controller) && to == address(0)) {
+            assertEq(state.stage, 0);
+            assertEq(amount, fees.sr);
+            state.stage = 1;
+        } else if (entry.emitter == address(jr) && from == address(controller) && to == address(0)) {
+            assertEq(state.stage, 1);
+            assertEq(amount, fees.jr);
+            state.stage = 2;
+        } else if (
+            entry.emitter == address(underlying) && from == address(controller) && to == address(jr)
+                && amount == fees.underlying
+        ) {
+            assertEq(state.stage, 2);
+            state.stage = 3;
+        } else if (
+            entry.emitter == address(underlying) && from == address(jr) && to == address(sr) && amount == 100
+        ) {
+            assertEq(state.stage, 4);
+            state.stage = 5;
+        }
+    }
+
+    function _assertAumLog(Vm.Log memory entry, RebalanceLogState memory state) private {
+        assertEq(state.stage, 5);
+        address token = address(uint160(uint256(entry.topics[1])));
+        uint256 amount = abi.decode(entry.data, (uint256));
+        assertGt(amount, 0);
+        if (state.aumCount == 0) assertEq(token, address(sr));
+        else {
+            assertEq(state.aumCount, 1);
+            assertEq(token, address(jr));
+        }
+        ++state.aumCount;
+        if (state.aumCount == 2) state.stage = 6;
+    }
+
+    function _assertAdminCall(
+        address target,
+        address caller,
+        bytes memory callData,
+        bool expectedSuccess,
+        bytes4 expectedSelector
+    ) private {
+        vm.prank(caller);
+        (bool success, bytes memory returndata) = target.call(callData);
+        assertEq(success, expectedSuccess);
+        if (!expectedSuccess) assertEq(_selector(returndata), expectedSelector);
+    }
+
+    function _selector(bytes memory returndata) private pure returns (bytes4 result) {
+        if (returndata.length >= 4) {
+            assembly ("memory-safe") {
+                result := mload(add(returndata, 0x20))
+            }
+        }
     }
 
     function _seed(uint256 srSupply, uint256 srReserve, uint256 jrSupply, uint256 jrReserve) private {

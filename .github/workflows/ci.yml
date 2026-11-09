@@ -1,0 +1,25 @@
+name: Foundry CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  foundry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+      - name: Build and report contract sizes
+        run: forge build --sizes
+      - name: Enforce runtime size limit
+        run: python3 script/check_runtime_sizes.py
+      - name: Run tests offline
+        run: forge test --offline

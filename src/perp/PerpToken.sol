@@ -3,14 +3,16 @@ pragma solidity 0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IBondsManager} from "../interfaces/IBondsManager.sol";
+import {IPerpToken} from "../interfaces/IPerpToken.sol";
 import {ITranche} from "../interfaces/ITranche.sol";
 import {PerpBalancer} from "../policy/PerpBalancer.sol";
 
-contract PerpToken is ERC20, Ownable {
+contract PerpToken is ERC20, Ownable2Step {
     using SafeERC20 for IERC20;
 
     error UnauthorizedCall();
@@ -110,8 +112,14 @@ contract PerpToken is ERC20, Ownable {
         return _reserveData();
     }
 
-    function reserves() external view returns (PerpBalancer.ReserveData memory) {
-        return _reserveData();
+    function reserves() external view returns (IPerpToken.ReserveTokens memory result) {
+        result.underlyingBal = IERC20(underlying).balanceOf(address(this));
+        result.trancheTokens = new PerpBalancer.TokenAmount[](_trancheTokens.length);
+        for (uint256 i; i < _trancheTokens.length; ++i) {
+            address token = _trancheTokens[i];
+            result.trancheTokens[i] =
+                PerpBalancer.TokenAmount(token, IERC20(token).balanceOf(address(this)));
+        }
     }
 
     fallback() external {
