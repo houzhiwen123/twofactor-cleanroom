@@ -6,6 +6,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {BondIssuer} from "../src/bond/BondIssuer.sol";
 import {BondsManager} from "../src/bond/BondsManager.sol";
 import {Tranche} from "../src/bond/Tranche.sol";
@@ -308,9 +309,176 @@ contract GenesisDeploymentTest is Test {
         assertEq(s.perpJr.totalSupply(), 0);
     }
 
+    function testTopUpExactMaximumAndOneUnitShortBoundary() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        IBondsManager.TrancheData memory jrData = s.manager.trancheData(s.bondID, false);
+        uint256 jrReserveValue = Math.mulDiv(s.jrAmount, jrData.trancheClaim, jrData.trancheSupply);
+        uint256 required = s.seeder
+        .computeJrUnderlyingTopUp(jrReserveValue, jrData.volatilityMultiplier, s.controller.targetPerpJrVM());
+        assertGt(required, 0);
+        assertLe(required, s.maxJrUnderlyingTopUp);
+
+        vm.expectRevert(GenesisSeeder.InsufficientSeed.selector);
+        s.seeder.bootstrap(s.controller, s.srTranche, s.srAmount, s.jrTranche, s.jrAmount, required - 1, RECEIVER);
+
+        assertFalse(s.seeder.used());
+        assertTrue(s.controller.userOpsPaused());
+        assertEq(s.perpSr.totalSupply(), 0);
+        assertEq(s.perpJr.totalSupply(), 0);
+
+        s.seeder.bootstrap(s.controller, s.srTranche, s.srAmount, s.jrTranche, s.jrAmount, required, RECEIVER);
+        assertTrue(s.seeder.used());
+        assertGt(s.perpSr.totalSupply(), s.seeder.MIN_LOCKED_SHARES());
+        assertGt(s.perpJr.totalSupply(), s.seeder.MIN_LOCKED_SHARES());
+        emit log_named_uint("exact JR idle top-up", required);
+    }
+
+    function testTopUpRejectsUnreachableTargetAtomically() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        s.controller.updateDRTargets(s.controller.targetSystemRatio(), 1e18);
+
+        vm.expectRevert(GenesisSeeder.InvalidParamDefn.selector);
+        _bootstrap(s, RECEIVER);
+
+        assertFalse(s.seeder.used());
+        assertTrue(s.controller.userOpsPaused());
+        assertEq(s.perpSr.totalSupply(), 0);
+        assertEq(s.perpJr.totalSupply(), 0);
+        assertEq(s.perpSr.balanceOf(RECEIVER), 0);
+        assertEq(s.perpJr.balanceOf(RECEIVER), 0);
+    }
+
+    function testTopUpNearUnderlyingVmAndCeilingRounding() public {
+        GenesisSeeder calculator = new GenesisSeeder(address(this));
+        assertEq(calculator.computeJrUnderlyingTopUp(1, 1e18 + 2, 1e18 + 1), 1);
+
+        uint256 nearUnderlying = calculator.computeJrUnderlyingTopUp(1e8, 2e18, 1e18 + 1);
+        assertGt(nearUnderlying, 1e24);
+        assertEq(calculator.computeJrUnderlyingTopUp(1e8, 12e17, 13e17), 0);
+        assertEq(calculator.computeJrUnderlyingTopUp(1e8, 9e17, 1e18), 0);
+        emit log_named_uint("near-underlying target top-up", nearUnderlying);
+    }
+
+    function testGenesisBothDeviationRatiosInsideOperationalLaunchRange() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _bootstrap(s, RECEIVER);
+        s.controller.updateKeeper(address(this));
+        s.controller.pauseUserOps(false);
+
+        (uint256 subDr, uint256 vmDr) = s.controller.systemDeviations();
+        uint256 srInput = s.perpSr.balanceOf(RECEIVER) / 10;
+        uint256 jrInput = s.perpJr.balanceOf(RECEIVER) / 10;
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        s.perpJr.approve(address(s.controller), type(uint256).max);
+        (,, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
+            s.controller.redeem2(srInput, jrInput, 0);
+        vm.stopPrank();
+
+        emit log_named_uint("launch subDR", subDr);
+        emit log_named_uint("launch vmDR", vmDr);
+        assertLt(srFee.totalFeePerc, 1e18);
+        assertLt(jrFee.totalFeePerc, 1e18);
+    }
+
+    function testGenesisSingleSideExitBoundaries() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _bootstrap(s, RECEIVER);
+        s.controller.updateKeeper(address(this));
+        s.controller.pauseUserOps(false);
+
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        s.perpJr.approve(address(s.controller), type(uint256).max);
+        vm.stopPrank();
+
+        _logExitBoundary(s, false, true, "SR basket", PerpController.OpDisabled.selector);
+        _logExitBoundary(s, false, false, "JR basket", bytes4(0));
+        _logExitBoundary(s, true, true, "SR underlying", bytes4(0xe450d38c));
+        _logExitBoundary(s, true, false, "JR underlying", PerpController.OpDisabled.selector);
+    }
+
     function _bootstrap(LocalSystem memory s, address receiver) private returns (uint256, uint256) {
         return s.seeder
             .bootstrap(s.controller, s.srTranche, s.srAmount, s.jrTranche, s.jrAmount, s.maxJrUnderlyingTopUp, receiver);
+    }
+
+    function _logExitBoundary(
+        LocalSystem memory s,
+        bool flash,
+        bool srSide,
+        string memory label,
+        bytes4 expectedNextSelector
+    ) private {
+        uint256 balance = srSide ? s.perpSr.balanceOf(RECEIVER) : s.perpJr.balanceOf(RECEIVER);
+        uint256 low;
+        uint256 high = balance;
+        while (low < high) {
+            uint256 mid = low + (high - low + 1) / 2;
+            (bool success,,) = _probeExit(s, flash, srSide, mid);
+            if (success) low = mid;
+            else high = mid - 1;
+        }
+
+        assertGt(low, 0);
+        (bool boundarySuccess, uint256 boundaryFee,) = _probeExit(s, flash, srSide, low);
+        assertTrue(boundarySuccess);
+        assertLt(boundaryFee, 1e18);
+        bytes4 nextSelector;
+        if (low < balance) {
+            (bool nextSuccess,, bytes4 selector) = _probeExit(s, flash, srSide, low + 1);
+            assertFalse(nextSuccess);
+            nextSelector = selector;
+        }
+        assertEq(nextSelector, expectedNextSelector);
+
+        emit log_named_uint(string.concat(label, " balance"), balance);
+        emit log_named_uint(string.concat(label, " max successful input"), low);
+        emit log_named_uint(string.concat(label, " boundary fee"), boundaryFee);
+        emit log_named_bytes32(string.concat(label, " next failure selector"), bytes32(nextSelector));
+    }
+
+    function _probeExit(LocalSystem memory s, bool flash, bool srSide, uint256 amount)
+        private
+        returns (bool success, uint256 sideFee, bytes4 selector)
+    {
+        uint256 snapshot = vm.snapshotState();
+        bytes memory callData = flash
+            ? abi.encodeCall(PerpController.flashRedeem2, (srSide ? amount : 0, srSide ? 0 : amount, 0))
+            : abi.encodeCall(PerpController.redeem2, (srSide ? amount : 0, srSide ? 0 : amount, 0));
+        vm.prank(RECEIVER);
+        bytes memory result;
+        (success, result) = address(s.controller).call(callData);
+        if (success) {
+            if (flash) {
+                (, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
+                    abi.decode(result, (uint256, PerpController.FeePerc, PerpController.FeePerc));
+                sideFee = srSide ? srFee.totalFeePerc : jrFee.totalFeePerc;
+            } else {
+                (
+                    PerpBalancer.ReserveAmounts memory srOut,
+                    PerpBalancer.ReserveAmounts memory jrOut,
+                    PerpController.FeePerc memory srFee,
+                    PerpController.FeePerc memory jrFee
+                ) = abi.decode(
+                    result,
+                    (
+                        PerpBalancer.ReserveAmounts,
+                        PerpBalancer.ReserveAmounts,
+                        PerpController.FeePerc,
+                        PerpController.FeePerc
+                    )
+                );
+                srOut;
+                jrOut;
+                sideFee = srSide ? srFee.totalFeePerc : jrFee.totalFeePerc;
+            }
+        } else if (result.length >= 4) {
+            assembly ("memory-safe") {
+                selector := mload(add(result, 0x20))
+            }
+        }
+        assertTrue(vm.revertToState(snapshot));
     }
 
     function _deployPausedSystem(uint256 seedUnderlying) private returns (LocalSystem memory s) {

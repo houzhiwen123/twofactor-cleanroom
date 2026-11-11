@@ -89,13 +89,9 @@ contract GenesisSeeder {
 
         (PerpController.SystemState memory state,,) = controller.systemReserveState();
         uint256 targetJrVm = controller.targetPerpJrVM();
-        uint256 jrUnderlyingTopUp;
+        uint256 jrUnderlyingTopUp = computeJrUnderlyingTopUp(state.perpJr.reserveValue, state.perpJr.vm, targetJrVm);
         address underlying = controller.underlying();
-        if (state.perpJr.vm > targetJrVm) {
-            if (targetJrVm <= 1e18) revert InvalidParamDefn();
-            jrUnderlyingTopUp = Math.mulDiv(
-                state.perpJr.reserveValue, state.perpJr.vm - targetJrVm, targetJrVm - 1e18, Math.Rounding.Ceil
-            );
+        if (jrUnderlyingTopUp != 0) {
             if (
                 jrUnderlyingTopUp > maxJrUnderlyingTopUp
                     || IERC20(underlying).balanceOf(address(this)) < jrUnderlyingTopUp
@@ -115,6 +111,18 @@ contract GenesisSeeder {
         IERC20(perpJr).safeTransfer(receiver, jrShares - MIN_LOCKED_SHARES);
 
         emit GenesisSeeded(address(controller), receiver, srShares, jrShares, MIN_LOCKED_SHARES, jrUnderlyingTopUp);
+    }
+
+    /// @notice Returns the smallest idle-underlying top-up that reduces JR VM to the target.
+    /// @dev If dilution is needed, a target at or below the underlying VM (1e18) is unreachable.
+    function computeJrUnderlyingTopUp(uint256 reserveValue, uint256 jrVm, uint256 targetJrVm)
+        public
+        pure
+        returns (uint256)
+    {
+        if (jrVm <= targetJrVm) return 0;
+        if (targetJrVm <= 1e18) revert InvalidParamDefn();
+        return Math.mulDiv(reserveValue, jrVm - targetJrVm, targetJrVm - 1e18, Math.Rounding.Ceil);
     }
 
     function _requireEmptyReserve(address perp, address genesisTranche) private view {

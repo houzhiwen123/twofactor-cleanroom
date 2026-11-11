@@ -41,6 +41,9 @@ pause fails, the Seeder's `used` flag, approvals, supplies, balances and pause s
   100% operation-fee ceiling. The Seeder therefore adds JR idle underlying using
   `ceil(jrReserveValue * (jrVm - targetVm) / (targetVm - 1e18))`. This changes reserve composition,
   not the fee curve. The caller supplies a maximum top-up; exceeding it reverts atomically.
+- `computeJrUnderlyingTopUp` exposes that calculation as a pure audit surface. If dilution is
+  required, a target at or below the underlying VM (`1e18`) is unreachable and rejected. If JR VM
+  is already at or below the target, the required top-up is zero.
 
 ## Defensive limits
 
@@ -99,8 +102,15 @@ The frozen local baseline logs are `evidence/local_genesis_baseline_105_tests.lo
 - locked Genesis shares remaining outside a normal user's control;
 - direct 10% two-sided `redeem2` under the real local FeePolicy, including exact inputs, pre/post
   `subDR`, `vmDR` and both fee percentages;
+- the top-up maximum at one-unit precision: `100,000,000` is insufficient and rolls back, while
+  the computed `100,000,001` succeeds;
+- unreachable and near-underlying JR VM targets, including ceiling rounding and atomic rollback;
+- the maximum successful one-sided inputs for SR/JR basket and underlying redemption, including
+  the next-unit failure selector;
 - the full local sequence `initialize -> first Bond/deposit -> rebalance -> partial redeem -> all
   remaining user-owned shares redeemed`, while locked shares remain untouched.
+
+The post-baseline local boundary run is recorded in `evidence/LOCAL_GENESIS_BOUNDARY_110.md`.
 
 The Genesis changes do not add or reorder Controller storage. The frozen Controller slots `0–17`
 must continue to pass `script/check_controller_storage_layout.py`, and the Controller runtime must
@@ -114,6 +124,9 @@ remain below the repository's 22,500-byte guard.
 - Formal verification of all long-sequence donation, rounding and redemption economics.
 - The economically appropriate capital budget for the JR idle-underlying top-up in markets with a
   different opening tranche VM or target VM.
+- Whether production Genesis should also seed SR idle underlying. In the current tranche-first
+  fixture, SR `flashRedeem2` cannot produce a positive underlying unit until SR has idle underlying;
+  basket redemption remains available.
 - Independent security audit results.
 
 These items must not be filled with assumptions. This local deployment is a regression fixture and

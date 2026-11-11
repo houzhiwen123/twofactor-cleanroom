@@ -64,7 +64,7 @@ The later local Genesis design keeps the frozen slots unchanged and moves its mi
 into the existing stateless `PerpMath` boundary. After the subsequent review hardening, Controller
 runtime is **22,475 bytes**, leaving 25 bytes under the repository's 22,500-byte guard and 2,101
 bytes under EIP-170.
-`GenesisSeeder` is a separate 5,448-byte one-use deployment helper, including the JR VM-target
+`GenesisSeeder` is a separate 5,438-byte one-use deployment helper, including the JR VM-target
 top-up calculation and atomic idle-underlying mint. These figures are verified by
 `script/check_runtime_sizes.py`; any additional Controller behavior requires another extraction or
 size reduction rather than increasing the guard.
