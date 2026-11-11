@@ -1,0 +1,161 @@
+No files changed, compilation skipped
+
+Ran 3 tests for test/OracleBalancer.t.sol:OracleBalancerTest
+[PASS] testBalancerConsumesUnderlyingThenNearestMaturity() (gas: 1449306)
+[PASS] testOracleScalesAndCachesWithinTransaction() (gas: 804946)
+[PASS] testOracleValidityBoundaries() (gas: 908961)
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 21.00ms (9.22ms CPU time)
+
+Ran 6 tests for test/PerpMath.t.sol:PerpMathTest
+[PASS] testRedeemBasketAndValueMatchIndependentFloors() (gas: 30127)
+[PASS] testRedeemBasketRejectsNonzeroSharesAtZeroSupply() (gas: 11959)
+[PASS] testReserveAndDepositStateMatchIndependentArithmetic() (gas: 21573)
+[PASS] testValueCapDirectionAndNoCrossingMatrix() (gas: 15466)
+[PASS] testWithdrawalStateMatchesBothIndependentBranches() (gas: 20863)
+[PASS] testZeroSupplyTrancheDoesNotBreakZeroAmountBasket() (gas: 22417)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 22.85ms (5.96ms CPU time)
+
+Ran 10 tests for test/ControllerRollover.t.sol:ControllerRolloverTest
+[PASS] testCleanupBoundaryIsInclusive() (gas: 936654)
+[PASS] testNoWorkAndBelowCleanupRevertBeforeAssetCalls() (gas: 480772)
+[PASS] testPauseAndDownstreamFailureAreAtomic() (gas: 499834)
+[PASS] testPermissionlessStandardRolloverPreservesTargetCallOrderAndZeroEntries() (gas: 997991)
+[PASS] testPlannerFailureIsAtomic() (gas: 257368)
+[PASS] testUpkeepIssueOnlyPreservesObservedCallOrder() (gas: 276373)
+[PASS] testUpkeepMaturityAndIssuePreservesObservedCallOrder() (gas: 299662)
+[PASS] testUpkeepMaturityOnlyPreservesObservedCallOrder() (gas: 276587)
+[PASS] testUpkeepNoWorkRevertsAtomically() (gas: 245065)
+[PASS] testUpkeepSystemPauseRevertsBeforeSubcalls() (gas: 91580)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 24.30ms (5.34ms CPU time)
+
+Ran 6 tests for test/PerpTokenReserveCleanup.t.sol:PerpTokenReserveCleanupTest
+[PASS] testHandleOneSidedRegistersIncomingAndRemovesZeroCounterpart() (gas: 1711781)
+[PASS] testHandlePairedTranchesRedeemsAndRemovesBoth() (gas: 1679496)
+[PASS] testR2_RebalanceMustCountTransferredTrancheInReceiver() (gas: 3974692)
+[PASS] testRecoverPermissionAndZeroSupplyReserveValue() (gas: 1658866)
+[PASS] testRecoverReturnsFalseThenTrueAndRemovesMatureTranche() (gas: 1684829)
+[PASS] testTransferFullBalanceAndZeroBalanceUseSwapPop() (gas: 6531613)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 25.17ms (7.02ms CPU time)
+
+Ran 5 tests for test/PerpTokenRollover.t.sol:PerpTokenRolloverTest
+[PASS] testBondDepositsForRolloverPermissionAndSeniorRejection() (gas: 23563)
+[PASS] testCapacityFailureIsAtomic() (gas: 2608503)
+[PASS] testEmptyAndZeroDepositsMatchRound11EventBehavior() (gas: 192707)
+[PASS] testPositiveAndRepeatedDepositsRegisterAndSyncReserves() (gas: 407772)
+[PASS] testSecondDepositRevertRollsBackFirstDeposit() (gas: 411675)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 25.34ms (6.61ms CPU time)
+
+Ran 8 tests for test/RolloverPlanner.t.sol:RolloverPlannerTest
+[PASS] testBackupPolicyMatchesTargetPartialAndFullExecutionVectors() (gas: 1489524)
+[PASS] testBackupSelectorUsesReciprocalMultiplierScoreAndFirstTie() (gas: 2908306)
+[PASS] testJrLiquidityFloorsUnlockedValueAndUnpairedSeniorAmount() (gas: 1428270)
+[PASS] testRolloverStateUsesInclusiveStaleBoundaryAndSortsFreshRows() (gas: 1455668)
+[PASS] testStandardPolicyUsesCeilingAverageTargetAndStoredValueRatio() (gas: 1458458)
+[PASS] testStandardRolloverPolicyMatchesFirstObservedAllocationVector() (gas: 1452253)
+[PASS] testTopLevelPlannerReturnsStandardAndEvidenceBackedBackupBranch() (gas: 1506977)
+[PASS] testTopLevelStandardBudgetEqualityAndOneUnitShortfall() (gas: 1511264)
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 40.34ms (32.71ms CPU time)
+
+Ran 12 tests for test/GenesisDeployment.t.sol:GenesisDeploymentTest
+[PASS] testControllerStartsPausedAndBlocksPublicFirstMint() (gas: 23780973)
+[PASS] testDonationBeforeBootstrapIsRejected() (gas: 23829600)
+[PASS] testFlashMintCannotEstablishInitialPrice() (gas: 23842810)
+[PASS] testGenesisDirectRedeemTenPercentSucceeds() (gas: 25019551)
+[PASS] testGenesisLifecycleRebalancePartialAndFullExit() (gas: 25443689)
+[PASS] testGenesisSeederCannotBeReused() (gas: 24697047)
+[PASS] testGenesisSharesRemainOutsideNormalUserControl() (gas: 24710072)
+[PASS] testLateBootstrapFailureRollsBackPauseAndAllBalances() (gas: 24229366)
+[PASS] testLocalGenesisCreatesFirstBondAndLocksMinimumShares() (gas: 24705533)
+[PASS] testOneSidedTrancheBootstrapIsRejected() (gas: 24067629)
+[PASS] testSeedBelowMinimumIsRejectedWithoutStateChange() (gas: 23820411)
+[PASS] testUpgradeableInitializersCannotBeReplayed() (gas: 23792453)
+Suite result: ok. 12 passed; 0 failed; 0 skipped; finished in 55.85ms (91.26ms CPU time)
+
+Ran 41 tests for test/Phase1BController.t.sol:Phase1BControllerTest
+[PASS] testAumFeeZeroAmountMintsZeroAndEmits() (gas: 329405)
+[PASS] testAumFeeZeroRateDoesNotEmit() (gas: 274578)
+[PASS] testControllerAdminRoleAndValidationMatrix() (gas: 2368647)
+[PASS] testControllerSetterValuesFromRound8Probe() (gas: 2454501)
+[PASS] testDRTargetBoundaryMatchesRound8Probe() (gas: 45365)
+[PASS] testFlashMint2AboveCleanupThresholdExecutesLazyRollover() (gas: 2964538)
+[PASS] testFlashMint2AtCleanupThresholdSkipsLazyRollover() (gas: 2882487)
+[PASS] testFlashMint2GoldenNetShares() (gas: 398253)
+[PASS] testFlashMint2IssuesOnlyForSeniorInput() (gas: 2616284)
+[PASS] testFlashMint2JuniorOnlyDoesNotIssue() (gas: 2493667)
+[PASS] testFlashMint2PerSideFeeDivergence() (gas: 521466)
+[PASS] testFlashMint2ProtocolSplitGoldenVector() (gas: 592951)
+[PASS] testFlashRedeem2Gross999999GoldenCases() (gas: 25527848)
+[PASS] testFlashRedeem2TwoSidedGoldenSettlement() (gas: 539477)
+[PASS] testJrLiquidityAndFeePriority() (gas: 413547)
+[PASS] testMint2PerSideFloorGoldenVector() (gas: 6433206)
+[PASS] testMint2RejectsRegisteredNonLatestTranche() (gas: 4169997)
+[PASS] testMint2ZeroInputSideFeeIsNotComputedOrGuarded() (gas: 30148898)
+[PASS] testPauseSelectorsAndRebalanceWindowEdges() (gas: 62215423)
+[PASS] testPerpControllerReplacementPermissionMatrix() (gas: 5219459)
+[PASS] testPerpOwnable2StepAndHolderTransfers() (gas: 4293314)
+[PASS] testPerpPermissionsCapDuplicateAndJuniorApproval() (gas: 6546568)
+[PASS] testRebalanceAllowsConfiguredKeeperCaller() (gas: 116964)
+[PASS] testRebalanceAllowsOwnerCallerWhenKeeperDiffers() (gas: 116517)
+[PASS] testRebalanceAllowsRandomCallerWhenKeeperDiffers() (gas: 116496)
+[PASS] testRebalanceCooldownWindowStartAndFrequencyBoundaries() (gas: 37503494)
+[PASS] testRebalanceOrdersFeeSettlementPlanAndAumLogs() (gas: 889753)
+[PASS] testRebalanceSecondCallInSameWindowIsTooRecent() (gas: 108635)
+[PASS] testRebalanceSettlesCollectedFeesAndMintsAumOnZeroPlan() (gas: 696434)
+[PASS] testRedeem2FloorsAndRetainsFeePerps() (gas: 592146)
+[PASS] testRedeem2NonEmptySideWorksWhenOtherSupplyIsZero() (gas: 12577391)
+[PASS] testRedeem2SecondFeeBearingGoldenVector() (gas: 594300)
+[PASS] testReserveDataTrancheValueFloors() (gas: 3160783)
+[PASS] testReservesRawTupleOrderAmountsAndDuplicateRegistration() (gas: 4174132)
+[PASS] testUnderlyingOracleConfigurationIsOwnerOnlyAndUsesIssuerRegistry() (gas: 2276649)
+[PASS] testUpdateIssuerRotatesJuniorUnderlyingApproval() (gas: 2398938)
+[PASS] testValueCapBalancedPreSubWadAboveCapReverts() (gas: 386311)
+[PASS] testValueCapCorrectiveBoundaries() (gas: 50934882)
+[PASS] testValueCapExactBalanceIsAllowedFromBothSides() (gas: 25382457)
+[PASS] testValueCapUnderCapPostOverCapAllowsOnlyCorrectiveSide() (gas: 444059)
+[PASS] testZeroInputSideFeeDoesNotDisableOperations() (gas: 76563546)
+Suite result: ok. 41 passed; 0 failed; 0 skipped; finished in 55.91ms (131.38ms CPU time)
+
+Ran 4 tests for test/FeePolicy.t.sol:FeePolicyTest
+[PASS] testAumFeeMustRemainStrictlyBelowOneHundredPercent() (gas: 49848)
+[PASS] testComputeOpFeesGoldenVectors() (gas: 251798)
+[PASS] testComputeRebalanceValGoldenVectors() (gas: 89714)
+[PASS] testFuzzRebalanceValMatchesIndependentModel(uint128,uint128,uint64) (runs: 256, μ: 24303, ~: 24356)
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 111.28ms (47.75ms CPU time)
+
+Ran 10 tests for test/BondsManager.t.sol:BondsManagerTest
+[PASS] testBondIdAndDepositConstructionVector() (gas: 769590)
+[PASS] testBondIssuerSchedulingAndMaturityCleanup() (gas: 2213572)
+[PASS] testFuzzImmatureRedemptionUsesFractionalProRata(uint96,uint64,uint64) (runs: 256, μ: 809830, ~: 812923)
+[PASS] testFuzzSettlementMatchesIndependentModel(uint64,uint128,uint96,uint96) (runs: 256, μ: 17980, ~: 17975)
+[PASS] testImmatureRedemptionHandlesWideProductComparisons() (gas: 791029)
+[PASS] testMatureRedemptionPaysResidualClaims() (gas: 713764)
+[PASS] testMatureZeroSupplyCannotClaimResidual() (gas: 726140)
+[PASS] testSettlementAndTwoCeilingVectors() (gas: 23011)
+[PASS] testTrancheValueRatioAndVolatilityVector() (gas: 779963)
+[PASS] testZeroJuniorClaimUsesSaturatingVm() (gas: 780138)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 111.42ms (145.06ms CPU time)
+
+╭-----------------------------+--------+--------+---------╮
+| Test Suite                  | Passed | Failed | Skipped |
++=========================================================+
+| BondsManagerTest            | 10     | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| ControllerRolloverTest      | 10     | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| FeePolicyTest               | 4      | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| GenesisDeploymentTest       | 12     | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| OracleBalancerTest          | 3      | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| PerpMathTest                | 6      | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| PerpTokenReserveCleanupTest | 6      | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| PerpTokenRolloverTest       | 5      | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| Phase1BControllerTest       | 41     | 0      | 0       |
+|-----------------------------+--------+--------+---------|
+| RolloverPlannerTest         | 8      | 0      | 0       |
+╰-----------------------------+--------+--------+---------╯
+

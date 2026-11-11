@@ -302,6 +302,7 @@ contract MockControllerRolloverIssuer is IBondIssuerController {
                 address(implementation), abi.encodeCall(PerpController.init, (address(0xCB), address(sr), address(jr)))
             );
             controller = PerpController(address(proxy));
+            controller.pauseUserOps(false);
             controller.updatePerpBalancer(address(planner));
             controller.updateIssuer(address(issuer));
         }

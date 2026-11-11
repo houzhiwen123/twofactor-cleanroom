@@ -94,7 +94,7 @@ contract FeePolicy is Initializable, Ownable2StepUpgradeable {
     }
 
     function updateAumFeePerc(uint64 perpSrAUMFeePerc_, uint64 perpJrAUMFeePerc_) external onlyOwner {
-        if (perpSrAUMFeePerc_ > WAD || perpJrAUMFeePerc_ > WAD) revert InvalidPerc();
+        if (perpSrAUMFeePerc_ >= WAD || perpJrAUMFeePerc_ >= WAD) revert InvalidPerc();
         perpSrAUMFeePerc = perpSrAUMFeePerc_;
         perpJrAUMFeePerc = perpJrAUMFeePerc_;
     }

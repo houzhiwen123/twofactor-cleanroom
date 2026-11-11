@@ -62,6 +62,29 @@ contract PerpMathTest is Test {
         assertEq(math.basketValue(rd, amounts), expectedValue);
     }
 
+    function testZeroSupplyTrancheDoesNotBreakZeroAmountBasket() public {
+        PerpBalancer.ReserveData memory rd;
+        rd.trancheData = new PerpBalancer.ReserveTrancheData[](1);
+        rd.trancheData[0] = PerpBalancer.ReserveTrancheData(_trancheData(FIRST, 0, 0, WAD), 0, 0);
+
+        PerpBalancer.ReserveAmounts memory amounts = math.redeemBasket(rd, 0, 0);
+        assertEq(amounts.trancheAmts.length, 1);
+        assertEq(amounts.trancheAmts[0].token, FIRST);
+        assertEq(amounts.trancheAmts[0].amount, 0);
+        assertEq(math.basketValue(rd, amounts), 0);
+
+        amounts.trancheAmts[0].amount = 1;
+        vm.expectRevert(PerpMath.ZeroSupply.selector);
+        math.basketValue(rd, amounts);
+    }
+
+    function testRedeemBasketRejectsNonzeroSharesAtZeroSupply() public {
+        PerpBalancer.ReserveData memory rd;
+        rd.trancheData = new PerpBalancer.ReserveTrancheData[](0);
+        vm.expectRevert(PerpMath.ZeroSupply.selector);
+        math.redeemBasket(rd, 1, 0);
+    }
+
     function testValueCapDirectionAndNoCrossingMatrix() public {
         uint256 targetRatio = 2e18;
         math.checkValueCap(100, 300, 120, 300, 350, 20, 0, targetRatio);

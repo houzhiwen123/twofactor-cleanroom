@@ -23,6 +23,7 @@ All data here came from local Base forks (chainId 8453, blocks 53494912 and 5499
 | ROUND16_EXACT_VALUE_CAP_VM.md, round16-probes/*.t.sol, round16_exact_vm_results.log | Round 16 exact `subDR == 1e18` landings from both directions and extreme tranche VM behavior |
 | ROUND17_BACKUP_E2E.md, round17-probes/Round17BackupEndToEndProbe.t.sol, round17_backup_e2e_results.log | Round 17 non-0.5 backup selection and stateful execution through the target Controller |
 | phase1b_current_forge_test.log, phase1b_current_sizes.log, ../test/ControllerRollover.t.sol | Current 84-test regression count, runtime-size baseline, public rollover/upkeep atomicity tests, and planner-failure propagation |
+| local_genesis_baseline_105_*.log, local_genesis_baseline_105_sha256.txt | Local-only clean-room Genesis baseline: 105 offline tests, runtime sizes, frozen Controller storage layout and secret-free deployment simulation; no fork or target-system claim |
 | probe-tests/*.sol | Foundry fork probes that produced the records, including Round6ControllerProbe.t.sol and Round7ReviewProbe.t.sol (not compiled by this repo) |
 | LOG_SHA256SUMS.txt | SHA-256 manifest for all archived probe `.log` files |
 | raw-logs.tar.xz | Archive of probe `.log` files, including Round 6, Round 7, Round 8, Round 9, and Round 10 logs |

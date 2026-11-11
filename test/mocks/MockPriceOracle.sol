@@ -15,4 +15,8 @@ contract MockPriceOracle {
     function getValidPrice() external view returns (uint256) {
         return price;
     }
+
+    function cachePrice() external {}
+
+    function resetCache() external {}
 }

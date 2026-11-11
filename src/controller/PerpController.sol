@@ -206,6 +206,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         rebalanceFreqSec = 86_400;
         rebalanceWindowOffsetSec = 64_800;
         rebalanceWindowLengthSec = 86_400;
+        userOpsPaused = true;
         __Ownable_init(msg.sender);
         __Ownable2Step_init();
         __ReentrancyGuard_init();
@@ -681,8 +682,14 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         SystemState memory preState;
         (preState,,) = systemReserveState();
         quote.preState = preState;
-        quote.srGrossShares = Math.mulDiv(srInput, preState.perpSr.totalSupply, preState.perpSr.reserveValue);
-        quote.jrGrossShares = Math.mulDiv(jrInput, preState.perpJr.totalSupply, preState.perpJr.reserveValue);
+        (quote.srGrossShares, quote.jrGrossShares) = _math.proRataMintShares(
+            srInput,
+            jrInput,
+            preState.perpSr.totalSupply,
+            preState.perpJr.totalSupply,
+            preState.perpSr.reserveValue,
+            preState.perpJr.reserveValue
+        );
     }
 
     function _quoteTrancheMint(TokenAmount calldata srInput, TokenAmount calldata jrInput)
@@ -697,22 +704,35 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         quote.preState = preState;
         quote.srValue = _trancheValue(srInput);
         quote.jrValue = _trancheValue(jrInput);
-        quote.srGrossShares = Math.mulDiv(quote.srValue, preState.perpSr.totalSupply, preState.perpSr.reserveValue);
-        quote.jrGrossShares = Math.mulDiv(quote.jrValue, preState.perpJr.totalSupply, preState.perpJr.reserveValue);
+        bool genesis;
+        (quote.srGrossShares, quote.jrGrossShares, genesis) = _math.trancheMintShares(
+            srInput.amount,
+            jrInput.amount,
+            quote.srValue,
+            quote.jrValue,
+            preState.perpSr.totalSupply,
+            preState.perpJr.totalSupply,
+            preState.perpSr.reserveValue,
+            preState.perpJr.reserveValue
+        );
         uint256 srVm = srInput.amount == 0 ? WAD : IPerpTokenTrancheData(srInput.token).data().volatilityMultiplier;
         uint256 jrVm = jrInput.amount == 0 ? WAD : IPerpTokenTrancheData(jrInput.token).data().volatilityMultiplier;
         quote.postState = _postTrancheMint(
             preState, srRd, jrRd, quote.srValue, quote.jrValue, srVm, jrVm, quote.srGrossShares, quote.jrGrossShares
         );
-        (quote.srFeePerc, quote.jrFeePerc) =
-            _computeFeePercs(preState, quote.postState, false, srInput.amount != 0, jrInput.amount != 0);
+        if (!genesis) {
+            (quote.srFeePerc, quote.jrFeePerc) =
+                _computeFeePercs(preState, quote.postState, false, srInput.amount != 0, jrInput.amount != 0);
+        }
     }
 
     function _quoteRedeem2(uint256 srInput, uint256 jrInput) private view returns (RedeemQuote memory quote) {
         SystemState memory preState;
         (preState, quote.srRd, quote.jrRd) = systemReserveState();
-        uint256 srGross = Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
-        uint256 jrGross = Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
+        uint256 srGross =
+            srInput == 0 ? 0 : Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
+        uint256 jrGross =
+            jrInput == 0 ? 0 : Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
         SystemState memory postState =
             _postFlashRedeem(preState, quote.srRd, quote.jrRd, srInput, jrInput, srGross, jrGross, true);
         (quote.srFeePerc, quote.jrFeePerc) = _computeFeePercs(preState, postState, false, true, true);
@@ -731,8 +751,10 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     function _quoteFlashRedeem(uint256 srInput, uint256 jrInput) private view returns (FlashRedeemQuote memory quote) {
         SystemState memory preState;
         (preState, quote.srRd, quote.jrRd) = systemReserveState();
-        quote.srGross = Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
-        quote.jrGross = Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
+        quote.srGross =
+            srInput == 0 ? 0 : Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
+        quote.jrGross =
+            jrInput == 0 ? 0 : Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
         SystemState memory postState =
             _postFlashRedeem(preState, quote.srRd, quote.jrRd, srInput, jrInput, quote.srGross, quote.jrGross, false);
         (quote.srFeePerc, quote.jrFeePerc) = _computeFeePercs(preState, postState, true, true, true);

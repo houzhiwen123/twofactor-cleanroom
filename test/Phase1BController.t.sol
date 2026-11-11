@@ -418,6 +418,23 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 _assertZeroInputSideFeeIgnored(false, 2);
             }
 
+            function testRedeem2NonEmptySideWorksWhenOtherSupplyIsZero() public {
+                (MockERC20 u, PerpToken s, PerpToken j, PerpController c,) = _deployFixture();
+                uint256 shares = 100e8;
+                u.mint(address(j), shares);
+                vm.prank(address(c));
+                j.mintTo(USER, shares);
+
+                vm.startPrank(USER);
+                j.approve(address(c), shares);
+                c.redeem2(0, shares, 0);
+                vm.stopPrank();
+
+                assertEq(s.totalSupply(), 0);
+                assertEq(j.totalSupply(), 0);
+                assertEq(u.balanceOf(USER), shares);
+            }
+
             function testMint2ZeroInputSideFeeIsNotComputedOrGuarded() public {
                 _assertMint2ZeroInputSideFeeIgnored(true);
                 _assertMint2ZeroInputSideFeeIgnored(false);
@@ -1673,6 +1690,7 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 c = PerpController(address(proxy));
                 s.updateController(address(c));
                 j.updateController(address(c));
+                c.pauseUserOps(false);
                 f = new MockPhase1BFeePolicy();
                 c.updateFeePolicy(address(f));
                 c.updatePerpBalancer(address(new PerpBalancer()));

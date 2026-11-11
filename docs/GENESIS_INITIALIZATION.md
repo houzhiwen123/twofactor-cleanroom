@@ -1,0 +1,120 @@
+# Genesis initialization (local clean-room design)
+
+## Scope
+
+This design applies only to the Solidity contracts in this repository. The deployment script uses
+local mocks, a fixed local administrator (`0xA11CE`), no RPC URL, no wallet and no private key. It
+must be run without `--broadcast`.
+
+## State machine
+
+1. Deploy and initialize `BondsManager`, `BondIssuer`, `FeePolicy` and `PerpController` proxies.
+2. Deploy the SR/JR `PerpToken` contracts and connect them to the Controller.
+3. Configure the underlying asset, oracle, issuer, fee policy and stateless planners.
+4. `PerpController.init` starts with `userOpsPaused = true`; public mint/redeem calls therefore
+   cannot establish the initial price.
+5. Issue exactly one first Bond and deposit the administrator's seed underlying into it.
+6. Transfer both resulting tranche legs plus a bounded JR-idle-underlying budget to a one-use
+   `GenesisSeeder` and temporarily set that Seeder as Controller keeper.
+7. In one transaction, the Seeder checks empty reserves and zero supplies, temporarily unpauses,
+   performs a balanced two-sided `mint2`, computes the JR idle underlying needed to bring JR VM to
+   the Controller target, performs a JR-only `flashMint2`, refunds unused underlying, pauses again,
+   locks the minimum shares and transfers the remainder to the configured receiver.
+8. The Controller owner restores the final keeper and the final keeper explicitly enables user
+   operations.
+
+The seed transaction is atomic. If minting, slippage, `valueCap`, reserve validation or the final
+pause fails, the Seeder's `used` flag, approvals, supplies, balances and pause state all roll back.
+
+## Initial pricing
+
+- Ordinary `flashMint2` cannot initialize a zero-supply side; it reverts `ZeroSupply()`.
+- A tranche Genesis must initialize SR and JR together. A one-sided or partially initialized state
+  reverts `ZeroSupply()`.
+- Both sides must have zero supply and zero reserve value.
+- The first gross Perp shares equal the corresponding input tranche units. `BondsManager` creates
+  those tranche units from the Bond's opening price and tranche ratio, so Genesis does not accept a
+  caller-selected share price.
+- The first two-sided mint is fee-free. Later mints continue to use proportional reserve value and
+  the normal dynamic fee policy.
+- A first-Bond-only JR reserve has VM above the configured target and would make both sides hit the
+  100% operation-fee ceiling. The Seeder therefore adds JR idle underlying using
+  `ceil(jrReserveValue * (jrVm - targetVm) / (targetVm - 1e18))`. This changes reserve composition,
+  not the fee curve. The caller supplies a maximum top-up; exceeding it reverts atomically.
+
+## Defensive limits
+
+`GenesisSeeder` enforces:
+
+- one successful use only;
+- the configured deployer as caller;
+- the Controller is paused and the Seeder is the current keeper;
+- zero SR/JR supplies;
+- no underlying balance, registered reserve balance or Genesis-tranche donation in either Perp;
+- at least `1,000e8` initial shares on each side;
+- a caller-defined maximum for the computed JR idle-underlying top-up, with unused underlying
+  refunded to the Seeder deployer;
+- `1e8` shares (one 8-decimal Perp token) permanently sent to
+  `0x000000000000000000000000000000000000dEaD` on each side.
+
+The locked shares ensure total supply cannot later return to zero through ordinary redemption. The
+non-empty-reserve check rejects donation-based initial price manipulation instead of silently
+pricing around donated assets.
+
+## Initialization replay
+
+The upgradeable Controller, BondsManager, BondIssuer and FeePolicy are initialized through proxy
+constructors. A second initializer call reverts `InvalidInitialization()` and leaves configuration
+unchanged. `PerpToken` is constructor-initialized and has no initializer to replay.
+
+## Local reproduction
+
+```sh
+forge script script/DeployGenesisLocal.s.sol:DeployGenesisLocal --offline -vvv
+forge test --offline --match-path test/GenesisDeployment.t.sol -vv
+```
+
+The script intentionally contains no `startBroadcast(privateKey)` call and no network endpoint. Do
+not add `--broadcast` to the documented local simulation command.
+
+The frozen local baseline logs are `evidence/local_genesis_baseline_105_tests.log`,
+`evidence/local_genesis_baseline_105_sizes.log`,
+`evidence/local_genesis_baseline_105_storage.log` and
+`evidence/local_genesis_baseline_105_deploy.log`; their manifest is
+`evidence/local_genesis_baseline_105_sha256.txt`.
+
+## Verified regression properties
+
+`test/GenesisDeployment.t.sol` covers:
+
+- first Bond creation and balanced seed;
+- initial share amounts and permanent minimum liquidity;
+- default pause and public first-mint rejection;
+- zero-supply flash-mint and one-sided tranche-mint rejection;
+- pre-Genesis donation rejection;
+- Seeder replay rejection;
+- late-failure atomic rollback;
+- initializer replay rejection;
+- minimum seed rejection;
+- locked Genesis shares remaining outside a normal user's control;
+- direct 10% two-sided `redeem2` under the real local FeePolicy, including exact inputs, pre/post
+  `subDR`, `vmDR` and both fee percentages;
+- the full local sequence `initialize -> first Bond/deposit -> rebalance -> partial redeem -> all
+  remaining user-owned shares redeemed`, while locked shares remain untouched.
+
+The Genesis changes do not add or reorder Controller storage. The frozen Controller slots `0–17`
+must continue to pass `script/check_controller_storage_layout.py`, and the Controller runtime must
+remain below the repository's 22,500-byte guard.
+
+## UNKNOWN / production decisions
+
+- The economically optimal minimum seed and locked-share values for a production market.
+- The production oracle, asset addresses, admin/keeper multisig and ownership-acceptance runbook.
+- Whether a production deployment should wrap all setup calls in a dedicated deployment factory.
+- Formal verification of all long-sequence donation, rounding and redemption economics.
+- The economically appropriate capital budget for the JR idle-underlying top-up in markets with a
+  different opening tranche VM or target VM.
+- Independent security audit results.
+
+These items must not be filled with assumptions. This local deployment is a regression fixture and
+design candidate, not a production-readiness claim.

@@ -10,6 +10,50 @@ contract PerpMath {
     uint256 private constant WAD = 1e18;
 
     error ValueCapExceeded();
+    error ZeroSupply();
+
+    function proRataMintShares(
+        uint256 srInput,
+        uint256 jrInput,
+        uint256 srSupply,
+        uint256 jrSupply,
+        uint256 srReserveValue,
+        uint256 jrReserveValue
+    ) external pure returns (uint256 srShares, uint256 jrShares) {
+        if (srInput != 0) {
+            if (srSupply == 0 || srReserveValue == 0) revert ZeroSupply();
+            srShares = Math.mulDiv(srInput, srSupply, srReserveValue);
+        }
+        if (jrInput != 0) {
+            if (jrSupply == 0 || jrReserveValue == 0) revert ZeroSupply();
+            jrShares = Math.mulDiv(jrInput, jrSupply, jrReserveValue);
+        }
+    }
+
+    function trancheMintShares(
+        uint256 srInput,
+        uint256 jrInput,
+        uint256 srValue,
+        uint256 jrValue,
+        uint256 srSupply,
+        uint256 jrSupply,
+        uint256 srReserveValue,
+        uint256 jrReserveValue
+    ) external pure returns (uint256 srShares, uint256 jrShares, bool genesis) {
+        genesis = srSupply == 0 || jrSupply == 0;
+        if (genesis) {
+            if (
+                srSupply != 0 || jrSupply != 0 || srReserveValue != 0 || jrReserveValue != 0 || srInput == 0
+                    || jrInput == 0
+            ) revert ZeroSupply();
+            return (srInput, jrInput, true);
+        }
+        if ((srInput != 0 && srReserveValue == 0) || (jrInput != 0 && jrReserveValue == 0)) {
+            revert ZeroSupply();
+        }
+        if (srInput != 0) srShares = Math.mulDiv(srValue, srSupply, srReserveValue);
+        if (jrInput != 0) jrShares = Math.mulDiv(jrValue, jrSupply, jrReserveValue);
+    }
 
     function reserveState(PerpBalancer.ReserveData calldata rd)
         external
@@ -73,8 +117,15 @@ contract PerpMath {
         pure
         returns (PerpBalancer.ReserveAmounts memory amounts)
     {
-        amounts.underlyingAmt = Math.mulDiv(rd.underlyingBal, netShares, supply);
         amounts.trancheAmts = new PerpBalancer.TokenAmount[](rd.trancheData.length);
+        if (netShares == 0) {
+            for (uint256 i; i < rd.trancheData.length; ++i) {
+                amounts.trancheAmts[i].token = rd.trancheData[i].data.tranche;
+            }
+            return amounts;
+        }
+        if (supply == 0) revert ZeroSupply();
+        amounts.underlyingAmt = Math.mulDiv(rd.underlyingBal, netShares, supply);
         for (uint256 i; i < rd.trancheData.length; ++i) {
             PerpBalancer.ReserveTrancheData calldata tranche = rd.trancheData[i];
             amounts.trancheAmts[i] =
@@ -89,8 +140,10 @@ contract PerpMath {
     {
         value = amounts.underlyingAmt;
         for (uint256 i; i < amounts.trancheAmts.length; ++i) {
+            if (amounts.trancheAmts[i].amount == 0) continue;
             for (uint256 j; j < rd.trancheData.length; ++j) {
                 if (amounts.trancheAmts[i].token == rd.trancheData[j].data.tranche) {
+                    if (rd.trancheData[j].data.trancheSupply == 0) revert ZeroSupply();
                     value += Math.mulDiv(
                         amounts.trancheAmts[i].amount,
                         rd.trancheData[j].data.trancheClaim,

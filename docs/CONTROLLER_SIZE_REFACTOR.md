@@ -57,3 +57,21 @@ The existing Controller tests continue to cover return values, revert selectors,
 reserve arrays, events, call order and one-unit boundaries for the implemented behaviors. This is a
 size-refactor candidate, not a mainnet-readiness claim; the P0/P1 work in
 `CODE_REVIEW_RECOMMENDATIONS_ZH.md` remains applicable where not explicitly closed.
+
+## Genesis follow-up
+
+The later local Genesis design keeps the frozen slots unchanged and moves its mint-share branching
+into the existing stateless `PerpMath` boundary. After the subsequent review hardening, Controller
+runtime is **22,475 bytes**, leaving 25 bytes under the repository's 22,500-byte guard and 2,101
+bytes under EIP-170.
+`GenesisSeeder` is a separate 5,448-byte one-use deployment helper, including the JR VM-target
+top-up calculation and atomic idle-underlying mint. These figures are verified by
+`script/check_runtime_sizes.py`; any additional Controller behavior requires another extraction or
+size reduction rather than increasing the guard.
+
+The review hardening preserves the existing zero-input-side fee observations while preventing a
+zero input from dividing by an empty side's Perp supply. Zero-amount basket rows now avoid a zero
+tranche-supply denominator, and `FeePolicy.updateAumFeePerc` requires both rates to be strictly
+below 100%. The exact `328,542` transferred-tranche accounting vector is fixed as an offline
+regression. With only 25 bytes of project guard headroom, no further Controller behavior should be
+added before another measured extraction.

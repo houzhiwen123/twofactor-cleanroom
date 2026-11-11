@@ -73,9 +73,13 @@ implemented with the Round 9 call order and vectors. Rounds 13–14 close and im
 selection/execution, upkeep, the oracle configuration entries, and SR lazy rollover. Rounds 15–17
 close `mint2`'s zero-input-side fee guard, observable `updateIssuer` approval rotation, exact
 post-operation value-cap equality, extreme VM behavior, and a non-0.5 backup rollover executed
-through the target Controller. The deployment-time genesis seeding mechanism remains pending;
-an ordinary first flash mint on a fresh empty system is known to fail. Round 12 closed the
-previously open Perp recovery and reserve-array removal/order rules for the captured paths.
+through the target Controller. The target's deployment-time genesis mechanism remains outside the
+compatibility evidence. This repository now has a separate defensive local Genesis design with a
+paused Controller, balanced tranche bootstrap, a bounded JR idle-underlying top-up to reach target
+VM, locked minimum shares and a secret-free simulation;
+see [`docs/GENESIS_INITIALIZATION.md`](docs/GENESIS_INITIALIZATION.md). It is a clean-room safety
+design, not a claim about third-party deployment behavior. Round 12 closed the previously open Perp
+recovery and reserve-array removal/order rules for the captured paths.
 
 Round 6 fork probes confirmed permissionless rebalance calls, an inclusive-start/exclusive-end
 rebalance window, input-side-only `OpDisabled` checks for `flashMint2`, `flashRedeem2`, and `redeem2`,

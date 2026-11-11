@@ -69,6 +69,15 @@ contract FeePolicyTest is Test {
         assertLe(value, payerTVL);
     }
 
+    function testAumFeeMustRemainStrictlyBelowOneHundredPercent() public {
+        vm.expectRevert(FeePolicy.InvalidPerc.selector);
+        policy.updateAumFeePerc(1e18, 0);
+
+        policy.updateAumFeePerc(1e18 - 1, 1e18 - 1);
+        assertEq(policy.perpSrAUMFeePerc(), 1e18 - 1);
+        assertEq(policy.perpJrAUMFeePerc(), 1e18 - 1);
+    }
+
     function _assertFee(uint256 subPre, uint256 subPost, uint256 vmPre, uint256 vmPost, uint256 expected) private view {
         FeePolicy.OpFeeInput memory input = FeePolicy.OpFeeInput({
             isPerpSrOp: true,

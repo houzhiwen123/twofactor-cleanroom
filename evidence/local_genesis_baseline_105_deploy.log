@@ -1,0 +1,38 @@
+No files changed, compilation skipped
+2026-11-11T06:32:09.000351Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for lib/forge-std/src/StdAssertions.sol
+2026-11-11T06:32:09.001432Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for lib/forge-std/src/StdError.sol
+2026-11-11T06:32:09.001547Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for lib/forge-std/src/StdInvariant.sol
+2026-11-11T06:32:09.002386Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for lib/forge-std/src/StdToml.sol
+2026-11-11T06:32:09.002656Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for lib/forge-std/src/Test.sol
+2026-11-11T06:32:09.011857Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/ControllerRollover.t.sol
+2026-11-11T06:32:09.012192Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/GenesisDeployment.t.sol
+2026-11-11T06:32:09.012350Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/PerpMath.t.sol
+2026-11-11T06:32:09.012608Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/Phase1BController.t.sol
+2026-11-11T06:32:09.017805Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/BondsManager.t.sol
+2026-11-11T06:32:09.018055Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/FeePolicy.t.sol
+2026-11-11T06:32:09.018204Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/OracleBalancer.t.sol
+2026-11-11T06:32:09.018398Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/PerpTokenReserveCleanup.t.sol
+2026-11-11T06:32:09.018589Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/PerpTokenRollover.t.sol
+2026-11-11T06:32:09.018763Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/RolloverPlanner.t.sol
+2026-11-11T06:32:09.018972Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/mocks/MockChainlinkFeed.sol
+2026-11-11T06:32:09.019178Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/mocks/MockSequencerFeed.sol
+2026-11-11T06:32:09.019387Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/ref/RebalanceReference.sol
+2026-11-11T06:32:09.019664Z  WARN foundry_evm_traces::debug::sources: failed to parse contract definitions for test/ref/SettlementReference.sol
+Script ran successfully.
+Gas used: 24760577
+
+== Logs ==
+  underlying 0x6b182f1488E8EfEb2Eb298155ed5Bd7FF8A14042
+  manager 0x0C7F7040BBfc098538fF17E05c1863f213d11978
+  issuer 0xa999Af8FC10d8392764630Da244306A2629f3932
+  controller 0x00490D1AE862AAa4a202AB920d709905738eA519
+  perpSr 0x22fe506a68E8965F6e3f4FD9ff0F39d093a27B53
+  perpJr 0x76E3BE981B98A2de7e83622a2E696C778ba98429
+  firstBondSr 0xB3A67d91E4fc0f498AB220CE2dd33ef9c6fc9930
+  firstBondJr 0x801eA55226500767c17f2ECad781874D36c58f63
+  lockedSharesPerSide 100000000
+  genesisSubDR 1053565000564452713
+  genesisVmDR 999999998583333343
+  userOpsPaused false
+
+If you wish to simulate on-chain transactions pass a RPC URL.

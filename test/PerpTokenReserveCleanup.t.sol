@@ -195,6 +195,30 @@ contract PerpTokenReserveCleanupTest is Test {
         assertEq(perp.trancheTokens().length, 0);
     }
 
+    function testR2_RebalanceMustCountTransferredTrancheInReceiver() public {
+        (MockCleanupTranche senior,) = manager.createPair(bytes32(uint256(1)));
+        PerpToken receiver = new PerpToken(
+            "Junior Perp", "JR-P", address(underlying), address(manager), address(this), true, address(this)
+        );
+        perp.registerTranche(address(senior));
+        senior.mint(address(perp), 200_000_000);
+        underlying.mint(address(receiver), 100_000_000);
+
+        uint256 totalBefore = _reserveValue(perp.reserveData()) + _reserveValue(receiver.reserveData());
+        assertEq(totalBefore, 300_000_000);
+
+        PerpBalancer.TokenAmount[] memory trancheAmts = new PerpBalancer.TokenAmount[](1);
+        trancheAmts[0] = PerpBalancer.TokenAmount(address(senior), 328_542);
+        PerpBalancer.ReserveAmounts memory plan = PerpBalancer.ReserveAmounts(0, trancheAmts);
+        perp.transferReservesTo(address(receiver), plan);
+        receiver.handleTransferReservesIn(plan);
+
+        PerpBalancer.ReserveData memory receiverData = receiver.reserveData();
+        assertEq(receiverData.trancheData.length, 1);
+        assertEq(receiverData.trancheData[0].value, 328_542);
+        assertEq(_reserveValue(perp.reserveData()) + _reserveValue(receiverData), totalBefore);
+    }
+
     function testRecoverReturnsFalseThenTrueAndRemovesMatureTranche() public {
         bytes32 bondID = bytes32(uint256(1));
         (MockCleanupTranche senior,) = manager.createPair(bondID);
@@ -241,6 +265,13 @@ contract PerpTokenReserveCleanupTest is Test {
         for (uint256 i; i < logs.length; ++i) {
             if (logs[i].emitter == address(0)) continue;
             if (logs[i].topics.length != 0 && logs[i].topics[0] == RESERVE_SYNCED) ++count;
+        }
+    }
+
+    function _reserveValue(PerpBalancer.ReserveData memory data) private pure returns (uint256 value) {
+        value = data.underlyingBal;
+        for (uint256 i; i < data.trancheData.length; ++i) {
+            value += data.trancheData[i].value;
         }
     }
 }
