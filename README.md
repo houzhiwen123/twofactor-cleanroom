@@ -62,7 +62,9 @@ These notes are behavioral boundaries, not security claims.
 
 The pre-split 84/84 verification point, dependency revisions, runtime sizes and proxy storage
 layout are frozen in [`docs/BASELINE_84.md`](docs/BASELINE_84.md). CI enforces formatting, the
-24,000-byte runtime ceiling and the frozen Controller storage layout.
+24,000-byte general runtime ceiling, the 22,500-byte Controller ceiling and the frozen Controller
+storage layout. The current stateless-math extraction and size verification are recorded in
+[`docs/CONTROLLER_SIZE_REFACTOR.md`](docs/CONTROLLER_SIZE_REFACTOR.md).
 
 `src/perp/PerpToken.sol` and `src/controller/PerpController.sol` implement the evidenced core
 operations. The status matrix and explicit pending-evidence boundaries are in

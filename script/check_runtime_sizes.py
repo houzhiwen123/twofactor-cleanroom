@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = ROOT / "src"
 OUT_ROOT = ROOT / "out"
 MAX_RUNTIME_BYTES = 24_000
+CONTROLLER_MAX_RUNTIME_BYTES = 22_500
 
 
 def main() -> int:
@@ -19,7 +20,7 @@ def main() -> int:
         return 1
 
     found_sources: set[str] = set()
-    oversized: list[tuple[str, str, int]] = []
+    oversized: list[tuple[str, str, int, int]] = []
 
     for artifact_path in sorted(OUT_ROOT.rglob("*.json")):
         try:
@@ -54,8 +55,14 @@ def main() -> int:
                 return 1
             size = len(code) // 2
             print(f"{source_name}:{contract_name}: {size} runtime bytes")
-            if size > MAX_RUNTIME_BYTES:
-                oversized.append((source_name, contract_name, size))
+            limit = (
+                CONTROLLER_MAX_RUNTIME_BYTES
+                if source_name == "src/controller/PerpController.sol"
+                and contract_name == "PerpController"
+                else MAX_RUNTIME_BYTES
+            )
+            if size > limit:
+                oversized.append((source_name, contract_name, size, limit))
 
     missing_sources = sorted(source_files - found_sources)
     if missing_sources:
@@ -66,15 +73,18 @@ def main() -> int:
         return 1
 
     if oversized:
-        for source_name, contract_name, size in oversized:
+        for source_name, contract_name, size, limit in oversized:
             print(
-                f"Runtime size exceeds {MAX_RUNTIME_BYTES} bytes: "
+                f"Runtime size exceeds {limit} bytes: "
                 f"{source_name}:{contract_name} is {size} bytes",
                 file=sys.stderr,
             )
         return 1
 
-    print(f"All src contract runtimes are at most {MAX_RUNTIME_BYTES} bytes.")
+    print(
+        f"PerpController is at most {CONTROLLER_MAX_RUNTIME_BYTES} bytes; "
+        f"all other src contract runtimes are at most {MAX_RUNTIME_BYTES} bytes."
+    )
     return 0
 
 

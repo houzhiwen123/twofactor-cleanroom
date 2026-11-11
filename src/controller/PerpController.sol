@@ -9,6 +9,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {PerpBalancer} from "../policy/PerpBalancer.sol";
+import {PerpMath} from "../policy/PerpMath.sol";
 import {IPerpToken} from "../interfaces/IPerpToken.sol";
 import {IBondsManager} from "../interfaces/IBondsManager.sol";
 
@@ -87,6 +88,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     uint256 private constant WAD_SQUARED = 1e36;
     uint32 private constant PRIME_APPROVAL = uint32(bytes4(keccak256("primeApproval(address)")));
     uint32 private constant REVOKE_APPROVAL = uint32(bytes4(keccak256("revokeApproval(address)")));
+    PerpMath private immutable _math;
 
     struct FeePerc {
         uint256 totalFeePerc;
@@ -182,6 +184,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
     }
 
     constructor() {
+        _math = new PerpMath();
         _disableInitializers();
     }
 
@@ -758,14 +761,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         returns (PerpState memory state)
     {
         state.totalSupply = IPerpToken(perp).totalSupply();
-        state.reserveValue = rd.underlyingBal;
-        uint256 vmValue = rd.underlyingBal * WAD;
-        for (uint256 i; i < rd.trancheData.length; ++i) {
-            PerpBalancer.ReserveTrancheData memory item = rd.trancheData[i];
-            state.reserveValue += item.value;
-            vmValue += item.value * item.data.volatilityMultiplier;
-        }
-        state.vm = state.reserveValue == 0 ? 0 : vmValue / state.reserveValue;
+        (state.reserveValue, state.vm) = _math.reserveState(rd);
     }
 
     function _computeDRs(SystemState memory state, uint256 targetSystemRatio_, uint256 targetPerpJrVM_)
@@ -789,7 +785,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         uint256 jrVm,
         uint256 srShares,
         uint256 jrShares
-    ) private pure returns (SystemState memory post) {
+    ) private view returns (SystemState memory post) {
         post.perpSr = _stateAfterDeposit(pre.perpSr, srRd, srValue, srVm, srShares);
         post.perpJr = _stateAfterDeposit(pre.perpJr, jrRd, jrValue, jrVm, jrShares);
     }
@@ -800,19 +796,9 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         uint256 value,
         uint256 vm,
         uint256 shares
-    ) private pure returns (PerpState memory post) {
-        post.totalSupply = pre.totalSupply + shares;
-        post.reserveValue = pre.reserveValue + value;
-        if (post.reserveValue == 0) {
-            post.vm = 0;
-            return post;
-        }
-        uint256 vmValue = rd.underlyingBal * WAD;
-        for (uint256 i; i < rd.trancheData.length; ++i) {
-            vmValue += rd.trancheData[i].value * rd.trancheData[i].data.volatilityMultiplier;
-        }
-        vmValue += value * vm;
-        post.vm = vmValue / post.reserveValue;
+    ) private view returns (PerpState memory post) {
+        (post.totalSupply, post.reserveValue, post.vm) =
+            _math.stateAfterDeposit(pre.totalSupply, pre.reserveValue, rd, value, vm, shares);
     }
 
     function _postFlashRedeem(
@@ -824,52 +810,42 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         uint256 srValueOut,
         uint256 jrValueOut,
         bool proportionalBasket
-    ) private pure returns (SystemState memory post) {
-        post.perpSr.totalSupply = pre.perpSr.totalSupply - srShares;
-        post.perpSr.reserveValue = pre.perpSr.reserveValue - srValueOut;
-        post.perpJr.totalSupply = pre.perpJr.totalSupply - jrShares;
-        post.perpJr.reserveValue = pre.perpJr.reserveValue - jrValueOut;
-        if (proportionalBasket) {
-            post.perpSr.vm = pre.perpSr.vm;
-            post.perpJr.vm = pre.perpJr.vm;
-        } else {
-            post.perpSr.vm = _vmAfterUnderlyingWithdrawal(srRd, srValueOut, post.perpSr.reserveValue);
-            post.perpJr.vm = _vmAfterUnderlyingWithdrawal(jrRd, jrValueOut, post.perpJr.reserveValue);
-        }
-    }
-
-    function _vmAfterUnderlyingWithdrawal(
-        PerpBalancer.ReserveData memory rd,
-        uint256 underlyingOut,
-        uint256 reserveAfter
-    ) private pure returns (uint256) {
-        if (reserveAfter == 0) return 0;
-        uint256 underlyingAfter = rd.underlyingBal > underlyingOut ? rd.underlyingBal - underlyingOut : 0;
-        uint256 vmValue = underlyingAfter * WAD;
-        for (uint256 i; i < rd.trancheData.length; ++i) {
-            vmValue += rd.trancheData[i].value * rd.trancheData[i].data.volatilityMultiplier;
-        }
-        return vmValue / reserveAfter;
+    ) private view returns (SystemState memory post) {
+        (post.perpSr.totalSupply, post.perpSr.reserveValue, post.perpSr.vm) =
+            _math.stateAfterWithdrawal(
+                pre.perpSr.totalSupply,
+                pre.perpSr.reserveValue,
+                pre.perpSr.vm,
+                srRd,
+                srShares,
+                srValueOut,
+                proportionalBasket
+            );
+        (post.perpJr.totalSupply, post.perpJr.reserveValue, post.perpJr.vm) = _math.stateAfterWithdrawal(
+            pre.perpJr.totalSupply,
+            pre.perpJr.reserveValue,
+            pre.perpJr.vm,
+            jrRd,
+            jrShares,
+            jrValueOut,
+            proportionalBasket
+        );
     }
 
     function _checkValueCap(SystemState memory pre, SystemState memory post, uint256 srInput, uint256 jrInput)
         private
         view
     {
-        if (
-            pre.perpSr.reserveValue + pre.perpJr.reserveValue <= valueCap
-                && post.perpSr.reserveValue + post.perpJr.reserveValue <= valueCap
-        ) return;
-        if (srInput != 0 && jrInput != 0) revert ValueCapExceeded();
-        (uint256 preSub,) = _computeDRs(pre, targetSystemRatio, targetPerpJrVM);
-        (uint256 postSub,) = _computeDRs(post, targetSystemRatio, targetPerpJrVM);
-        if (preSub > WAD) {
-            if (srInput == 0 || postSub > preSub || postSub < WAD) revert ValueCapExceeded();
-        } else if (preSub < WAD) {
-            if (jrInput == 0 || postSub < preSub || postSub > WAD) revert ValueCapExceeded();
-        } else {
-            revert ValueCapExceeded();
-        }
+        _math.checkValueCap(
+            pre.perpSr.reserveValue,
+            pre.perpJr.reserveValue,
+            post.perpSr.reserveValue,
+            post.perpJr.reserveValue,
+            valueCap,
+            srInput,
+            jrInput,
+            targetSystemRatio
+        );
     }
 
     function _trancheValue(TokenAmount calldata input) private view returns (uint256) {
@@ -880,36 +856,18 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
 
     function _redeemBasket(PerpBalancer.ReserveData memory rd, uint256 netShares, uint256 supply)
         private
-        pure
+        view
         returns (PerpBalancer.ReserveAmounts memory amounts)
     {
-        amounts.underlyingAmt = Math.mulDiv(rd.underlyingBal, netShares, supply);
-        amounts.trancheAmts = new PerpBalancer.TokenAmount[](rd.trancheData.length);
-        for (uint256 i; i < rd.trancheData.length; ++i) {
-            PerpBalancer.ReserveTrancheData memory tranche = rd.trancheData[i];
-            amounts.trancheAmts[i] =
-                PerpBalancer.TokenAmount(tranche.data.tranche, Math.mulDiv(tranche.balance, netShares, supply));
-        }
+        return _math.redeemBasket(rd, netShares, supply);
     }
 
     function _basketValue(PerpBalancer.ReserveData memory rd, PerpBalancer.ReserveAmounts memory amounts)
         private
-        pure
+        view
         returns (uint256 value)
     {
-        value = amounts.underlyingAmt;
-        for (uint256 i; i < amounts.trancheAmts.length; ++i) {
-            for (uint256 j; j < rd.trancheData.length; ++j) {
-                if (amounts.trancheAmts[i].token == rd.trancheData[j].data.tranche) {
-                    value += Math.mulDiv(
-                        amounts.trancheAmts[i].amount,
-                        rd.trancheData[j].data.trancheClaim,
-                        rd.trancheData[j].data.trancheSupply
-                    );
-                    break;
-                }
-            }
-        }
+        return _math.basketValue(rd, amounts);
     }
 }
 

@@ -1,5 +1,11 @@
 # 2Factor 净室实现代码审查与收口建议
 
+> 2026-11-11 状态补充：本文正文保留的是较早的 80-test 审查快照。当前 Controller 瘦身候选
+> 已从基线 `10cba49` 的 23,981 bytes 降到 22,052 bytes，存储槽 0–17 未变，完整离线测试
+> 为 88/88；CI 已单独执行 22,500-byte Controller 闸门。实现与验证细节见
+> `CONTROLLER_SIZE_REFACTOR.md`。Oracle、Manager、自动目标差分、50-tranche 活性与
+> stateful invariant 等未完成项仍按本文执行，不因尺寸达标而视为关闭。
+
 ## 当前结论
 
 - 当前完整离线测试：80 passed，0 failed，0 skipped。
