@@ -1,0 +1,30 @@
+# Black-box evidence (clean-room)
+
+All data here came from local Base forks (chainId 8453, blocks 53494912 and 54990962), using public ABIs, read-only calls, and simulated transactions. No target source code or frontend bundle was read. No real transaction was broadcast.
+
+| File | Contents |
+|---|---|
+| reviewer_fork_versions.log | Full proxy / implementation addresses and codehashes at both blocks |
+| CONTROLLER_PROBES.md, CONTROLLER_PROBES_2.md | flashMint2/flashRedeem2/mint2, fees, pause, valueCap, JR liquidity, rebalance (raw OBS records) |
+| ROLLOVER_PROBES.md, analyze_rollover_allocation.py | Rollover selection, funding, standard allocation (35 cases), backup branch |
+| ROUND5_PROBES.md, LOG_SHA256SUMS.txt | Independent open-price backup selection (refutes closest-to-0.5), recover(), reserve array attempts; sha256 of all logs |
+| ROUND4_PROBES.md | Backup bond selection, rollover thresholds, Perp token permission matrix, fresh-proxy genesis, rebalance window regression |
+| CODEX_REVIEW_PROBES.md | Rounds 1-3 verification of the external review (lazy issue/rollover, per-side fees, AUM gross-up, fee settlement, protocol fees, redeem2, valueCap boundary, backup cap at shifted prices, partial rollover) |
+| ROUND6_PROBES.md | Round 6 Controller authorization, rebalance window/cooldown, fee-guard, AUM, value-cap, and lazy-issue observations; exact reproduction commands and version lock |
+| ROUND7_PROBES.md, round7_integrated_probe.log | Round 7 Perp ABI/ownership/permissions, Controller admin roles/validation, reserve sync, and nonzero rebalance ordering; version lock |
+| ROUND8_PROBES.md, round8_review_probe.log, round8_setter_followup.log, round8_rebalance_trace.log | Round 8 tuple ABI, SR approval selector, setter boundary results, and trace-level rebalance call order |
+| ROUND9_PROBES.md, probe-tests/Round9TraceProbe.t.sol, round9_*.log | Round 9 public rollover, upkeep (issuance/rebalance/no-op), lazy SR flash-mint traces, planner inputs/returns, and Controller timestamp opcode ordering |
+| ROUND10_PROBES.md, probe-tests/Round10Probe.t.sol, round10_*.log | Round 10 caller matrices, separate matured-before-issue state, 15 planner-selection cases, exact public/lazy liquidity edges, and zero-amount call traces |
+| ROUND11_PERP_DEPOSITS.md, probe-tests/Round11PerpDepositProbe.t.sol, round11_perp_deposit_results.log | Round 11 JR rollover-deposit permissions, zero/positive/multiple deposits, manager pre-check boundary, reserve registration and sync order |
+| ROUND12_RESERVE_CLEANUP.md, probe-tests/Round12ReserveCleanupProbe.t.sol, round12_reserve_cleanup_results.log | Round 12 `recover`, paired/one-sided reserve intake, zero/full transfer cleanup, and exact swap-pop reserve-array ordering |
+| ROUND13_SYSTEM_GAPS.md, round13-probes/Round13SystemGapProbe.t.sol, round13_system_gap_results.log | Round 13 backup selector metric/tie rule, upkeep four-state coordinator, exact lazy no-progress boundary, and oracle configuration entries |
+| ROUND14_BACKUP_EXECUTION.md, round14-probes/Round14BackupExecutionProbe.t.sol, round14_backup_execution_results.log | Round 14 backup underlying-first execution, ordered/partial stale consumption, deposit cap and rolled-value vectors |
+| ROUND15_CONTROLLER_GAPS.md, round15-probes/Round15ControllerGapProbe.t.sol, round15_controller_gap_results.log | Round 15 `mint2` input-side-only fee guard, `updateIssuer` validation/approval rotation, empty-genesis behavior and AUM-rate boundary |
+| ROUND16_EXACT_VALUE_CAP_VM.md, round16-probes/*.t.sol, round16_exact_vm_results.log | Round 16 exact `subDR == 1e18` landings from both directions and extreme tranche VM behavior |
+| ROUND17_BACKUP_E2E.md, round17-probes/Round17BackupEndToEndProbe.t.sol, round17_backup_e2e_results.log | Round 17 non-0.5 backup selection and stateful execution through the target Controller |
+| phase1b_current_forge_test.log, phase1b_current_sizes.log, ../test/ControllerRollover.t.sol | Current 84-test regression count, runtime-size baseline, public rollover/upkeep atomicity tests, and planner-failure propagation |
+| probe-tests/*.sol | Foundry fork probes that produced the records, including Round6ControllerProbe.t.sol and Round7ReviewProbe.t.sol (not compiled by this repo) |
+| LOG_SHA256SUMS.txt | SHA-256 manifest for all archived probe `.log` files |
+| raw-logs.tar.xz | Archive of probe `.log` files, including Round 6, Round 7, Round 8, Round 9, and Round 10 logs |
+
+Spec items in docs/SPEC_CONTROLLER_ZH.md reference these reports.

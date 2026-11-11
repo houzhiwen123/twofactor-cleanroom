@@ -1,0 +1,18 @@
+Round 12 reserve cleanup probe
+chainId=8453
+forkBlock=54990962
+target=local Base Anvil fork at http://127.0.0.1:8545
+result=8 passed, 0 failed
+
+FULL_TRANSFER before=[A:3149185188264,B:3133547705520,C:3392625737181]
+FULL_TRANSFER after=[A:3149185188264,C:3392625737181]
+ZERO_TRANSFER before_count=4 after_count=3 removed=0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1
+HANDLE_PAIRED underlying_delta=1000 before_count=4 after_count=3 incoming_sr_balance=0 paired_jr_balance=0
+HANDLE_ONE_SIDED after_count=4 incoming_sr_balance=37414703 zero_jr_counterpart_removed=true
+RECOVER_NOOP success=true returndata_length=32 return_value=false
+RECOVER_MATURE success=true returndata_length=32 return_value=true underlying_delta=41875890 before_count=3 after_count=2
+PUBLIC_ROLLOVER sr_count=4->3 jr_count=4->3 jr_underlying=271549615->265126111
+MATURITY_UPKEEP sr_underlying=41875890->129298890 jr_underlying=306906707->386465740
+
+Probe source: evidence/probe-tests/Round12ReserveCleanupProbe.t.sol
+Report: evidence/ROUND12_RESERVE_CLEANUP.md

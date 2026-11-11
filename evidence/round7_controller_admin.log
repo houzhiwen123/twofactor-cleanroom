@@ -1,0 +1,61 @@
+No files changed, compilation skipped
+
+Ran 2 tests for test/Round7ReviewProbe.t.sol:Round7ReviewProbe
+[PASS] testR7ControllerAdminAuthMatrix() (gas: 1950231)
+Logs:
+  OBS:R7_ADMIN_ROLES {"owner":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","keeper":"0x000000000000000000000000000000000000cA11","random":"0x000000000000000000000000000000000000bEEF"}
+  OBS:R7_ADMIN_CALL {"method":"pauseUserOps","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_CALL {"method":"pauseUserOps","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"pauseUserOps","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_CALL {"method":"pauseSystemOps","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_CALL {"method":"pauseSystemOps","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"pauseSystemOps","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_CALL {"method":"updateDRTargets","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateDRTargets","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateDRTargets","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateFeePolicy","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateFeePolicy","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateFeePolicy","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateIssuer","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateIssuer","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateIssuer","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateKeeper","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateKeeper","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateKeeper","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateLiquidityThresholds","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateLiquidityThresholds","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateLiquidityThresholds","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateMinCleanupVal","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateMinCleanupVal","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateMinCleanupVal","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updatePerpBalancer","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updatePerpBalancer","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updatePerpBalancer","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateRebalanceWindow","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateRebalanceWindow","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateRebalanceWindow","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateRolloverEligibility","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateRolloverEligibility","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateRolloverEligibility","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x118cdaa700000000000000000000000000000000000000000000000000000000","returnLength":36}
+  OBS:R7_ADMIN_CALL {"method":"updateValueCap","caller":"owner","callerAddress":"0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_CALL {"method":"updateValueCap","caller":"keeper","callerAddress":"0x000000000000000000000000000000000000cA11","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_CALL {"method":"updateValueCap","caller":"random","callerAddress":"0x000000000000000000000000000000000000bEEF","success":false,"selector":"0x7bf6a16f00000000000000000000000000000000000000000000000000000000","returnLength":4}
+
+[PASS] testR7ControllerSetterValidation() (gas: 791631)
+Logs:
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_freq_zero","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_offset_at_freq","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_offset_over_freq","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_length_zero","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_length_over_freq","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"rebalance_valid","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_VALIDATION {"case":"liquidity_perc_over_wad","success":false,"selector":"0xcdc6269200000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"liquidity_perc_wad","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+  OBS:R7_ADMIN_VALIDATION {"case":"dr_system_zero","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"dr_jr_zero","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"dr_both_zero","success":false,"selector":"0xd126d25500000000000000000000000000000000000000000000000000000000","returnLength":4}
+  OBS:R7_ADMIN_VALIDATION {"case":"dr_valid","success":true,"selector":"0x0000000000000000000000000000000000000000000000000000000000000000","returnLength":0}
+
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 15.17ms (7.55ms CPU time)
+
+Ran 1 test suite in 15.70ms (15.17ms CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)

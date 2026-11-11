@@ -1,0 +1,23 @@
+Phase 1b current offline regression summary
+===========================================
+
+Command:
+  /Users/mac/.foundry/bin/forge test -vv
+
+Result:
+  8 test suites
+  84 tests passed
+  0 failed
+  0 skipped
+
+Suite counts:
+  BondsManagerTest                  10
+  ControllerRolloverTest           10
+  FeePolicyTest                     3
+  OracleBalancerTest                3
+  PerpTokenReserveCleanupTest       5
+  PerpTokenRolloverTest             5
+  Phase1BControllerTest            40
+  RolloverPlannerTest               8
+
+Verification date: 2026-11-11 (Asia/Shanghai)

@@ -1,0 +1,17 @@
+Phase 1b current runtime-size summary
+=====================================
+
+Commands:
+  /Users/mac/.foundry/bin/forge build --sizes
+  python3 script/check_runtime_sizes.py
+
+Project guard: 24,000 runtime bytes
+
+Contract          Runtime bytes   Margin to 24,000
+PerpController           23,981                   19
+PerpToken                10,846               13,154
+PerpBalancer              8,652               15,348
+BondsManager             13,771               10,229
+
+Result: runtime-size check passed.
+Verification date: 2026-11-11 (Asia/Shanghai)

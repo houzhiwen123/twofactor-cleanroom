@@ -1,0 +1,21 @@
+Round 17 non-0.5 backup rollover end-to-end probe
+chainId=8453
+forkBlock=54990962
+rpc=https://mainnet.base.org (public read-only fork)
+
+Round17BackupEndToEndProbe: 1 passed, 0 failed
+priceShift=+30%
+jrFreeBefore=2500000
+selectedBond=0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d
+selectedSr=0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68
+selectedJr=0x73D500c3fE50c320b6E0db0DB3c34Ff9A2aF3582
+selectedValueRatio=414961863727109880
+deposit=2500000
+underlyingValueRolled=1037404
+controllerSuccess=true
+srBalance=3392625737181->3493542621620
+jrBalance=3392625737183->3493542621622
+
+Discriminator retained from the first attempt:
+jrFree=2000000 deposit=2000000 rolledValue=829923
+controllerSuccess=false selector=0xbbb27b39 (InsufficientRollover)

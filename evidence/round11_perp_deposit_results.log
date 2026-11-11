@@ -1,0 +1,32 @@
+Round11PerpDepositProbe — Base fork block 54990962
+4 passed, 0 failed
+
+EMPTY_DIFFERENT_MANAGER
+success=true returnLength=0 reserveSyncCount=1
+
+MULTIPLE_DEPOSITS
+success=true returnLength=0 reserveSyncCount=5
+0 sr=0x2b97045571Ec78aE1010Df47b3e275eCdAE53300 balance=37970820
+1 jr=0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 balance=3149223159086
+2 sr=0x2b97045571Ec78aE1010Df47b3e275eCdAE53300 balance=75941640
+3 jr=0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 balance=3149261129906
+4 underlying=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf balance=271549615
+
+PERMISSION_EMPTY_ARRAY
+controller success=true returnLength=0 reserveSyncCount=1
+owner success=false selector=0x7bf6a16f returnLength=4 reserveSyncCount=0
+random success=false selector=0x7bf6a16f returnLength=4 reserveSyncCount=0
+senior success=false returnLength=0
+
+ZERO_DEPOSIT
+amount=0 success=true beforeCount=3 afterCount=3 reserveSyncCount=3
+sr=0x2b97045571Ec78aE1010Df47b3e275eCdAE53300 balance=0
+jr=0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 balance=3149185188266
+underlying=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf balance=271549615
+
+POSITIVE_DEPOSIT
+amount=1000 success=true beforeCount=3 afterCount=4 reserveSyncCount=3
+allowance_after=115792089237316195423570985008687907853269984665640564039457584007913129638935
+sr=0x2b97045571Ec78aE1010Df47b3e275eCdAE53300 balance=37970820
+jr=0x0BC26651B2Fbc4230F5C34a9eD186c28aEA48414 balance=3149223159086
+underlying=0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf balance=271549615

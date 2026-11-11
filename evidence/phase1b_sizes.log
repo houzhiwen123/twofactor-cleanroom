@@ -1,0 +1,960 @@
+No files changed, compilation skipped
+
+╭-----------------------------+------------------+-------------------+--------------------+---------------------╮
+| Contract                    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
++===============================================================================================================+
+| BondIssuer                  | 4,557            | 4,777             | 20,019             | 44,375              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| BondsManager                | 13,760           | 13,987            | 10,816             | 35,165              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| CachedOracle                | 2,143            | 2,627             | 22,433             | 46,525              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| ERC1967Proxy                | 163              | 1,007             | 24,413             | 48,145              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| FeePolicy                   | 8,180            | 8,400             | 16,396             | 40,752              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockChainlinkFeed           | 596              | 762               | 23,980             | 48,390              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockERC20                   | 1,918            | 2,705             | 22,658             | 46,447              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockPhase1BFeePolicy        | 1,021            | 1,070             | 23,555             | 48,082              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockPhase1BIssuer           | 576              | 814               | 24,000             | 48,338              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockPriceOracle             | 183              | 271               | 24,393             | 48,881              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockReserveTranche          | 2,993            | 3,492             | 21,583             | 45,660              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| MockSequencerFeed           | 596              | 686               | 23,980             | 48,466              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| OracleCacheHarness          | 592              | 621               | 23,984             | 48,531              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| PerpBalancer                | 2,467            | 2,496             | 22,109             | 46,656              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| PerpController              | 20,384           | 20,611            | 4,192              | 28,541              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| PerpToken                   | 8,055            | 9,226             | 16,521             | 39,926              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| ProxyAdmin                  | 1,031            | 1,276             | 23,545             | 47,876              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| Tranche                     | 5,354            | 5,574             | 19,222             | 43,578              |
+|-----------------------------+------------------+-------------------+--------------------+---------------------|
+| TransparentUpgradeableProxy | 1,128            | 3,662             | 23,448             | 45,490              |
+╰-----------------------------+------------------+-------------------+--------------------+---------------------╯
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/oracle/CachedOracle.sol:21:17
+   │
+21 │     constructor(address feed, uint32 staleAfter, address sequencerFeed, uint32 gracePeriod) {
+   │                 ━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/oracle/CachedOracle.sol:21:50
+   │
+21 │     constructor(address feed, uint32 staleAfter, address sequencerFeed, uint32 gracePeriod) {
+   │                                                  ━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/oracle/CachedOracle.sol:42:32
+   │
+42 │             if (status != 0 || startedAt > block.timestamp || block.timestamp - startedAt < GRACE_PERIOD) {
+   │                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/oracle/CachedOracle.sol:42:63
+   │
+42 │             if (status != 0 || startedAt > block.timestamp || block.timestamp - startedAt < GRACE_PERIOD) {
+   │                                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/oracle/CachedOracle.sol:51:13
+   │
+51 │         if (block.timestamp < updatedAt || block.timestamp - updatedAt > STALE_AFTER) revert InvalidPrice();
+   │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/oracle/CachedOracle.sol:51:44
+   │
+51 │         if (block.timestamp < updatedAt || block.timestamp - updatedAt > STALE_AFTER) revert InvalidPrice();
+   │                                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unused-return]: return value of an external call is not used
+   ╭▸ src/oracle/CachedOracle.sol:41:54
+   │
+41 │             (, int256 status, uint256 startedAt,,) = IChainlinkFeed(SEQUENCER_FEED).latestRoundData();
+   │                                                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[unused-return]: return value of an external call is not used
+   ╭▸ src/oracle/CachedOracle.sol:48:13
+   │
+48 │             IChainlinkFeed(FEED).latestRoundData();
+   │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[missing-events-arithmetic]: `targetSystemRatio` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:263:9
+    │
+263 │         targetSystemRatio = targetSystemRatio_;
+    │         ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `targetPerpJrVM` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:264:9
+    │
+264 │         targetPerpJrVM = targetPerpJrVM_;
+    │         ━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `perpJrReservedUnderlyingAmt` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:281:9
+    │
+281 │         perpJrReservedUnderlyingAmt = amount_;
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `perpJrReservedUnderlyingPerc` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:282:9
+    │
+282 │         perpJrReservedUnderlyingPerc = percentage_;
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `rebalanceFreqSec` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:297:9
+    │
+297 │         rebalanceFreqSec = freqSec;
+    │         ━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `rebalanceWindowOffsetSec` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:298:9
+    │
+298 │         rebalanceWindowOffsetSec = windowOffsetSec;
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `rebalanceWindowLengthSec` is changed without an event but is used in arithmetic
+    ╭▸ src/controller/PerpController.sol:299:9
+    │
+299 │         rebalanceWindowLengthSec = windowLengthSec;
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-access-control]: `keeper` is changed without an event but is used for access control
+    ╭▸ src/controller/PerpController.sol:276:9
+    │
+276 │         keeper = keeper_;
+    │         ━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[divide-before-multiply]: division before multiplication may lose precision
+    ╭▸ src/controller/PerpController.sol:248:13
+    │
+248 │             ((blockTs - rebalanceWindowOffsetSec) / rebalanceFreqSec) * rebalanceFreqSec + rebalanceWindowOffsetSec;
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/divide-before-multiply
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/controller/PerpController.sol:267:30
+    │
+267 │     function updateFeePolicy(address feePolicy_) external onlyOwner {
+    │                              ━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/controller/PerpController.sol:271:27
+    │
+271 │     function updateIssuer(address issuer_) external onlyOwner {
+    │                           ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/controller/PerpController.sol:275:27
+    │
+275 │     function updateKeeper(address keeper_) external onlyOwner {
+    │                           ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/controller/PerpController.sol:289:33
+    │
+289 │     function updatePerpBalancer(address balancer_) external onlyOwner {
+    │                                 ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/controller/PerpController.sol:510:9
+    │
+510 │         emit OpFees(token, totalFeeAmt, protocolFeeAmt);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `protocolFeeBals` is updated
+    ╭▸ src/controller/PerpController.sol:522:23
+    │
+522 │         if (net != 0) IPerpToken(token).burnFrom(address(this), net);
+    │                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/controller/PerpController.sol:526:9
+    │
+526 │         emit OpFees(token, feePerp, protocolFeeAmt);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `collectedFeeBal` is updated
+    ╭▸ src/controller/PerpController.sol:533:13
+    │
+533 │             IPerpToken(perpSr).burnFrom(address(this), srCollected);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `collectedFeeBal` is updated
+    ╭▸ src/controller/PerpController.sol:538:13
+    │
+538 │             IPerpToken(perpJr).burnFrom(address(this), jrCollected);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `lastRebalanceTimestampSec` is updated
+    ╭▸ src/controller/PerpController.sol:444:9
+    │
+444 │         IPerpToken(payer).transferReservesTo(receiver, plan);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `lastRebalanceTimestampSec` is updated
+    ╭▸ src/controller/PerpController.sol:445:9
+    │
+445 │         IPerpToken(receiver).handleTransferReservesIn(plan);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `lastRebalanceTimestampSec` is updated
+    ╭▸ src/controller/PerpController.sol:545:13
+    │
+545 │             IPerpToken(perpJr).handleTransferReservesIn(PerpBalancer.ReserveAmounts(underlyingCollected, none));
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `lastRebalanceTimestampSec` is updated
+    ╭▸ src/controller/PerpController.sol:553:9
+    │
+553 │         IPerpToken(perp).mintTo(IFeePolicyController(feePolicy).protocolFeeCollector(), amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/controller/PerpController.sol:426:13
+    │
+426 │         if (block.timestamp < windowStart || block.timestamp >= windowEnd) revert OutOfRebalanceWindow();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/controller/PerpController.sol:426:46
+    │
+426 │         if (block.timestamp < windowStart || block.timestamp >= windowEnd) revert OutOfRebalanceWindow();
+    │                                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/controller/PerpController.sol:427:47
+    │
+427 │         if (lastRebalanceTimestampSec != 0 && block.timestamp < uint256(lastRebalanceTimestampSec) + rebalanceFreqSec) {
+    │                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/controller/PerpController.sol:438:9
+    │
+438 │         emit Rebalance(rebalanceValue, isPerpSrPayer);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/controller/PerpController.sol:554:9
+    │
+554 │         emit AumFees(perp, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[missing-events-arithmetic]: `maxMaturitySec` is changed without an event but is used in arithmetic
+   ╭▸ src/bond/BondIssuer.sol:55:9
+   │
+55 │         maxMaturitySec = maxMaturitySec_;
+   │         ━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `minIssueTimeIntervalSec` is changed without an event but is used in arithmetic
+   ╭▸ src/bond/BondIssuer.sol:65:9
+   │
+65 │         minIssueTimeIntervalSec = minIssueTimeIntervalSec_;
+   │         ━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[missing-events-arithmetic]: `issueWindowOffsetSec` is changed without an event but is used in arithmetic
+   ╭▸ src/bond/BondIssuer.sol:66:9
+   │
+66 │         issueWindowOffsetSec = issueWindowOffsetSec_;
+   │         ━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-arithmetic
+
+warning[unsafe-typecast]: typecast can truncate values
+   ╭▸ src/bond/BondIssuer.sol:42:26
+   │
+42 │         srTrancheRatio = uint64(WAD / 2);
+   │                          ━━━━━━━━━━━━━━━
+   │
+   ├ note: consider disabling this lint if you're certain the cast is safe
+   │       
+   │       // casting to 'uint64' is safe because [explain why]
+   │       // forge-lint: disable-next-line(unsafe-typecast)
+   │       
+   │       
+   ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[reentrancy-no-eth]: external call can be reentered before `lastIssueWindowTimestamp` is updated
+   ╭▸ src/bond/BondIssuer.sol:77:13
+   │
+77 │             IBondsManager(bondsManager).createBond(underlying, srTrancheRatio, maturity);
+   │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[divide-before-multiply]: division before multiplication may lose precision
+   ╭▸ src/bond/BondIssuer.sol:72:31
+   │
+72 │         uint256 windowStart = ((block.timestamp - offset) / interval) * interval + offset;
+   │                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/divide-before-multiply
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/bond/BondIssuer.sol:73:13
+   │
+73 │         if (windowStart <= lastIssueWindowTimestamp) return (false, _latestBondInfo);
+   │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unsafe-typecast]: typecast can truncate values
+   ╭▸ src/bond/BondIssuer.sol:75:27
+   │
+75 │         uint64 maturity = uint64(windowStart + maxMaturitySec);
+   │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ├ note: consider disabling this lint if you're certain the cast is safe
+   │       
+   │       // casting to 'uint64' is safe because [explain why]
+   │       // forge-lint: disable-next-line(unsafe-typecast)
+   │       
+   │       
+   ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+   ╭▸ src/bond/BondIssuer.sol:78:36
+   │
+78 │         lastIssueWindowTimestamp = uint64(windowStart);
+   │                                    ━━━━━━━━━━━━━━━━━━━
+   │
+   ├ note: consider disabling this lint if you're certain the cast is safe
+   │       
+   │       // casting to 'uint64' is safe because [explain why]
+   │       // forge-lint: disable-next-line(unsafe-typecast)
+   │       
+   │       
+   ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[reentrancy-no-eth]: external call can be reentered before `_activeBondIDs` is updated
+   ╭▸ src/bond/BondIssuer.sol:94:37
+   │
+94 │             if (!matured) matured = IBondsManager(bondsManager).tryMature(bondID);
+   │                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[calls-loop]: external call inside a loop
+   ╭▸ src/bond/BondIssuer.sol:93:28
+   │
+93 │             bool matured = IBondsManager(bondsManager).isMature(bondID);
+   │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+   ╭▸ src/bond/BondIssuer.sol:94:37
+   │
+94 │             if (!matured) matured = IBondsManager(bondsManager).tryMature(bondID);
+   │                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[missing-events-access-control]: `_allowedIssuers` is changed without an event but is used for access control
+   ╭▸ src/bond/BondsManager.sol:77:9
+   │
+77 │         _allowedIssuers[issuer_] = true;
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `_allowedIssuers` is changed without an event but is used for access control
+   ╭▸ src/bond/BondsManager.sol:82:9
+   │
+82 │         _allowedIssuers[issuer_] = false;
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[reentrancy-no-eth]: external call can be reentered before `_bonds` is updated
+    ╭▸ src/bond/BondsManager.sol:162:9
+    │
+162 │         ITranche(senior).init(address(this), bondID, underlying_, maturityDate_, true);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_bonds` is updated
+    ╭▸ src/bond/BondsManager.sol:163:9
+    │
+163 │         ITranche(junior).init(address(this), bondID, underlying_, maturityDate_, false);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/bond/BondsManager.sol:180:9
+    │
+180 │         emit BondCreated(bondID, underlying_, srTrancheRatio_, maturityDate_, senior, junior, openPrice);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:189:27
+    │
+189 │         if (b.isMature || block.timestamp >= b.maturityDate) revert MatureBond();
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/bond/BondsManager.sol:199:9
+    │
+199 │         emit BondDeposit(bondID, underlyingAmt, srMint, jrMint);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:208:27
+    │
+208 │         if (b.isMature || block.timestamp >= b.maturityDate) revert MatureBond();
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/bond/BondsManager.sol:327:9
+    │
+327 │         emit TranchesRedeemed(bondID, srBurn, jrBurn, underlyingOut);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:219:13
+    │
+219 │         if (block.timestamp < b.maturityDate && !b.isMature) {
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/bond/BondsManager.sol:290:9
+    │
+290 │         emit BondMature(bondID, b.srClaim, b.jrClaim, closePrice);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/bond/BondsManager.sol:349:9
+    │
+349 │         emit TranchesRedeemed(bondID, isSenior_ ? amount : 0, isSenior_ ? 0 : amount, underlyingOut);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:237:17
+    │
+237 │             if (block.timestamp < b.maturityDate) revert ImmatureBond();
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:256:32
+    │
+256 │             if (!b.isMature && block.timestamp < b.maturityDate) {
+    │                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:300:28
+    │
+300 │         uint256 srSupply = ITranche(b.senior).totalSupply();
+    │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:301:28
+    │
+301 │         uint256 jrSupply = ITranche(b.junior).totalSupply();
+    │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:302:26
+    │
+302 │         if (srAmtAvail > ITranche(b.senior).balanceOf(account)) {
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:303:40
+    │
+303 │             revert InsufficientBalance(ITranche(b.senior).balanceOf(account), srAmtAvail);
+    │                                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:305:26
+    │
+305 │         if (jrAmtAvail > ITranche(b.junior).balanceOf(account)) {
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:306:40
+    │
+306 │             revert InsufficientBalance(ITranche(b.junior).balanceOf(account), jrAmtAvail);
+    │                                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:321:9
+    │
+321 │         ITranche(b.senior).burn(account, srBurn);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:322:9
+    │
+322 │         ITranche(b.junior).burn(account, jrBurn);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:125:16
+    │
+125 │         return IPriceOracle(oracle).getValidPrice();
+    │                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:335:32
+    │
+335 │         uint256 supplyBefore = ITranche(tranche).totalSupply();
+    │                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:336:27
+    │
+336 │         uint256 balance = ITranche(tranche).balanceOf(account);
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/bond/BondsManager.sol:345:9
+    │
+345 │         ITranche(tranche).burn(account, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[require-revert-in-loop]: `require` or `revert` inside a loop
+    ╭▸ src/bond/BondsManager.sol:444:41
+    │
+444 │         if (b.underlying == address(0)) revert InvalidBond();
+    │                                         ━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/require-revert-in-loop
+
+warning[require-revert-in-loop]: `require` or `revert` inside a loop
+    ╭▸ src/bond/BondsManager.sol:303:13
+    │
+303 │             revert InsufficientBalance(ITranche(b.senior).balanceOf(account), srAmtAvail);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/require-revert-in-loop
+
+warning[require-revert-in-loop]: `require` or `revert` inside a loop
+    ╭▸ src/bond/BondsManager.sol:306:13
+    │
+306 │             revert InsufficientBalance(ITranche(b.junior).balanceOf(account), jrAmtAvail);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/require-revert-in-loop
+
+warning[require-revert-in-loop]: `require` or `revert` inside a loop
+    ╭▸ src/bond/BondsManager.sol:124:35
+    │
+124 │         if (oracle == address(0)) revert UndefinedOracle();
+    │                                   ━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/require-revert-in-loop
+
+warning[require-revert-in-loop]: `require` or `revert` inside a loop
+    ╭▸ src/bond/BondsManager.sol:337:31
+    │
+337 │         if (amount > balance) revert InsufficientBalance(balance, amount);
+    │                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/require-revert-in-loop
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:273:27
+    │
+273 │         if (b.isMature || block.timestamp < b.maturityDate) revert ImmaturableBond();
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:279:27
+    │
+279 │         if (b.isMature || block.timestamp < b.maturityDate) return false;
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/bond/BondsManager.sol:322:42
+    │
+322 │         ITranche(b.junior).burn(account, jrBurn);
+    │                                          ━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/bond/BondsManager.sol:321:42
+    │
+321 │         ITranche(b.senior).burn(account, srBurn);
+    │                                          ━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/bond/BondsManager.sol:381:35
+    │
+381 │             volatilityMultiplier: vm,
+    │                                   ━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:376:28
+    │
+376 │         uint64 remaining = b.maturityDate > block.timestamp ? uint64(b.maturityDate - block.timestamp) : 0;
+    │                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/bond/BondsManager.sol:376:63
+    │
+376 │         uint64 remaining = b.maturityDate > block.timestamp ? uint64(b.maturityDate - block.timestamp) : 0;
+    │                                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/bond/BondsManager.sol:386:25
+    │
+386 │             valueRatio: uint64(valueRatio),
+    │                         ━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/bond/BondsManager.sol:417:16
+    │
+417 │         return maturity > block.timestamp ? uint64(maturity - block.timestamp) : 0;
+    │                ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/bond/BondsManager.sol:417:45
+    │
+417 │         return maturity > block.timestamp ? uint64(maturity - block.timestamp) : 0;
+    │                                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/bond/Tranche.sol:22:19
+   │
+22 │     function init(address manager_, bytes32 bondID_, address underlying, uint64, bool isSenior_)
+   │                   ━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-events-access-control]: `controller` is changed without an event but is used for access control
+   ╭▸ src/perp/PerpToken.sol:58:9
+   │
+58 │         controller = controller_;
+   │         ━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/perp/PerpToken.sol:42:9
+   │
+42 │         address bondsManager_,
+   │         ━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/perp/PerpToken.sol:41:9
+   │
+41 │         address underlying_,
+   │         ━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/perp/PerpToken.sol:43:9
+   │
+43 │         address controller_,
+   │         ━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/perp/PerpToken.sol:57:31
+   │
+57 │     function updateController(address controller_) external onlyOwner {
+   │                               ━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[calls-loop]: external call inside a loop
+   ╭▸ src/perp/PerpToken.sol:93:44
+   │
+93 │             emit ReserveSynced(item.token, IERC20(item.token).balanceOf(address(this)));
+   │                                            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/perp/PerpToken.sol:103:66
+    │
+103 │             if (item.amount != 0) emit ReserveSynced(item.token, IERC20(item.token).balanceOf(address(this)));
+    │                                                                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/perp/PerpToken.sol:121:49
+    │
+121 │                 PerpBalancer.TokenAmount(token, IERC20(token).balanceOf(address(this)));
+    │                                                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/perp/PerpToken.sol:134:25
+    │
+134 │             selector != bytes4(keccak256("primeApproval(address)"))
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'bytes4' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/perp/PerpToken.sol:135:32
+    │
+135 │                 && selector != bytes4(keccak256("revokeApproval(address)"))
+    │                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'bytes4' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/perp/PerpToken.sol:151:35
+    │
+151 │         address spender = address(uint160(rawSpender));
+    │                                   ━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'uint160' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/perp/PerpToken.sol:152:25
+    │
+152 │         if (selector == bytes4(keccak256("primeApproval(address)"))) {
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │       
+    │       // casting to 'bytes4' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │       
+    │       
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/perp/PerpToken.sol:164:53
+    │
+164 │             IBondsManager.TrancheData memory data = ITranche(token).data();
+    │                                                     ━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/perp/PerpToken.sol:165:31
+    │
+165 │             uint256 balance = IERC20(token).balanceOf(address(this));
+    │                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[uninitialized-local]: local variable is read before being initialized
+   ╭▸ src/policy/PerpBalancer.sol:67:25
+   │
+67 │         for (uint256 i; i < count && remaining != 0; ++i) {
+   │                         ━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[uninitialized-local]: local variable is read before being initialized
+   ╭▸ src/policy/PerpBalancer.sol:79:25
+   │
+79 │                 amounts[used++] = TokenAmount(tranche.data.tranche, amount);
+   │                         ━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/policy/FeePolicy.sol:102:68
+    │
+102 │     function updateProtocolFeeConfig(uint64 protocolMaxOpFeePerc_, address protocolFeeCollector_)
+    │                                                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/policy/FeePolicy.sol:166:30
+    │
+166 │         if (lo < curve.p1.x) area += _rangeArea(curve, lo, _min(hi, curve.p1.x));
+    │                              ━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+

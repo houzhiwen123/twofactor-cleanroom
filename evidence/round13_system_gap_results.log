@@ -1,0 +1,54 @@
+Round 13 system-gap probe results
+chainId=8453
+forkBlock=54990962
+rpc=http://127.0.0.1:8545
+probe=evidence/round13-probes/Round13SystemGapProbe.t.sol
+scope=local fork only; no target source/frontend; no signed or broadcast transaction
+
+command:
+BASE_RPC_URL=http://127.0.0.1:8545 FOUNDRY_TEST=evidence/round13-probes forge test --offline --match-path evidence/round13-probes/Round13SystemGapProbe.t.sol --summary
+
+suite: 8 passed, 0 failed, 0 skipped
+
+backup selector:
+OBS:R13_BACKUP_MODEL_GRID {"pairs":36,"orderings":72,"matched":72,"metric":"abs(floor(1e36/valueRatio)-2e18)","tieBreak":"first_candidate"}
+OBS:R13_BACKUP_CROSSOVER {"lower":390244000000000000,"reversed":false,"upperWinsThrough":695651863894355550,"lowerWinsFrom":695651863894355551,"reciprocalMirrorFloor":695651863894355551}
+OBS:R13_BACKUP_CROSSOVER {"lower":390244000000000000,"reversed":true,"upperWinsThrough":695651863894355551,"lowerWinsFrom":695651863894355552,"reciprocalMirrorFloor":695651863894355551}
+OBS:R13_BACKUP_CROSSOVER {"lower":400000000000000000,"reversed":false,"upperWinsThrough":666666666666666665,"lowerWinsFrom":666666666666666666,"reciprocalMirrorFloor":666666666666666666}
+OBS:R13_BACKUP_CROSSOVER {"lower":400000000000000000,"reversed":true,"upperWinsThrough":666666666666666666,"lowerWinsFrom":666666666666666667,"reciprocalMirrorFloor":666666666666666666}
+OBS:R13_BACKUP_CROSSOVER {"lower":450000000000000000,"reversed":false,"upperWinsThrough":562499999999999999,"lowerWinsFrom":562500000000000000,"reciprocalMirrorFloor":562499999999999999}
+OBS:R13_BACKUP_CROSSOVER {"lower":450000000000000000,"reversed":true,"upperWinsThrough":562499999999999999,"lowerWinsFrom":562500000000000000,"reciprocalMirrorFloor":562499999999999999}
+
+lazy SR flash-mint rollover (amountIn=2000000):
+OBS:R13_LAZY_SAMPLE {"requestedFree":4000003,"actualFree":4000003,"success":true,"status":4,"staleBefore":41875890,"staleAfter":41875890,"traceLogs":31}
+OBS:R13_LAZY_SAMPLE {"requestedFree":4000004,"actualFree":4000004,"success":true,"status":1,"staleBefore":41875890,"staleAfter":41875889,"traceLogs":31}
+OBS:R13_LAZY_PROGRESS_EDGE {"noProgressAt":4000003,"noProgressStatus":4,"progressAt":4000004,"progressStatus":1,"amountIn":2000000}
+
+oracle configuration:
+OBS:R13_ORACLE_ENTRY {"entry":"set","role":"random","success":false,"selector":"0x118cdaa7","events":0}
+OBS:R13_ORACLE_ENTRY {"entry":"set","role":"keeper","success":false,"selector":"0x118cdaa7","events":0}
+OBS:R13_ORACLE_ENTRY {"entry":"set","role":"owner","success":true,"after":"0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a","events":0}
+OBS:R13_ORACLE_ENTRY {"entry":"reset","role":"random","success":false,"selector":"0x118cdaa7","events":0}
+OBS:R13_ORACLE_ENTRY {"entry":"reset","role":"keeper","success":false,"selector":"0x118cdaa7","events":0}
+OBS:R13_ORACLE_ENTRY {"entry":"reset","role":"owner","success":true,"after":"0x0000000000000000000000000000000000000000","events":0}
+OBS:R13_ORACLE_REGISTRY {"registryBefore":"0x636AF09C85A5B6C939a2BDa70F7f2f5ac3D1682a","mockRegistry":"0x00000000000000000000000000000000000A11cE","success":true,"controllerAfter":"0x00000000000000000000000000000000000A11cE"}
+
+upkeep state matrix:
+OBS:R13_UPKEEP {"state":"no_work","timestamp":1794160799,"success":false,"selector":"0x00219cf1","traceLogs":12,"latestUnchanged":true}
+OBS:R13_UPKEEP {"state":"issue_only","timestamp":1794510001,"success":true,"traceLogs":18,"latestChanged":true,"srRows":"3->4","jrRows":"3->4","lastRebalance":"1794160800->1794160800"}
+OBS:R13_UPKEEP {"state":"maturity_plus_issue","timestamp":1795114801,"success":true,"traceLogs":30,"latestChanged":true,"srUnderlying":"0->41875890","jrUnderlying":"271549615->306906707","srRows":"4->3","jrRows":"4->3","lastRebalance":"1794160800->1794160800"}
+OBS:R13_UPKEEP {"state":"maturity_only","timestamp":1796324400,"success":true,"traceLogs":24,"latestUnchanged":true,"srUnderlying":"41875890->129298890","jrUnderlying":"306906707->386465740","srRows":"2->1","jrRows":"2->1","lastRebalance":"1794160800->1794160800"}
+
+filtered -vvvvv traces:
+- successful upkeep calls oracle cachePrice() before the recover/issue sequence and resetCache() after it.
+- no-work calls cachePrice(), runs the recover/issue/register attempts, then reverts NoOp() before an explicit resetCache(); the whole transaction reverts.
+- all four states call SR recover(), JR recover(), issuer issue(), and SR/JR registerTranche().
+- issue-only and maturity+issue register newly returned tranche addresses.
+- no-work and maturity-only register the unchanged/latest pair after issue() returns no new bond.
+- no computePerpSrRolloverPlan, computeSystemRebalancePlan, or rebalance() call appears in any of the four traces.
+- no-work ends in NoOp(); its recorded internal trace logs are reverted and are not committed events.
+
+regression and size:
+- full offline suite: 70 passed, 0 failed, 0 skipped.
+- PerpController runtime: 22538 bytes; project guard: 24000; remaining project margin: 1462 bytes.
+- PerpBalancer runtime: 7415 bytes; PerpToken runtime: 10846 bytes.
