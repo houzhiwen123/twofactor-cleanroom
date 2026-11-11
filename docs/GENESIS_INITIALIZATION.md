@@ -107,10 +107,17 @@ The frozen local baseline logs are `evidence/local_genesis_baseline_105_tests.lo
 - unreachable and near-underlying JR VM targets, including ceiling rounding and atomic rollback;
 - the maximum successful one-sided inputs for SR/JR basket and underlying redemption, including
   the next-unit failure selector;
+- four weekly price/issuance epochs using the real local BondIssuer, BondsManager, Perp tokens,
+  Controller and Balancer, including two complete rollovers and per-step underlying conservation;
+- a mixed single-side path where a later balanced mint is atomically disabled after it would worsen
+  an already-low `subDR`;
+- a moderate-price path where all receiver-owned Perp shares can exit after two rollovers, while
+  recording the economically severe exit fee rather than treating technical success as readiness;
 - the full local sequence `initialize -> first Bond/deposit -> rebalance -> partial redeem -> all
   remaining user-owned shares redeemed`, while locked shares remain untouched.
 
 The post-baseline local boundary run is recorded in `evidence/LOCAL_GENESIS_BOUNDARY_110.md`.
+The multi-epoch lifecycle run is recorded in `evidence/LOCAL_STATEFUL_LIFECYCLE_112.md`.
 
 The Genesis changes do not add or reorder Controller storage. The frozen Controller slots `0–17`
 must continue to pass `script/check_controller_storage_layout.py`, and the Controller runtime must
@@ -127,6 +134,8 @@ remain below the repository's 22,500-byte guard.
 - Whether production Genesis should also seed SR idle underlying. In the current tranche-first
   fixture, SR `flashRedeem2` cannot produce a positive underlying unit until SR has idle underlying;
   basket redemption remains available.
+- Economic calibration of the fee curve after multi-epoch price moves. The local moderate path
+  remains technically redeemable but charges about 74.52% on the final all-user-share basket exit.
 - Independent security audit results.
 
 These items must not be filled with assumptions. This local deployment is a regression fixture and

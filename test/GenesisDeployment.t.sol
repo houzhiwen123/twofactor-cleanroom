@@ -398,6 +398,97 @@ contract GenesisDeploymentTest is Test {
         _logExitBoundary(s, true, false, "JR underlying", PerpController.OpDisabled.selector);
     }
 
+    function testGenesisStatefulFourEpochPriceRolloversAndSingleSideFlows() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _bootstrap(s, RECEIVER);
+        s.controller.updateKeeper(address(this));
+        s.controller.pauseUserOps(false);
+        _assertUnderlyingAccounted(s);
+
+        BondIssuer.BondInfo memory epochOne = _advanceIssueAndBalancedMint(s, 88_000e18, 12_000_000);
+        _jrOnlyUnderlyingMint(s, 500_000);
+        _srOnlyBasketRedeem(s, s.perpSr.balanceOf(RECEIVER) / 1_000);
+        _assertUnderlyingAccounted(s);
+
+        BondIssuer.BondInfo memory epochTwo = _advanceIssueAndBalancedMint(s, 72_000e18, 12_000_000);
+        _assertUnderlyingAccounted(s);
+
+        BondIssuer.BondInfo memory epochThree = _advanceIssueAndBalancedMint(s, 96_000e18, 12_000_000);
+        uint256 firstStaleBefore = IERC20(s.srTranche).balanceOf(address(s.perpSr));
+        assertGt(firstStaleBefore, 0);
+        s.controller.rollover();
+        uint256 firstStaleAfter = IERC20(s.srTranche).balanceOf(address(s.perpSr));
+        assertEq(firstStaleAfter, 0);
+        _assertUnderlyingAccounted(s);
+
+        BondIssuer.BondInfo memory epochFour = _advanceIssue(s, 76_000e18);
+        _assertBalancedMintDisabledAtSnapshot(s, epochFour, 12_000_000);
+        uint256 secondStaleBefore = IERC20(epochOne.srTranche).balanceOf(address(s.perpSr));
+        assertGt(secondStaleBefore, 0);
+        s.controller.rollover();
+        uint256 secondStaleAfter = IERC20(epochOne.srTranche).balanceOf(address(s.perpSr));
+        assertEq(secondStaleAfter, 0);
+        _assertUnderlyingAccounted(s);
+
+        assertTrue(epochOne.bondID != epochTwo.bondID);
+        assertTrue(epochTwo.bondID != epochThree.bondID);
+        assertTrue(epochThree.bondID != epochFour.bondID);
+        assertEq(s.issuer.activeBondIDs().length, 5);
+        assertEq(s.perpSr.balanceOf(s.seeder.LOCKED_LIQUIDITY()), s.seeder.MIN_LOCKED_SHARES());
+        assertEq(s.perpJr.balanceOf(s.seeder.LOCKED_LIQUIDITY()), s.seeder.MIN_LOCKED_SHARES());
+
+        (uint256 finalSubDr, uint256 finalVmDr) = s.controller.systemDeviations();
+        emit log_named_uint("stateful final subDR", finalSubDr);
+        emit log_named_uint("stateful final vmDR", finalVmDr);
+        emit log_named_uint("stateful first stale before", firstStaleBefore);
+        emit log_named_uint("stateful first stale after", firstStaleAfter);
+        emit log_named_uint("stateful second stale before", secondStaleBefore);
+        emit log_named_uint("stateful second stale after", secondStaleAfter);
+    }
+
+    function testGenesisMultiEpochRolloversPreserveFullUserExit() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _bootstrap(s, RECEIVER);
+        s.controller.updateKeeper(address(this));
+        s.controller.pauseUserOps(false);
+
+        BondIssuer.BondInfo memory epochOne = _advanceIssueAndBalancedMint(s, 82_000e18, 10_000_000);
+        _advanceIssueAndBalancedMint(s, 79_000e18, 10_000_000);
+        _advanceIssueAndBalancedMint(s, 84_000e18, 10_000_000);
+        s.controller.rollover();
+        assertEq(IERC20(s.srTranche).balanceOf(address(s.perpSr)), 0);
+
+        _advanceIssueAndBalancedMint(s, 80_000e18, 10_000_000);
+        s.controller.rollover();
+        assertEq(IERC20(epochOne.srTranche).balanceOf(address(s.perpSr)), 0);
+        _assertUnderlyingAccounted(s);
+
+        uint256 srExit = s.perpSr.balanceOf(RECEIVER);
+        uint256 jrExit = s.perpJr.balanceOf(RECEIVER);
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        s.perpJr.approve(address(s.controller), type(uint256).max);
+        (,, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
+            s.controller.redeem2(srExit, jrExit, 0);
+        vm.stopPrank();
+
+        assertLt(srFee.totalFeePerc, 1e18);
+        assertLt(jrFee.totalFeePerc, 1e18);
+        assertEq(s.perpSr.balanceOf(RECEIVER), 0);
+        assertEq(s.perpJr.balanceOf(RECEIVER), 0);
+        assertEq(s.perpSr.balanceOf(s.seeder.LOCKED_LIQUIDITY()), s.seeder.MIN_LOCKED_SHARES());
+        assertEq(s.perpJr.balanceOf(s.seeder.LOCKED_LIQUIDITY()), s.seeder.MIN_LOCKED_SHARES());
+        _assertUnderlyingAccounted(s);
+
+        (uint256 finalSubDr, uint256 finalVmDr) = s.controller.systemDeviations();
+        emit log_named_uint("full-exit SR shares", srExit);
+        emit log_named_uint("full-exit JR shares", jrExit);
+        emit log_named_uint("full-exit SR fee", srFee.totalFeePerc);
+        emit log_named_uint("full-exit JR fee", jrFee.totalFeePerc);
+        emit log_named_uint("full-exit remaining subDR", finalSubDr);
+        emit log_named_uint("full-exit remaining vmDR", finalVmDr);
+    }
+
     function _bootstrap(LocalSystem memory s, address receiver) private returns (uint256, uint256) {
         return s.seeder
             .bootstrap(s.controller, s.srTranche, s.srAmount, s.jrTranche, s.jrAmount, s.maxJrUnderlyingTopUp, receiver);
@@ -479,6 +570,107 @@ contract GenesisDeploymentTest is Test {
             }
         }
         assertTrue(vm.revertToState(snapshot));
+    }
+
+    function _advanceIssueAndBalancedMint(LocalSystem memory s, uint256 price, uint256 underlyingAmount)
+        private
+        returns (BondIssuer.BondInfo memory info)
+    {
+        info = _advanceIssue(s, price);
+        _balancedMintLatest(s, info, underlyingAmount);
+    }
+
+    function _advanceIssue(LocalSystem memory s, uint256 price) private returns (BondIssuer.BondInfo memory info) {
+        uint256 activeBefore = s.issuer.activeBondIDs().length;
+        vm.warp(block.timestamp + 604_800);
+        s.oracle.setPrice(price);
+        s.controller.upkeep();
+        assertEq(s.issuer.activeBondIDs().length, activeBefore + 1);
+        info = s.issuer.latestBondInfo();
+    }
+
+    function _balancedMintLatest(LocalSystem memory s, BondIssuer.BondInfo memory info, uint256 underlyingAmount)
+        private
+    {
+        s.underlying.mint(RECEIVER, underlyingAmount);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(s.manager), type(uint256).max);
+        (IBondsManager.TokenAmount memory srInput, IBondsManager.TokenAmount memory jrInput) =
+            s.manager.deposit(info.bondID, underlyingAmount);
+        IERC20(srInput.token).approve(address(s.controller), type(uint256).max);
+        IERC20(jrInput.token).approve(address(s.controller), type(uint256).max);
+        s.controller
+            .mint2(
+                PerpController.TokenAmount(srInput.token, srInput.amount),
+                PerpController.TokenAmount(jrInput.token, jrInput.amount),
+                0,
+                0
+            );
+        vm.stopPrank();
+    }
+
+    function _assertBalancedMintDisabledAtSnapshot(
+        LocalSystem memory s,
+        BondIssuer.BondInfo memory info,
+        uint256 underlyingAmount
+    ) private {
+        uint256 snapshot = vm.snapshotState();
+        s.underlying.mint(RECEIVER, underlyingAmount);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(s.manager), type(uint256).max);
+        (IBondsManager.TokenAmount memory srInput, IBondsManager.TokenAmount memory jrInput) =
+            s.manager.deposit(info.bondID, underlyingAmount);
+        IERC20(srInput.token).approve(address(s.controller), type(uint256).max);
+        IERC20(jrInput.token).approve(address(s.controller), type(uint256).max);
+        (bool success, bytes memory result) = address(s.controller)
+            .call(
+                abi.encodeCall(
+                    PerpController.mint2,
+                    (
+                        PerpController.TokenAmount(srInput.token, srInput.amount),
+                        PerpController.TokenAmount(jrInput.token, jrInput.amount),
+                        0,
+                        0
+                    )
+                )
+            );
+        vm.stopPrank();
+        assertFalse(success);
+        assertEq(_selector(result), PerpController.OpDisabled.selector);
+        assertTrue(vm.revertToState(snapshot));
+    }
+
+    function _jrOnlyUnderlyingMint(LocalSystem memory s, uint256 amount) private {
+        s.underlying.mint(RECEIVER, amount);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(s.controller), type(uint256).max);
+        (, uint256 jrOut,, PerpController.FeePerc memory jrFee) = s.controller.flashMint2(0, amount, 0, 0);
+        vm.stopPrank();
+        assertGt(jrOut, 0);
+        assertLt(jrFee.totalFeePerc, 1e18);
+    }
+
+    function _srOnlyBasketRedeem(LocalSystem memory s, uint256 amount) private {
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        (,, PerpController.FeePerc memory srFee,) = s.controller.redeem2(amount, 0, 0);
+        vm.stopPrank();
+        assertLt(srFee.totalFeePerc, 1e18);
+    }
+
+    function _assertUnderlyingAccounted(LocalSystem memory s) private view {
+        uint256 accounted = s.underlying.balanceOf(address(s.manager)) + s.underlying.balanceOf(address(s.perpSr))
+            + s.underlying.balanceOf(address(s.perpJr)) + s.underlying.balanceOf(address(s.controller))
+            + s.underlying.balanceOf(address(s.seeder)) + s.underlying.balanceOf(address(this))
+            + s.underlying.balanceOf(RECEIVER);
+        assertEq(accounted, s.underlying.totalSupply());
+    }
+
+    function _selector(bytes memory result) private pure returns (bytes4 selector) {
+        if (result.length < 4) return bytes4(0);
+        assembly ("memory-safe") {
+            selector := mload(add(result, 0x20))
+        }
     }
 
     function _deployPausedSystem(uint256 seedUnderlying) private returns (LocalSystem memory s) {
