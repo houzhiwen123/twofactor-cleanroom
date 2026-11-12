@@ -94,6 +94,7 @@ contract TargetFeePolicySemanticsMatrixTest is Test {
         emit MatrixSummary(caseCount, comparisonCount, comparisonCount - mismatchCount, mismatchCount);
         assertEq(caseCount, 136, "matrix case count");
         assertEq(comparisonCount, 272, "matrix side comparison count");
+        assertEq(mismatchCount, 0, "target FeePolicy semantic compatibility");
     }
 
     function _equalityCases() private {
@@ -350,7 +351,6 @@ contract TargetFeePolicySemanticsMatrixTest is Test {
         });
     }
 
-
     function _rationalIncreasingCurve() private pure returns (FeePolicy.Curve memory curve) {
         curve = FeePolicy.Curve({
             p1: FeePolicy.Point(0, 0),
@@ -369,11 +369,7 @@ contract TargetFeePolicySemanticsMatrixTest is Test {
         });
     }
 
-    function _translatedRationalIncreasingCurve(uint256 p2x)
-        private
-        pure
-        returns (FeePolicy.Curve memory curve)
-    {
+    function _translatedRationalIncreasingCurve(uint256 p2x) private pure returns (FeePolicy.Curve memory curve) {
         curve = FeePolicy.Curve({
             p1: FeePolicy.Point(0, 0),
             p2: FeePolicy.Point(p2x, 0),
@@ -388,12 +384,7 @@ contract TargetFeePolicySemanticsMatrixTest is Test {
         FeePolicy.Curve memory zero
     ) private {
         FeePolicy.Fees memory fees = FeePolicy.Fees({
-            subDRUp: subUp,
-            subDRDown: subDown,
-            vmDRUp: zero,
-            vmDRDown: zero,
-            basePerc: 0,
-            flashBasePerc: 0
+            subDRUp: subUp, subDRDown: subDown, vmDRUp: zero, vmDRDown: zero, basePerc: 0, flashBasePerc: 0
         });
         syntheticTarget.updateFeeParams(fees, fees);
         syntheticCleanroom.updateFeeParams(fees, fees);
@@ -405,12 +396,7 @@ contract TargetFeePolicySemanticsMatrixTest is Test {
         FeePolicy.Curve memory zero
     ) private {
         FeePolicy.Fees memory fees = FeePolicy.Fees({
-            subDRUp: zero,
-            subDRDown: zero,
-            vmDRUp: vmUp,
-            vmDRDown: vmDown,
-            basePerc: 0,
-            flashBasePerc: 0
+            subDRUp: zero, subDRDown: zero, vmDRUp: vmUp, vmDRDown: vmDown, basePerc: 0, flashBasePerc: 0
         });
         syntheticTarget.updateFeeParams(fees, fees);
         syntheticCleanroom.updateFeeParams(fees, fees);

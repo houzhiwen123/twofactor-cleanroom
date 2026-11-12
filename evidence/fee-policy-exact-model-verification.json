@@ -1,0 +1,13 @@
+{
+  "closure_mismatches": 0,
+  "closure_observations": 4158,
+  "combined_comparisons": 4430,
+  "combined_matches": 4430,
+  "mismatches": {
+    "closure": [],
+    "semantic": []
+  },
+  "schema": "fee-policy-exact-model-verification/v1",
+  "semantic_comparisons": 272,
+  "semantic_mismatches": 0
+}

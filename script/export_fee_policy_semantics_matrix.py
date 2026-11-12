@@ -285,6 +285,22 @@ def decode(payload: dict) -> tuple[list[dict], dict]:
 
 def markdown(doc: dict) -> str:
     summary = doc["summary"]
+    if doc["phase"] == "after-fix":
+        rounding_lines = [
+            "## Exact rounding rule — accepted",
+            "",
+            "The expanded rounding-closure matrix selected one absolute-coordinate piecewise-linear model. The clean-room implementation now reproduces all rows in this semantic matrix exactly, including cases `450`, `470`, and `476`.",
+            "",
+            "The independent 4,158-row closure evidence and exact model are recorded in `TARGET_FEE_POLICY_ROUNDING_CLOSURE.md` and `FEE_POLICY_EXACT_MODEL.md`.",
+        ]
+    else:
+        rounding_lines = [
+            "## Unresolved rounding rule — implementation stop",
+            "",
+            "The remaining ambiguity is not a missing raw observation. It is the general arithmetic rule that maps arbitrary curve coordinates to the exact 1-wei result. The same `32/43` local segment produces different outputs after horizontal translation: case `450` returns `1`, case `470` returns `0`, and case `476` returns `1` for the corresponding one-wei interval. This proves that a simple exact-rational floor/ceil/nearest rule is insufficient and that absolute curve coordinates affect target rounding.",
+            "",
+            "Per the clean-room stop condition, production `FeePolicy` is not modified in this phase. The next discriminating evidence must translate an otherwise identical curve across a wider residue grid, keep the surrounding points fixed independently, and record adjacent one-wei intervals across the whole short segment. Until that closes to one arithmetic model, changing production code would be guesswork.",
+        ]
     lines = [
         f"# FeePolicy semantic matrix — {doc['phase']}",
         "",
@@ -304,11 +320,7 @@ def markdown(doc: dict) -> str:
         "- `protocolFeePerc = min(totalFeePerc, protocolMaxOpFeePerc)` remains independent of the operation-disable signal.",
         "- Up/down selection follows the actual direction of each DR when it changes.",
         "",
-        "## Unresolved rounding rule — implementation stop",
-        "",
-        "The remaining ambiguity is not a missing raw observation. It is the general arithmetic rule that maps arbitrary curve coordinates to the exact 1-wei result. The same `32/43` local segment produces different outputs after horizontal translation: case `450` returns `1`, case `470` returns `0`, and case `476` returns `1` for the corresponding one-wei interval. This proves that a simple exact-rational floor/ceil/nearest rule is insufficient and that absolute curve coordinates affect target rounding.",
-        "",
-        "Per the clean-room stop condition, production `FeePolicy` is not modified in this phase. The next discriminating evidence must translate an otherwise identical curve across a wider residue grid, keep the surrounding points fixed independently, and record adjacent one-wei intervals across the whole short segment. Until that closes to one arithmetic model, changing production code would be guesswork.",
+        *rounding_lines,
         "",
         "## Matrix",
         "",
@@ -384,13 +396,18 @@ def main() -> None:
                 "no_final_total_fee_cap",
                 "protocol_fee_independently_capped",
                 "directional_curve_selection",
+                *(["absolute_coordinate_piecewise_average_rounding"] if args.phase == "after-fix" else []),
             ],
-            "unresolved": [
+            "unresolved": []
+            if args.phase == "after-fix"
+            else [
                 "general_exact_1_wei_interpolation_and_integration_rounding",
                 "absolute_curve_coordinate_rounding_dependency",
             ],
-            "production_change_authorized": False,
-            "stop_reason": "Multiple arithmetic models remain possible; black-box translation vectors prove absolute-coordinate dependence.",
+            "production_change_authorized": args.phase == "after-fix",
+            "stop_reason": None
+            if args.phase == "after-fix"
+            else "Multiple arithmetic models remain possible; black-box translation vectors prove absolute-coordinate dependence.",
         },
         "observations": observations,
     }

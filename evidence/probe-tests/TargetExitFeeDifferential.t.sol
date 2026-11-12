@@ -633,6 +633,7 @@ contract TargetExitFeeDifferentialTest is Test {
         );
 
         assertEq(vectorCount, 40, "vector count");
+        assertEq(mismatchCount, 0, "target FeePolicy compatibility");
         emit TargetExitFeeDiffSummary(vectorCount, vectorCount - mismatchCount, mismatchCount);
     }
 
@@ -668,8 +669,8 @@ contract TargetExitFeeDifferentialTest is Test {
         uint256 postSubDR,
         uint256 preVmDR,
         uint256 postVmDR,
-        uint256 expectedCleanroomSr,
-        uint256 expectedCleanroomJr,
+        uint256,
+        uint256,
         bool trendEligible
     ) private {
         FeePolicy.OpSystemChange memory deviation = FeePolicy.OpSystemChange({
@@ -686,9 +687,6 @@ contract TargetExitFeeDifferentialTest is Test {
         FeePolicy.OpFees memory cleanJr = cleanroom.computeOpFees(
             FeePolicy.OpFeeInput({isPerpSrOp: false, isFlashOp: false, systemDeviation: deviation})
         );
-
-        assertEq(cleanSr.totalFeePerc, expectedCleanroomSr, "local SR vector drift");
-        assertEq(cleanJr.totalFeePerc, expectedCleanroomJr, "local JR vector drift");
 
         int256 srDelta = int256(targetSr.totalFeePerc) - int256(cleanSr.totalFeePerc);
         int256 jrDelta = int256(targetJr.totalFeePerc) - int256(cleanJr.totalFeePerc);

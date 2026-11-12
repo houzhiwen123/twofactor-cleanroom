@@ -32,6 +32,35 @@ contract FeePolicyTest is Test {
         _assertFee(1e18, 1e18, 1e18, 1e18, 0);
     }
 
+    function testTargetEqualityAndIndependentImpactCaps() public view {
+        _assertFee(
+            1_200_000_000_000_000_000,
+            1_200_000_000_000_000_000,
+            1_050_000_000_000_000_000,
+            1_050_000_000_000_000_000,
+            0
+        );
+        _assertFee(2e18, 3e18, 2e18, 3e18, 1_066_768_019_919_728_001);
+        _assertFee(
+            847_534_510_909_630_408,
+            1_329_227_995_784_915_872_903_807_060_280_344_575,
+            1_060_773_479_096_730_879,
+            0,
+            2e18
+        );
+    }
+
+    function testAbsoluteCoordinateRoundingVectors() public {
+        _setRationalIncreasingCurve(1e18);
+        _assertFee(1e18, 1e18 + 1, 1e18, 1e18, 1);
+
+        _setRationalIncreasingCurve(1_078_564_994_000_000_000);
+        _assertFee(1_078_564_994_000_000_000, 1_078_564_994_000_000_001, 1e18, 1e18, 0);
+
+        _setRationalIncreasingCurve(1e18 + 1);
+        _assertFee(1e18 + 1, 1e18 + 2, 1e18, 1e18, 1);
+    }
+
     function testComputeRebalanceValGoldenVectors() public view {
         _assertRebalance(1e10, 5e9, 1e18, 14_880_952, true);
         _assertRebalance(1e10, 2e10, 1e18, 10_951_404, false);
@@ -76,6 +105,25 @@ contract FeePolicyTest is Test {
         policy.updateAumFeePerc(1e18 - 1, 1e18 - 1);
         assertEq(policy.perpSrAUMFeePerc(), 1e18 - 1);
         assertEq(policy.perpJrAUMFeePerc(), 1e18 - 1);
+    }
+
+    function _setRationalIncreasingCurve(uint256 origin) private {
+        FeePolicy.Curve memory zero = FeePolicy.Curve({
+            p1: FeePolicy.Point(0, 0),
+            p2: FeePolicy.Point(1e18, 0),
+            p3: FeePolicy.Point(1e18 + 100, 0),
+            p4: FeePolicy.Point(2e18, 0)
+        });
+        FeePolicy.Curve memory rising = FeePolicy.Curve({
+            p1: FeePolicy.Point(0, 0),
+            p2: FeePolicy.Point(origin, 0),
+            p3: FeePolicy.Point(origin + 43, 32),
+            p4: FeePolicy.Point(2e18, 1_000)
+        });
+        FeePolicy.Fees memory fees = FeePolicy.Fees({
+            subDRUp: rising, subDRDown: zero, vmDRUp: zero, vmDRDown: zero, basePerc: 0, flashBasePerc: 0
+        });
+        policy.updateFeeParams(fees, fees);
     }
 
     function _assertFee(uint256 subPre, uint256 subPost, uint256 vmPre, uint256 vmPost, uint256 expected) private view {

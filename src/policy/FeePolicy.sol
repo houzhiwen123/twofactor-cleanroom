@@ -123,7 +123,6 @@ contract FeePolicy is Initializable, Ownable2StepUpgradeable {
         Curve storage vmCurve = ip.systemDeviation.vmDRPost >= ip.systemDeviation.vmDRPre ? fees.vmDRUp : fees.vmDRDown;
         total += _average(subCurve, ip.systemDeviation.subDRPre, ip.systemDeviation.subDRPost);
         total += _average(vmCurve, ip.systemDeviation.vmDRPre, ip.systemDeviation.vmDRPost);
-        if (total > WAD) total = WAD;
         f.totalFeePerc = total;
         f.protocolFeePerc = total < protocolMaxOpFeePerc ? total : protocolMaxOpFeePerc;
     }
@@ -150,59 +149,62 @@ contract FeePolicy is Initializable, Ownable2StepUpgradeable {
     }
 
     function _average(Curve storage curve, uint256 from, uint256 to) private view returns (uint256) {
-        if (from == to) return _valueAt(curve, from);
-        // Floors interpolation and trapezoid areas before dividing by the interval width.
+        if (from == to) return 0;
         uint256 lo = from < to ? from : to;
         uint256 hi = from < to ? to : from;
 
         uint256 area;
-        if (lo < curve.p1.x) area += _rangeArea(curve, lo, _min(hi, curve.p1.x));
-        area += _segmentArea(curve, lo, hi, curve.p1.x, curve.p2.x);
-        area += _segmentArea(curve, lo, hi, curve.p2.x, curve.p3.x);
-        area += _segmentArea(curve, lo, hi, curve.p3.x, curve.p4.x);
-        if (hi > curve.p4.x) area += _rangeArea(curve, _max(lo, curve.p4.x), hi);
-        return area / (hi - lo);
+        if (lo < curve.p1.x) area += _segmentArea(curve.p1, curve.p2, lo, _min(hi, curve.p1.x));
+        area += _boundedSegmentArea(curve.p1, curve.p2, lo, hi);
+        area += _boundedSegmentArea(curve.p2, curve.p3, lo, hi);
+        area += _boundedSegmentArea(curve.p3, curve.p4, lo, hi);
+        if (hi > curve.p4.x) area += _segmentArea(curve.p3, curve.p4, _max(lo, curve.p4.x), hi);
+        uint256 average = area / (hi - lo);
+        return average < WAD ? average : WAD;
     }
 
-    function _rangeArea(Curve storage curve, uint256 left, uint256 right) private view returns (uint256) {
-        return Math.mulDiv(right - left, _valueAt(curve, left) + _valueAt(curve, right), 2);
-    }
-
-    function _segmentArea(Curve storage curve, uint256 lo, uint256 hi, uint256 x0, uint256 x1)
+    function _boundedSegmentArea(Point storage leftPoint, Point storage rightPoint, uint256 lo, uint256 hi)
         private
         view
         returns (uint256)
     {
-        uint256 left = _max(lo, x0);
-        uint256 right = _min(hi, x1);
+        uint256 left = _max(lo, leftPoint.x);
+        uint256 right = _min(hi, rightPoint.x);
         if (right <= left) return 0;
-        return Math.mulDiv(right - left, _valueAt(curve, left) + _valueAt(curve, right), 2);
+        return _segmentArea(leftPoint, rightPoint, left, right);
     }
 
-    function _valueAt(Curve storage curve, uint256 x) private view returns (uint256) {
-        Point storage p1 = curve.p1;
-        Point storage p2 = curve.p2;
-        Point storage p3 = curve.p3;
-        Point storage p4 = curve.p4;
-        // The 100% VM boundary vector implies extrapolating the endpoint segment.
-        if (x < p1.x) return _interpolate(p1, p2, x);
-        if (x > p4.x) return _interpolate(p3, p4, x);
-        if (x <= p2.x) return _interpolate(p1, p2, x);
-        if (x <= p3.x) return _interpolate(p2, p3, x);
-        return _interpolate(p3, p4, x);
+    function _segmentArea(Point storage leftPoint, Point storage rightPoint, uint256 left, uint256 right)
+        private
+        view
+        returns (uint256)
+    {
+        if (right <= left) return 0;
+        return Math.mulDiv(right - left, _segmentAverage(leftPoint, rightPoint, left, right), 1);
     }
 
-    function _interpolate(Point storage left, Point storage right, uint256 x) private view returns (uint256) {
-        if (right.x == left.x) return right.y;
-        uint256 offset = x >= left.x ? x - left.x : left.x - x;
-        uint256 delta = right.y >= left.y
-            ? Math.mulDiv(offset, right.y - left.y, right.x - left.x)
-            : Math.mulDiv(offset, left.y - right.y, right.x - left.x);
-        bool addDelta = (right.y >= left.y) == (x >= left.x);
-        if (addDelta) {
-            return left.y + delta;
+    function _segmentAverage(Point storage leftPoint, Point storage rightPoint, uint256 left, uint256 right)
+        private
+        view
+        returns (uint256)
+    {
+        uint256 dx = rightPoint.x - leftPoint.x;
+        if (dx == 0) return rightPoint.y;
+        if (rightPoint.y >= leftPoint.y) {
+            uint256 risingDelta = rightPoint.y - leftPoint.y;
+            return leftPoint.y + _midpointTerm(left, right, risingDelta, dx) - Math.mulDiv(leftPoint.x, risingDelta, dx);
         }
-        return left.y - delta;
+        uint256 fallingDelta = leftPoint.y - rightPoint.y;
+        return leftPoint.y + Math.mulDiv(leftPoint.x, fallingDelta, dx) - _midpointTerm(left, right, fallingDelta, dx);
+    }
+
+    function _midpointTerm(uint256 left, uint256 right, uint256 dy, uint256 dx) private pure returns (uint256) {
+        uint256 leftQuotient = Math.mulDiv(left, dy, dx);
+        uint256 rightQuotient = Math.mulDiv(right, dy, dx);
+        uint256 leftRemainder = mulmod(left, dy, dx);
+        uint256 rightRemainder = mulmod(right, dy, dx);
+        uint256 carry = leftRemainder >= dx - rightRemainder ? 1 : 0;
+        return leftQuotient / 2 + rightQuotient / 2 + ((leftQuotient & 1) + (rightQuotient & 1) + carry) / 2;
     }
 
     function _min(uint256 a, uint256 b) private pure returns (uint256) {
