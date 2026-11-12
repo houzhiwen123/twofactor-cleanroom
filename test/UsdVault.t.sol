@@ -10,6 +10,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IUsdVault} from "../src/interfaces/IUsdVault.sol";
 import {UsdVault} from "../src/vault/UsdVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
+import {MockUsdVaultController} from "./mocks/MockUsdVaultController.sol";
 
 contract UsdVaultHarness is UsdVault {
     function mintNotes(address to, uint256 amount) external {
@@ -207,7 +209,7 @@ contract UsdVaultTest is Test {
 
     function testInitializerCannotBeReused() public {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
-        vault.init(TARGET_NAME, TARGET_SYMBOL, address(usd), address(perpSr));
+        vault.init(TARGET_NAME, TARGET_SYMBOL, address(usd), address(perpSr), address(1), address(2));
     }
 
     function testFuzzQuoteUsesExactFloorRounding(uint256 notesIn) public view {
@@ -219,9 +221,17 @@ contract UsdVaultTest is Test {
     }
 
     function _deployVault(address usdToken, address perpSrToken) private returns (UsdVaultHarness result) {
+        MockERC20 localUnderlying = new MockERC20("Wrapped BTC", "cbBTC", 8);
+        MockPriceOracle localOracle = new MockPriceOracle(80_000e18);
+        MockUsdVaultController localController = new MockUsdVaultController(address(localOracle));
+        localController.setPerpSrState(1e8, 1e8, 1e18);
         UsdVaultHarness implementation = new UsdVaultHarness();
         ERC1967Proxy proxy = new ERC1967Proxy(
-            address(implementation), abi.encodeCall(UsdVault.init, (TARGET_NAME, TARGET_SYMBOL, usdToken, perpSrToken))
+            address(implementation),
+            abi.encodeCall(
+                UsdVault.init,
+                (TARGET_NAME, TARGET_SYMBOL, usdToken, perpSrToken, address(localUnderlying), address(localController))
+            )
         );
         result = UsdVaultHarness(address(proxy));
     }

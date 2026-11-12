@@ -9,6 +9,8 @@ ARTIFACT = ROOT / "out" / "UsdVault.sol" / "UsdVault.json"
 EXPECTED_STORAGE = [
     ("_usdToken", "0", 0, "contract IERC20"),
     ("_perpSrToken", "1", 0, "contract IERC20"),
+    ("_underlyingToken", "2", 0, "contract IERC20"),
+    ("_perpController", "3", 0, "address"),
 ]
 
 
@@ -31,7 +33,7 @@ def main() -> int:
         print(f"Actual:   {actual}", file=sys.stderr)
         return 1
 
-    print("UsdVault storage layout matches the frozen phase-1 baseline.")
+    print("UsdVault storage layout preserves the frozen phase-1 slots and appends phase-2 state.")
     return 0
 
 

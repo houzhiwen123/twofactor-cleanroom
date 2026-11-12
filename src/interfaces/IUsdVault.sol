@@ -3,11 +3,21 @@ pragma solidity 0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/// @notice Evidence-backed exit surface for the clean-room USD Senior Vault.
-/// @dev Mint, session, capacity and rebalance behavior are intentionally absent
-///      until target observations establish those semantics.
+/// @notice Evidence-backed mint/deposit and exit surface for the clean-room USD Senior Vault.
+/// @dev Session, capacity and rebalance behavior remain intentionally absent
+///      until separate target observations establish those semantics.
 interface IUsdVault is IERC20 {
+    event Deposit(uint256 usdAmtIn, uint256 perpSrAmtIn, uint256 notesMinted);
     event Redeem(uint256 notesAmt, uint256 usdAmtOut, uint256 perpSrAmtOut);
+
+    function getTVL() external view returns (uint256);
+
+    function computeMintAmt(uint256 usdMax, uint256 perpSrMax)
+        external
+        view
+        returns (uint256 notesMinted, uint256 usdAmtIn, uint256 perpSrAmtIn);
+
+    function deposit(uint256 usdMax, uint256 perpSrMax) external returns (uint256 notesMinted);
 
     function computeRedemptionAmts(uint256 notesAmt) external view returns (uint256 usdAmtOut, uint256 perpSrAmtOut);
 
@@ -16,4 +26,8 @@ interface IUsdVault is IERC20 {
     function usdBalance() external view returns (uint256);
 
     function perpSrBalance() external view returns (uint256);
+
+    function underlyingBalance() external view returns (uint256);
+
+    function perpController() external view returns (address);
 }

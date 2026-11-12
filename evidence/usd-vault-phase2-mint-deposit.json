@@ -1,0 +1,129 @@
+{
+  "schema": "twofactor-cleanroom.usd-vault-phase2.v1",
+  "evidence_class": "TARGET-CONFIRMED_QUOTE_AND_CORE_DEPOSIT",
+  "chain_id": 8453,
+  "vault_proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+  "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+  "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+  "controller_proxy": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+  "quote_inputs": {
+    "usd_max": "1000000",
+    "perp_sr_max": "10000000000"
+  },
+  "vectors": [
+    {
+      "block": 52915437,
+      "notes_supply": "38573922792474201257394",
+      "usd_balance": "13273505",
+      "perp_sr_balance": "3846191368848",
+      "idle_underlying": "0",
+      "sr_supply": "4086084443262",
+      "sr_reserve_value": "48529480",
+      "underlying_price": "84736829512060000000000",
+      "tvl": "38721332620804922195000",
+      "notes_out": "100290640708916173358",
+      "usd_in": "34510",
+      "perp_sr_in": "10000000000"
+    },
+    {
+      "block": 52951097,
+      "notes_supply": "59685176998854211901260",
+      "usd_balance": "20538007",
+      "perp_sr_balance": "5951186612484",
+      "idle_underlying": "0",
+      "sr_supply": "5952509513110",
+      "sr_reserve_value": "73797927",
+      "underlying_price": "81175649509330000000000",
+      "tvl": "59913170143638691282500",
+      "notes_out": "100290542230908439944",
+      "usd_in": "34510",
+      "perp_sr_in": "10000000000"
+    },
+    {
+      "block": 53236494,
+      "notes_supply": "79937409643534650788582",
+      "usd_balance": "27506914",
+      "perp_sr_balance": "7970529505535",
+      "idle_underlying": "0",
+      "sr_supply": "7978609218527",
+      "sr_reserve_value": "100702952",
+      "underlying_price": "79834954319220000000000",
+      "tvl": "80342246954891302818400",
+      "notes_out": "100291078925391285697",
+      "usd_in": "34510",
+      "perp_sr_in": "10000000000"
+    },
+    {
+      "block": 53469759,
+      "notes_supply": "80041967211714639460967",
+      "usd_balance": "1285056998",
+      "perp_sr_balance": "7853455614839",
+      "idle_underlying": "38782",
+      "sr_supply": "7861538816846",
+      "sr_reserve_value": "102212247",
+      "underlying_price": "77569737555120000000000",
+      "tvl": "80519389925026088820800",
+      "notes_out": "62263207820484804771",
+      "usd_in": "1000000",
+      "perp_sr_in": "6111367532"
+    },
+    {
+      "block": 53526143,
+      "notes_supply": "99448990873551042788206",
+      "usd_balance": "3732531",
+      "perp_sr_balance": "9913086977476",
+      "idle_underlying": "61287",
+      "sr_supply": "10091631737151",
+      "sr_reserve_value": "126885687",
+      "underlying_price": "80248101897110000000000",
+      "tvl": "100074774324962383263700",
+      "notes_out": "100271154039568388009",
+      "usd_in": "3765",
+      "perp_sr_in": "10000000000"
+    }
+  ],
+  "two_stage_rounding_counterexample": {
+    "block": 53526143,
+    "target_notes": "100271154039568388009",
+    "collapsed_floor_notes": "100271607373576495882",
+    "overmint_difference": "453334008107873"
+  },
+  "real_deposits": [
+    {
+      "block": 53236495,
+      "transaction_index": 132,
+      "transaction_hash": "0x31dca6ff3b7fdec83add824930a85f0bb713dd7659633303a7b135f4ef2f5254",
+      "usd_in": "37273",
+      "perp_sr_in": "10800619432",
+      "notes_minted": "108320498554343292777"
+    },
+    {
+      "block": 52951098,
+      "transaction_index": 93,
+      "transaction_hash": "0x9332e8818524e3e791f77877df8e1bfca3017483af3aaeaf017ca12c641456f7",
+      "usd_in": "3672",
+      "perp_sr_in": "1064222447",
+      "notes_minted": "10672407599351449815"
+    }
+  ],
+  "event_order": [
+    "USDC Transfer caller->vault",
+    "Perp SR Transfer caller->vault",
+    "Vault notes Transfer zero->caller",
+    "Deposit(usdIn,perpSrIn,notesMinted)"
+  ],
+  "zero_input": {
+    "block": 53526143,
+    "return_notes": "0",
+    "log_count": 0,
+    "target_fork_test": "PASS"
+  },
+  "deferred": [
+    "session_capacity",
+    "rebalance_keeper",
+    "pause_admin_initializer",
+    "complete_deposit_preflight",
+    "genesis_zero_note_supply",
+    "extreme_input_overflow"
+  ]
+}

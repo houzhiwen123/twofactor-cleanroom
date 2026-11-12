@@ -1,5 +1,8 @@
 # USD Vault phase 1: evidence-backed redemption core
 
+> This file freezes the phase-1 baseline. Current mint/deposit work is documented separately in
+> `USD_VAULT_PHASE2_MINT_DEPOSIT.md`.
+
 ## Scope
 
 This phase implements only the clean-room USD Vault behavior established by public Base state and the
