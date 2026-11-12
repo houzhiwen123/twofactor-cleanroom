@@ -17,6 +17,8 @@ not for mainnet use.
 - `src/policy/FeePolicy.sol`: piecewise-linear fees and bounded reserve-rebalance values.
 - `src/policy/PerpBalancer.sol`: underlying-first rebalance plan, then tranche withdrawals ordered
   by time to maturity.
+- `src/vault/UsdVault.sol`: redemption-only clean-room USD Senior Vault core with exact pro-rata
+  USDC/Perp SR exits. Mint, session, capacity and rebalance behavior remain pending evidence.
 - `test/ref/`: independent integer settlement and rebalance models.
 - `test/mocks/`: 8-decimal ERC-20, mutable Chainlink/sequencer feeds, and a settable price oracle.
 
@@ -85,3 +87,9 @@ Round 6 fork probes confirmed permissionless rebalance calls, an inclusive-start
 rebalance window, input-side-only `OpDisabled` checks for `flashMint2`, `flashRedeem2`, and `redeem2`,
 and zero-amount AUM fee events when the configured rate is positive. See
 [`evidence/ROUND6_PROBES.md`](evidence/ROUND6_PROBES.md) for raw values and logs.
+
+The first USD Vault implementation phase is recorded in
+[`evidence/USD_VAULT_PHASE1.md`](evidence/USD_VAULT_PHASE1.md). It matches the version-locked
+historical redemption vector, event order, floor rounding and insufficient-balance boundary. Its
+proxy initializer and defensive guards are identified separately as local clean-room choices; the
+unobserved Vault issuance and operating state machines are not implemented.
