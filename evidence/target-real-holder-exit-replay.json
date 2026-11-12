@@ -1,0 +1,232 @@
+{
+  "task": "TARGET_REAL_HOLDER_EXIT_REPLAY",
+  "scope": {
+    "network": "Base",
+    "chain_id": 8453,
+    "source": "public read-only RPC and local Foundry transaction-hash forks",
+    "balance_policy": "natural historical balances only; no deal/store"
+  },
+  "vectors": [
+    {
+      "layer": "Controller",
+      "transaction_hash": "0x98fceb34a3ddb3b6ac1ed396fbb5250ce05cfb75c8827910aa4e13d6cee92173",
+      "block_number": 51777385,
+      "transaction_index": 125,
+      "natural_holder": "0xd7daaa0648d72afd2470e5b68b3cf1c9fd88c92b",
+      "classification": "TARGET-CONFIRMED",
+      "prestate": "strict transaction-hash fork"
+    },
+    {
+      "layer": "USD Vault",
+      "transaction_hash": "0x69303607f150b7ccd9e3137a1e621cc18437405f7788dfc35dc122537148be44",
+      "block_number": 51820780,
+      "transaction_index": 61,
+      "natural_holder": "0xd7daaa0648d72afd2470e5b68b3cf1c9fd88c92b",
+      "classification": "TARGET-CONFIRMED",
+      "prestate": "strict transaction-hash fork"
+    },
+    {
+      "layer": "SingleAsset Router",
+      "transaction_hash": "0xaf7d86860fa149f0fdddb186f74753dc2b912294c7e4f4b1b8930934fe7144ab",
+      "block_number": 53243583,
+      "transaction_index": 77,
+      "natural_holder": "0x11649a794f918508027765f6280c1b396ee59f8f",
+      "classification": "TARGET-CONFIRMED",
+      "prestate": "strict transaction-hash fork"
+    }
+  ],
+  "version_locks": [
+    {
+      "layer": "Controller",
+      "component": "Controller",
+      "target": "0x682f3a053b0260dad4ebeee3924b1618b330a200",
+      "implementation": "0x16e324bae2098317477129a5e71f770bff51f02a",
+      "target_codehash": "0x2439ee0ade6a1d06e3704a98bcd13ba2efd1426e8bf25d3456caa16f741f2e2e",
+      "implementation_codehash": "0xc18d3bcb6fb9e0f54b93f7d431901e13ee879a86502da786841e2f12d9606e31",
+      "proxy_kind": "EIP-1967"
+    },
+    {
+      "layer": "Controller",
+      "component": "FeePolicy",
+      "target": "0x1e3dbdc2adf4d5fdd1efdfb9ff05e4154d0c00e8",
+      "implementation": "0x9cefc3cf756c6b2a7568b0539c956f1dd5691900",
+      "target_codehash": "0x2a16f92d0d60ffb240c4be576111b0e8a195a4c5b0f98856380c8943b9bbaa44",
+      "implementation_codehash": "0x2147e3a9366e8e48e04b2827d3e646c80c4adbe14cac06f490f9dc057ec4a755",
+      "proxy_kind": "EIP-1967"
+    },
+    {
+      "layer": "SingleAsset Router",
+      "component": "DEX Strategy",
+      "target": "0xe0fc0566adcd6b83149874619a1fafdf3345144f",
+      "implementation": "0x0000000000000000000000000000000000000000",
+      "target_codehash": "0x5179730df56d2d569376affd12ff8014ac2c7d9940dca3b78cb9dc22db5d5302",
+      "implementation_codehash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "proxy_kind": "direct_or_non_EIP1967"
+    },
+    {
+      "layer": "SingleAsset Router",
+      "component": "SingleAsset Router",
+      "target": "0x8e868c1f8f82b84a6b0d19d235d50c47b253559f",
+      "implementation": "0x0000000000000000000000000000000000000000",
+      "target_codehash": "0x33f265f8c51da59240326566d89a19548bf6ebeb9bb225cb1ab8079d701d71bf",
+      "implementation_codehash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "proxy_kind": "direct_or_non_EIP1967"
+    },
+    {
+      "layer": "SingleAsset Router",
+      "component": "USD Vault",
+      "target": "0xe356d1ed9ad82ccc79e70f50abce08057e8d75f3",
+      "implementation": "0xf85ee52a320f2b8cf4e670cd40d8218519fdaacf",
+      "target_codehash": "0x09099f0c6e5a45bc0cb72ba0f8f08f637304a410ae758b21a88589ad7240242b",
+      "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+      "proxy_kind": "EIP-1967"
+    },
+    {
+      "layer": "USD Vault",
+      "component": "USD Vault",
+      "target": "0xe356d1ed9ad82ccc79e70f50abce08057e8d75f3",
+      "implementation": "0x569021bc0975ad5b67793cd31d9e2b0707a9f626",
+      "target_codehash": "0x09099f0c6e5a45bc0cb72ba0f8f08f637304a410ae758b21a88589ad7240242b",
+      "implementation_codehash": "0x39e3ae92930befdd960644c662c9386f98f17a80117974b84d15371ebe354c21",
+      "proxy_kind": "EIP-1967"
+    }
+  ],
+  "controller": {
+    "jr_input": 21200000000,
+    "min_value": 251879,
+    "pre_sub_dr": 1038993523725927985,
+    "post_sub_dr": 1025799406232600248,
+    "pre_vm_dr": 1002206757557942000,
+    "post_vm_dr": 1002206743712286605,
+    "jr_total_fee": 0,
+    "jr_protocol_fee": 0,
+    "underlying_out": 168003,
+    "tranche_count": 1,
+    "jr_supply_before": 1669427965747,
+    "jr_supply_after": 1648227965747,
+    "collected_fee_before": 0,
+    "collected_fee_after": 0,
+    "classification": "TARGET-CONFIRMED"
+  },
+  "controller_assets": [
+    {
+      "reserve_before": 13229714,
+      "reserve_after": 13061711,
+      "user_delta": 168003,
+      "returned_amount": 168003,
+      "value_before": 13229714,
+      "value_after": 13061711,
+      "asset_index": 0,
+      "token": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf",
+      "conserved": true
+    },
+    {
+      "reserve_before": 557643460666,
+      "reserve_after": 550561968318,
+      "user_delta": 7081492348,
+      "returned_amount": 7081492348,
+      "value_before": 6604932,
+      "value_after": 6521056,
+      "asset_index": 1,
+      "token": "0x1cc60029d6ef7f87ef77cd515267528c562d2b9e",
+      "conserved": true
+    }
+  ],
+  "controller_events": [
+    {
+      "side": "JR",
+      "event_topic": "0x9e03bc7cc34768c06442831b31f8f3b829f42a93c54a2c0777d51287ac154ca5",
+      "token": "0x8cd04668292dc32f519972495c179e4f02c0e8ab",
+      "total_fee_amount": 0,
+      "protocol_fee_amount": 0
+    }
+  ],
+  "fee_policy_differential": [
+    {
+      "side": "SR",
+      "target_total": 0,
+      "target_protocol": 0,
+      "cleanroom_total": 0,
+      "cleanroom_protocol": 0,
+      "exact_match": true,
+      "classification": "TARGET-CONFIRMED_vs_LOCAL-CLEANROOM"
+    },
+    {
+      "side": "JR",
+      "target_total": 0,
+      "target_protocol": 0,
+      "cleanroom_total": 0,
+      "cleanroom_protocol": 0,
+      "exact_match": true,
+      "classification": "TARGET-CONFIRMED_vs_LOCAL-CLEANROOM"
+    }
+  ],
+  "vault": {
+    "notes_input": 11042700000000000000000,
+    "quote_usd": 10779663296,
+    "quote_perp_sr": 26250405020,
+    "actual_usd": 10779663296,
+    "actual_perp_sr": 26250405020,
+    "note_supply_before": 11196354068000000000000,
+    "note_supply_after": 153654068000000000000,
+    "vault_usd_before": 10929657330,
+    "vault_usd_after": 149994034,
+    "vault_perp_sr_before": 26615667277,
+    "vault_perp_sr_after": 365262257,
+    "classification": "TARGET-CONFIRMED",
+    "local_implementation": "NO_LOCAL_IMPLEMENTATION"
+  },
+  "router": {
+    "notes_input": 3762930374354620392,
+    "historical_min_out": 3761293,
+    "actual_usd_out": 3780194,
+    "direct_vault_usd_out": 1294,
+    "vault_perp_sr_out": 375200394,
+    "dex_usd_out": 3778900,
+    "health_check": true,
+    "max_iters_present": false,
+    "strategy": "0xe0fc0566adcd6b83149874619a1fafdf3345144f",
+    "classification": "TARGET-CONFIRMED",
+    "local_implementation": "NO_LOCAL_IMPLEMENTATION"
+  },
+  "failure_boundaries": [
+    {
+      "layer": "Controller",
+      "attempted_input": 21200000000,
+      "boundary_value": 251880,
+      "error_selector": "0xbc3944e7",
+      "state_unchanged": true,
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_CALL_NATURAL_BALANCE"
+    },
+    {
+      "layer": "SingleAsset Router",
+      "attempted_input": 3762930374354620392,
+      "boundary_value": 3780195,
+      "error_selector": "0x850c6f76",
+      "state_unchanged": true,
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_CALL_NATURAL_BALANCE"
+    },
+    {
+      "layer": "USD Vault",
+      "attempted_input": 11196344068000000000001,
+      "boundary_value": 11196344068000000000000,
+      "error_selector": "0xe450d38c",
+      "state_unchanged": true,
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_CALL_NATURAL_BALANCE"
+    }
+  ],
+  "summary": {
+    "success_vectors": 3,
+    "failure_boundaries": 3,
+    "fee_policy_exact_matches": 2,
+    "controller_events_observed": 1,
+    "controller_assets_conserved": true
+  },
+  "provenance": {
+    "baseline_commit": "434f68c13499321f5a9d8273da701dd30e2effda",
+    "probe": "evidence/probe-tests/TargetRealHolderExitReplay.t.sol",
+    "probe_sha256": "21d5865f8af717777667ede5bea5de920237f9484c710d25ded0b0e7cd86b1b7",
+    "exporter": "script/export_target_real_holder_exit_replay.py",
+    "exporter_sha256": "bfd31c0c299b9c21124fbb49f346c09a6fedb82d8480d8a7a29441b0c54768f0"
+  }
+}
