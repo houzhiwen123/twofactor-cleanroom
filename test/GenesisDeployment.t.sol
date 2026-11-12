@@ -47,6 +47,56 @@ contract GenesisDeploymentTest is Test {
         uint256 maxJrUnderlyingTopUp;
     }
 
+    struct ExitQuote {
+        uint256 preSubDr;
+        uint256 preVmDr;
+        uint256 feeQuotePostSubDr;
+        uint256 feeQuotePostVmDr;
+        uint256 srFeePerc;
+        uint256 jrFeePerc;
+        uint256 theoreticalValue;
+        uint256 srReserveValue;
+        uint256 jrReserveValue;
+        uint256 srSupply;
+        uint256 jrSupply;
+    }
+
+    struct ExitObservation {
+        uint8 mode;
+        uint16 exitBps;
+        uint256 srInput;
+        uint256 jrInput;
+        uint256 preSubDr;
+        uint256 preVmDr;
+        uint256 feeQuotePostSubDr;
+        uint256 feeQuotePostVmDr;
+        uint256 postSubDr;
+        uint256 postVmDr;
+        uint256 srFeePerc;
+        uint256 jrFeePerc;
+        uint256 theoreticalValue;
+        uint256 actualReceivedValue;
+        uint256 controllerSrFeeShares;
+        uint256 controllerJrFeeShares;
+        uint256 controllerRetainedFeeValue;
+        bool success;
+        bytes4 errorSelector;
+        uint256 underlyingTotalSupply;
+        uint256 underlyingAccountedAfter;
+        bool underlyingConserved;
+    }
+
+    struct ExitCurveContext {
+        uint16[10] exitBps;
+        uint256 userSr;
+        uint256 userJr;
+        uint256 srSupply;
+        uint256 jrSupply;
+        uint256 baselineSnapshot;
+    }
+
+    event CleanroomExitObservation(ExitObservation observation);
+
     function setUp() public {
         vm.warp(1_800_000_000);
     }
@@ -487,6 +537,231 @@ contract GenesisDeploymentTest is Test {
         emit log_named_uint("full-exit JR fee", jrFee.totalFeePerc);
         emit log_named_uint("full-exit remaining subDR", finalSubDr);
         emit log_named_uint("full-exit remaining vmDR", finalVmDr);
+    }
+
+    /// @dev LOCAL CLEANROOM / BNB-DESIGN regression only. The emitted pre-fix 73%–74% fee
+    /// values are a confirmed local FeePolicy compatibility bug, not TARGET expected behavior.
+    function testGenesisExitFeeCurveAudit() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _prepareModerateMultiEpochExitState(s);
+        uint256 userSr = s.perpSr.balanceOf(RECEIVER);
+        uint256 userJr = s.perpJr.balanceOf(RECEIVER);
+        uint256 srSupply = s.perpSr.totalSupply();
+        uint256 jrSupply = s.perpJr.totalSupply();
+
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        s.perpJr.approve(address(s.controller), type(uint256).max);
+        vm.stopPrank();
+
+        ExitCurveContext memory context;
+        context.exitBps = [uint16(100), 500, 1_000, 2_500, 5_000, 7_500, 9_000, 9_500, 9_900, 10_000];
+        context.userSr = userSr;
+        context.userJr = userJr;
+        context.srSupply = srSupply;
+        context.jrSupply = jrSupply;
+        context.baselineSnapshot = vm.snapshotState();
+
+        bytes32 rollingHash = _runExitMode(s, 0, context);
+        rollingHash = keccak256(abi.encode(rollingHash, _runExitMode(s, 1, context)));
+        rollingHash = keccak256(abi.encode(rollingHash, _runExitMode(s, 2, context)));
+        rollingHash = keccak256(abi.encode(rollingHash, _runExitMode(s, 3, context)));
+
+        emit log_named_bytes32("EXIT_CURVE_HASH", rollingHash);
+    }
+
+    function _runExitMode(LocalSystem memory s, uint8 mode, ExitCurveContext memory context)
+        private
+        returns (bytes32 rollingHash)
+    {
+        for (uint256 i; i < context.exitBps.length; ++i) {
+            (uint256 srInput, uint256 jrInput) = _exitInputs(
+                mode, context.exitBps[i], context.userSr, context.userJr, context.srSupply, context.jrSupply
+            );
+            ExitObservation memory observation =
+                _observeExit(s, mode, context.exitBps[i], srInput, jrInput, context.baselineSnapshot);
+            rollingHash = keccak256(abi.encode(rollingHash, observation));
+            _logExitObservation(observation);
+        }
+    }
+
+    function _prepareModerateMultiEpochExitState(LocalSystem memory s) private {
+        _bootstrap(s, RECEIVER);
+        s.controller.updateKeeper(address(this));
+        s.controller.pauseUserOps(false);
+
+        address epochOneSrTranche = _advanceExitEpoch(s, 82_000e18, 10_000_000);
+        _advanceExitEpoch(s, 79_000e18, 10_000_000);
+        _advanceExitEpoch(s, 84_000e18, 10_000_000);
+        s.controller.rollover();
+        assertEq(IERC20(s.srTranche).balanceOf(address(s.perpSr)), 0);
+
+        _advanceExitEpoch(s, 80_000e18, 10_000_000);
+        s.controller.rollover();
+        assertEq(IERC20(epochOneSrTranche).balanceOf(address(s.perpSr)), 0);
+        _assertUnderlyingAccounted(s);
+    }
+
+    function _advanceExitEpoch(LocalSystem memory s, uint256 price, uint256 underlyingAmount)
+        private
+        returns (address srTranche)
+    {
+        uint256 activeBefore = s.issuer.activeBondIDs().length;
+        vm.warp(block.timestamp + 604_800);
+        s.oracle.setPrice(price);
+        s.controller.upkeep();
+        assertEq(s.issuer.activeBondIDs().length, activeBefore + 1);
+        BondIssuer.BondInfo memory bond = s.issuer.latestBondInfo();
+        _balancedMintLatest(s, bond, underlyingAmount);
+        return bond.srTranche;
+    }
+
+    function _exitInputs(uint8 mode, uint16 exitBps, uint256 userSr, uint256 userJr, uint256 srSupply, uint256 jrSupply)
+        private
+        pure
+        returns (uint256 srInput, uint256 jrInput)
+    {
+        if (mode == 0) {
+            srInput = Math.mulDiv(userSr, exitBps, 10_000);
+            jrInput = Math.mulDiv(userJr, exitBps, 10_000);
+        } else if (mode == 1) {
+            srInput = Math.mulDiv(srSupply, exitBps, 10_000);
+            jrInput = Math.mulDiv(jrSupply, exitBps, 10_000);
+        } else if (mode == 2) {
+            srInput = Math.mulDiv(userSr, exitBps, 10_000);
+        } else {
+            jrInput = Math.mulDiv(userJr, exitBps, 10_000);
+        }
+    }
+
+    function _observeExit(
+        LocalSystem memory s,
+        uint8 mode,
+        uint16 exitBps,
+        uint256 srInput,
+        uint256 jrInput,
+        uint256 baselineSnapshot
+    ) private returns (ExitObservation memory observation) {
+        ExitQuote memory quote = _quoteExit(s, srInput, jrInput);
+        observation.mode = mode;
+        observation.exitBps = exitBps;
+        observation.srInput = srInput;
+        observation.jrInput = jrInput;
+        observation.preSubDr = quote.preSubDr;
+        observation.preVmDr = quote.preVmDr;
+        observation.feeQuotePostSubDr = quote.feeQuotePostSubDr;
+        observation.feeQuotePostVmDr = quote.feeQuotePostVmDr;
+        observation.srFeePerc = quote.srFeePerc;
+        observation.jrFeePerc = quote.jrFeePerc;
+        observation.theoreticalValue = quote.theoreticalValue;
+        observation.underlyingTotalSupply = s.underlying.totalSupply();
+
+        _executeExitAndRecord(s, srInput, jrInput, quote, observation);
+
+        observation.underlyingAccountedAfter = _accountedUnderlying(s);
+        observation.underlyingConserved = observation.underlyingAccountedAfter == observation.underlyingTotalSupply;
+        assertTrue(observation.underlyingConserved);
+        assertTrue(vm.revertToState(baselineSnapshot));
+        (uint256 restoredSubDr, uint256 restoredVmDr) = s.controller.systemDeviations();
+        assertEq(restoredSubDr, observation.preSubDr);
+        assertEq(restoredVmDr, observation.preVmDr);
+    }
+
+    function _executeExitAndRecord(
+        LocalSystem memory s,
+        uint256 srInput,
+        uint256 jrInput,
+        ExitQuote memory quote,
+        ExitObservation memory observation
+    ) private {
+        uint256 controllerSrBefore = s.perpSr.balanceOf(address(s.controller));
+        uint256 controllerJrBefore = s.perpJr.balanceOf(address(s.controller));
+        vm.prank(RECEIVER);
+        bytes memory result;
+        (observation.success, result) =
+            address(s.controller).call(abi.encodeCall(PerpController.redeem2, (srInput, jrInput, 0)));
+
+        if (observation.success) {
+            (
+                PerpBalancer.ReserveAmounts memory srOut,
+                PerpBalancer.ReserveAmounts memory jrOut,
+                PerpController.FeePerc memory srFee,
+                PerpController.FeePerc memory jrFee
+            ) = abi.decode(
+                result,
+                (
+                    PerpBalancer.ReserveAmounts,
+                    PerpBalancer.ReserveAmounts,
+                    PerpController.FeePerc,
+                    PerpController.FeePerc
+                )
+            );
+            assertEq(srFee.totalFeePerc, quote.srFeePerc);
+            assertEq(jrFee.totalFeePerc, quote.jrFeePerc);
+            observation.actualReceivedValue = _returnedBasketValue(srOut) + _returnedBasketValue(jrOut);
+            observation.controllerSrFeeShares = s.perpSr.balanceOf(address(s.controller)) - controllerSrBefore;
+            observation.controllerJrFeeShares = s.perpJr.balanceOf(address(s.controller)) - controllerJrBefore;
+            observation.controllerRetainedFeeValue = Math.mulDiv(
+                observation.controllerSrFeeShares, quote.srReserveValue, quote.srSupply
+            ) + Math.mulDiv(observation.controllerJrFeeShares, quote.jrReserveValue, quote.jrSupply);
+            (observation.postSubDr, observation.postVmDr) = s.controller.systemDeviations();
+        } else {
+            observation.errorSelector = _selector(result);
+            observation.postSubDr = observation.preSubDr;
+            observation.postVmDr = observation.preVmDr;
+        }
+    }
+
+    function _quoteExit(LocalSystem memory s, uint256 srInput, uint256 jrInput)
+        private
+        view
+        returns (ExitQuote memory quote)
+    {
+        PerpController.SystemState memory pre;
+        (pre,,) = s.controller.systemReserveState();
+        quote.srReserveValue = pre.perpSr.reserveValue;
+        quote.jrReserveValue = pre.perpJr.reserveValue;
+        quote.srSupply = pre.perpSr.totalSupply;
+        quote.jrSupply = pre.perpJr.totalSupply;
+        (quote.preSubDr, quote.preVmDr) =
+            s.controller.computeDRs(pre, s.controller.targetSystemRatio(), s.controller.targetPerpJrVM());
+
+        uint256 srGross = srInput == 0 ? 0 : Math.mulDiv(srInput, quote.srReserveValue, quote.srSupply);
+        uint256 jrGross = jrInput == 0 ? 0 : Math.mulDiv(jrInput, quote.jrReserveValue, quote.jrSupply);
+        quote.theoreticalValue = srGross + jrGross;
+        PerpController.SystemState memory post = pre;
+        post.perpSr.totalSupply -= srInput;
+        post.perpSr.reserveValue -= srGross;
+        post.perpJr.totalSupply -= jrInput;
+        post.perpJr.reserveValue -= jrGross;
+        (quote.feeQuotePostSubDr, quote.feeQuotePostVmDr) =
+            s.controller.computeDRs(post, s.controller.targetSystemRatio(), s.controller.targetPerpJrVM());
+
+        FeePolicy.OpSystemChange memory change =
+            FeePolicy.OpSystemChange(quote.preSubDr, quote.feeQuotePostSubDr, quote.preVmDr, quote.feeQuotePostVmDr);
+        quote.srFeePerc = s.feePolicy.computeOpFees(FeePolicy.OpFeeInput(true, false, change)).totalFeePerc;
+        quote.jrFeePerc = s.feePolicy.computeOpFees(FeePolicy.OpFeeInput(false, false, change)).totalFeePerc;
+    }
+
+    function _returnedBasketValue(PerpBalancer.ReserveAmounts memory amounts) private view returns (uint256 value) {
+        value = amounts.underlyingAmt;
+        for (uint256 i; i < amounts.trancheAmts.length; ++i) {
+            PerpBalancer.TokenAmount memory item = amounts.trancheAmts[i];
+            if (item.amount == 0) continue;
+            IBondsManager.TrancheData memory data = Tranche(item.token).data();
+            value += Math.mulDiv(item.amount, data.trancheClaim, data.trancheSupply);
+        }
+    }
+
+    function _accountedUnderlying(LocalSystem memory s) private view returns (uint256) {
+        return s.underlying.balanceOf(address(s.manager)) + s.underlying.balanceOf(address(s.perpSr))
+            + s.underlying.balanceOf(address(s.perpJr)) + s.underlying.balanceOf(address(s.controller))
+            + s.underlying.balanceOf(address(s.seeder)) + s.underlying.balanceOf(address(this))
+            + s.underlying.balanceOf(RECEIVER);
+    }
+
+    function _logExitObservation(ExitObservation memory observation) private {
+        emit CleanroomExitObservation(observation);
     }
 
     function _bootstrap(LocalSystem memory s, address receiver) private returns (uint256, uint256) {
