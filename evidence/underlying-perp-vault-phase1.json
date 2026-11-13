@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "status": "TARGET-CONFIRMED core behavior plus LOCAL-CLEANROOM implementation",
+  "chainId": 8453,
+  "readOnly": true,
+  "broadcastTransactions": false,
+  "versionLock": {
+    "currentStateBlock": 53526143,
+    "metadataBlock": 53526228,
+    "juniorProxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+    "seniorProxy": "0x805D7eE7F03dE39f2F30F3A7069c6d46642398cB",
+    "implementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+    "implementationCodehash": "0xf44934d03450e1a1ccec20b9f3d6031fb2176e2e90c4d1074a506b8f27285645",
+    "runtimeSha256": "441c081b4e28f8f601a1871699594fec3fce7c1b64221f0f6634ad1b0bad7332"
+  },
+  "constants": {
+    "minimumLiquidity": "10000000000",
+    "notesDecimals": 18,
+    "underlyingUnit": "100000000"
+  },
+  "currentState": {
+    "junior": {
+      "name": "cbBTC Junior Keeper",
+      "symbol": "cbBTC-Jr-Keeper",
+      "supply": "3813064395481201456",
+      "underlyingBalance": "0",
+      "perpBalance": "32102063162351",
+      "tvl": "375476086",
+      "isPerpSrVault": false,
+      "mintsAboveTarget": false
+    },
+    "senior": {
+      "name": "cbBTC Senior Keeper",
+      "symbol": "cbBTC-Sr-Keeper",
+      "supply": "121588631786949865",
+      "underlyingBalance": "10259975",
+      "perpBalance": "170465061177",
+      "tvl": "12403293",
+      "isPerpSrVault": true,
+      "mintsAboveTarget": true
+    }
+  },
+  "initialization": {
+    "underlyingAmount": "100000",
+    "returnedTotalNotes": "1000000000000000",
+    "lockedNotes": "10000000000",
+    "userNotes": "999990000000000",
+    "juniorTransaction": {
+      "block": 51749947,
+      "transactionIndex": 67,
+      "hash": "0x7be7a78e0d068ad49a516f60c7567063c03f4e41c5d4c859d68e405aed4c20a9"
+    },
+    "seniorTransaction": {
+      "block": 51749945,
+      "transactionIndex": 74,
+      "hash": "0xd0ab7cb3ce84e7e5b0299f17e387367f40ce45594f413891abc382044226872a"
+    }
+  },
+  "administration": {
+    "evidenceClass": "SYNTHETIC_FORK",
+    "updateKeeper": "owner-only",
+    "zeroKeeperAccepted": true,
+    "pause": "keeper-only",
+    "unpause": "keeper-only",
+    "unauthorizedPauseSelector": "0x7bf6a16f",
+    "unauthorizedOwnerSelector": "0x118cdaa7"
+  },
+  "postInitializationQuote": {
+    "block": 51749945,
+    "supply": "1000000000000000",
+    "underlyingBalance": "100000",
+    "perpBalance": "0",
+    "underlyingMax": "100000",
+    "perpMax": "0",
+    "notes": "1000000000000000",
+    "underlyingAccepted": "100000",
+    "perpAccepted": "0"
+  },
+  "historicalVectors": [
+    {
+      "kind": "deposit",
+      "side": "junior",
+      "preStateBlock": 51777455,
+      "transactionBlock": 51777456,
+      "transactionIndex": 245,
+      "hash": "0x57d37a67cb7497bb613e6d1c04805586b8a48130896575a378aa732a8a18132a",
+      "underlyingMax": "0",
+      "perpMax": "1636069530773",
+      "underlyingAccepted": "0",
+      "perpAccepted": "1636069530773",
+      "notes": "194416786128004843"
+    },
+    {
+      "kind": "deposit",
+      "side": "senior",
+      "preStateBlock": 51777489,
+      "transactionBlock": 51777490,
+      "transactionIndex": 48,
+      "hash": "0xfbcb1b0804631f55de0d5f2460fd4b4681be20a8a87459719d5d5391de28ec48",
+      "underlyingMax": "1590000",
+      "perpMax": "540252299306",
+      "underlyingAccepted": "1587122",
+      "perpAccepted": "540252299306",
+      "notes": "80494093785850860"
+    },
+    {
+      "kind": "redeem",
+      "side": "junior",
+      "preStateBlock": 51777349,
+      "transactionBlock": 51777350,
+      "transactionIndex": 180,
+      "hash": "0x21eb05f37f07bd2c08da8d3f3c32621c11b0144f3c1eb0190d75c2d9ada5334a",
+      "notes": "41562290000000000",
+      "underlyingOut": "3555739",
+      "perpOut": "50480992204"
+    },
+    {
+      "kind": "redeem",
+      "side": "senior",
+      "preStateBlock": 51777358,
+      "transactionBlock": 51777359,
+      "transactionIndex": 158,
+      "hash": "0x55f37956343d2ec453a4421de2ca98427fcd7d10fca3a8353b22062994d61ae4",
+      "notes": "49620700000000000",
+      "underlyingOut": "4907016",
+      "perpOut": "4656119783"
+    }
+  ],
+  "pending": [
+    "rebalance execution",
+    "target DR and equilibrium range administration",
+    "rebalance timing and fee-limit administration",
+    "remaining administrative validation edges"
+  ]
+}
