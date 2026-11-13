@@ -4,7 +4,7 @@ pragma solidity 0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Evidence-backed mint/deposit and exit surface for the clean-room USD Senior Vault.
-/// @dev Includes the target-observed session-capacity view; rebalance execution remains deferred.
+/// @dev Includes the target-observed session-capacity and phase-5B rebalance execution surfaces.
 interface IUsdVault is IERC20 {
     struct ReserveState {
         uint256 totalSupply;
@@ -24,6 +24,7 @@ interface IUsdVault is IERC20 {
 
     event Deposit(uint256 usdAmtIn, uint256 perpSrAmtIn, uint256 notesMinted);
     event Redeem(uint256 notesAmt, uint256 usdAmtOut, uint256 perpSrAmtOut);
+    event Rebalance(uint256 drBefore, uint256 underlyingPrice, uint256 rebalanceUsdVal, bool isMintingPerp);
 
     function getTVL() external view returns (uint256);
 
@@ -70,6 +71,26 @@ interface IUsdVault is IERC20 {
     function minOpUsdVal() external view returns (uint128);
 
     function activeRebalanceDelaySec() external view returns (uint32);
+
+    function dexStrategy() external view returns (address);
+
+    function usdOracle() external view returns (address);
+
+    function isSwapper(address account) external view returns (bool);
+
+    function maxUsdDeviationPerc() external view returns (uint64);
+
+    function maxUnderlyingDeviationPerc() external view returns (uint64);
+
+    function maxFlashMintFeePerc() external view returns (uint64);
+
+    function maxFlashRedeemFeePerc() external view returns (uint64);
+
+    function rebalance() external;
+
+    function upkeep() external;
+
+    function swap(address tokenIn, address tokenOut, uint256 tokenInAmt, uint256 tokenOutAmt) external;
 
     function rebalanceCapacity()
         external

@@ -22,6 +22,13 @@ EXPECTED_STORAGE = [
     ("_eqDRLower", "6", 16, "uint96"),
     ("_activeRebalanceDelaySec", "6", 28, "uint32"),
     ("_eqDRUpper", "7", 0, "uint96"),
+    ("_dexStrategy", "7", 12, "address"),
+    ("_usdOracle", "8", 0, "address"),
+    ("_isSwapper", "9", 0, "mapping(address => bool)"),
+    ("_maxUsdDeviationPerc", "10", 0, "uint64"),
+    ("_maxUnderlyingDeviationPerc", "10", 8, "uint64"),
+    ("_maxFlashMintFeePerc", "10", 16, "uint64"),
+    ("_maxFlashRedeemFeePerc", "10", 24, "uint64"),
 ]
 
 
@@ -44,7 +51,7 @@ def main() -> int:
         print(f"Actual:   {actual}", file=sys.stderr)
         return 1
 
-    print("UsdVault storage layout preserves slots 0-5 and appends phase-4 rebalance configuration.")
+    print("UsdVault storage layout preserves slots 0-7 and appends phase-5B execution dependencies and guard limits.")
     return 0
 
 

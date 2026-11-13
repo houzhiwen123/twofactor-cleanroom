@@ -26,9 +26,15 @@ interface ITargetUsdVaultPhase5A {
     function keeper() external view returns (address);
     function isSwapper(address account) external view returns (bool);
     function activeRebalanceDelaySec() external view returns (uint32);
+    function maxUsdDeviationPerc() external view returns (uint64);
+    function maxUnderlyingDeviationPerc() external view returns (uint64);
+    function maxFlashMintFeePerc() external view returns (uint64);
+    function maxFlashRedeemFeePerc() external view returns (uint64);
     function dexStrategy() external view returns (address);
     function perpController() external view returns (address);
     function usdOracle() external view returns (address);
+    function perpSr() external view returns (address);
+    function underlying() external view returns (address);
     function sessionCapacity()
         external
         view
@@ -41,6 +47,7 @@ interface ITargetUsdVaultPhase5A {
     function updateOpLimits(uint128 minOpUsdVal_, uint64 maxFlashMintFeePerc, uint64 maxFlashRedeemFeePerc) external;
     function updateSessionParams(uint32 freqSec, uint32 offsetSec, uint32 activeDelaySec, uint64 velocity) external;
     function updateTargetDR(uint96 targetDR_, Range calldata range) external;
+    function updateSwapper(address account, bool allowed) external;
 }
 
 interface ITargetControllerPhase5A {
@@ -140,8 +147,21 @@ contract UsdVaultPhase5ARealRebalanceProbe is Test {
     struct SyntheticContext {
         ITargetUsdVaultPhase5A vault;
         MockERC20 usd;
+        MockPriceOracle usdOracle;
         Phase5AFunctionalDex dex;
         address underlyingOracle;
+        uint256 targetPrice;
+        uint256 timestamp;
+    }
+
+    struct SyntheticRedeemContext {
+        ITargetUsdVaultPhase5A vault;
+        MockERC20 usd;
+        MockERC20 perp;
+        MockERC20 underlying;
+        MockPriceOracle usdOracle;
+        MockPriceOracle underlyingOracle;
+        Phase5AFunctionalDex dex;
         uint256 targetPrice;
         uint256 timestamp;
     }
@@ -375,6 +395,7 @@ contract UsdVaultPhase5ARealRebalanceProbe is Test {
         SyntheticContext memory context = SyntheticContext({
             vault: vault,
             usd: usd,
+            usdOracle: usdOracle,
             dex: dex,
             underlyingOracle: underlyingOracle,
             targetPrice: targetPrice,
@@ -383,6 +404,286 @@ contract UsdVaultPhase5ARealRebalanceProbe is Test {
         _assertSyntheticFailureAtomicity(context, 1);
         _assertSyntheticFailureAtomicity(context, 2);
         _assertSyntheticFailureAtomicity(context, 3);
+    }
+
+    function testProbeSyntheticHealthAndFeeGuards() public {
+        SyntheticContext memory context = _deploySyntheticHealthContext();
+        uint256 usdDeviation = 5e15;
+        uint256 underlyingDeviation = 5e16;
+        uint256 feeLimit = 5e15;
+
+        _probeAndAssert("baseline", context, 1e18, context.targetPrice, 0, true, "");
+        _probeAndAssert("usd upper exact", context, 1e18 + usdDeviation, context.targetPrice, 0, true, "");
+        _probeAndAssert(
+            "usd upper plus one", context, 1e18 + usdDeviation + 1, context.targetPrice, 0, false, "usd peg"
+        );
+        _probeAndAssert("usd lower exact", context, 1e18 - usdDeviation, context.targetPrice, 0, true, "");
+        _probeAndAssert(
+            "usd lower minus one", context, 1e18 - usdDeviation - 1, context.targetPrice, 0, false, "usd peg"
+        );
+
+        uint256 refUpper = context.targetPrice * (1e18 + underlyingDeviation) / 1e18;
+        uint256 refLower = context.targetPrice * (1e18 - underlyingDeviation) / 1e18;
+        _probeAndAssert("underlying upper", context, 1e18, refUpper, 0, true, "");
+        _probeAndAssert("underlying upper plus one", context, 1e18, refUpper + 1, 0, false, "oracle divergence");
+        _probeAndAssert("underlying lower", context, 1e18, refLower, 0, true, "");
+        _probeAndAssert("underlying lower minus one", context, 1e18, refLower - 1, 0, false, "oracle divergence");
+        _probeAndAssert("fee exact", context, 1e18, context.targetPrice, feeLimit, true, "");
+        _probeAndAssert("fee plus one", context, 1e18, context.targetPrice, feeLimit + 1, false, "flash fee");
+    }
+
+    function testProbeSyntheticRedeemFeeGuard() public {
+        SyntheticRedeemContext memory context = _deploySyntheticRedeemContext();
+        uint256 feeLimit = 5e15;
+
+        (bool exactOk, bytes memory exactResult) = _probeRedeemFee(context, feeLimit);
+        _logGuardResult("redeem fee exact", exactOk, exactResult);
+        assertTrue(exactOk);
+        assertEq(exactResult.length, 0);
+        (bool plusOneOk, bytes memory plusOneResult) = _probeRedeemFee(context, feeLimit + 1);
+        _logGuardResult("redeem fee plus one", plusOneOk, plusOneResult);
+        assertFalse(plusOneOk);
+        assertEq(_selector(plusOneResult), bytes4(keccak256("OpUnavailable(string)")));
+        assertEq(abi.decode(_sliceAfterSelector(plusOneResult), (string)), "flash fee");
+    }
+
+    function testProbeSyntheticSwapGuards() public {
+        SyntheticRedeemContext memory context = _deploySyntheticRedeemContext();
+        uint256 feeLimit = 5e15;
+        uint256 refUpper = context.targetPrice * (1e18 + 5e16) / 1e18;
+
+        _assertSwapGuard("swap baseline", context, 1e18, context.targetPrice, feeLimit, true, "");
+        _assertSwapGuard("swap usd bad", context, 1e18 + 5e15 + 1, context.targetPrice, feeLimit, false, "usd peg");
+        _assertSwapGuard("swap reference bad", context, 1e18, refUpper + 1, feeLimit, false, "oracle divergence");
+        _assertSwapGuard("swap fee bad", context, 1e18, context.targetPrice, feeLimit + 1, false, "flash fee");
+    }
+
+    function _deploySyntheticHealthContext() private returns (SyntheticContext memory context) {
+        vm.createSelectFork(vm.envString("BASE_RPC_URL"), 53_526_143);
+        uint256 targetPrice = 80_248_101_897_110_000_000_000;
+        MockERC20 usd = new MockERC20("Phase5B USD", "P5BUSD", 6);
+        MockPriceOracle usdOracle = new MockPriceOracle(1e18);
+        Phase5AFunctionalDex dex = new Phase5AFunctionalDex(address(usd), CBBTC, targetPrice, type(uint256).max);
+        bytes memory initData = abi.encodeWithSignature(
+            "init(string,string,address,address,address)",
+            "Phase5B Guards",
+            "P5B-GUARD",
+            address(usd),
+            CONTROLLER,
+            address(dex)
+        );
+        ITargetUsdVaultPhase5A vault = ITargetUsdVaultPhase5A(address(new ERC1967Proxy(VAULT_IMPLEMENTATION, initData)));
+        vault.updateHealthCheckParams(address(usdOracle), 5e15, 5e16);
+        vault.updateOpLimits(0, 5e15, 5e15);
+        vault.updateSessionParams(28_800, 21_600, 3_600, uint64(1e18 - 1));
+        vault.updateTargetDR(
+            1_027_500_000_000_000_000,
+            ITargetUsdVaultPhase5A.Range({lower: 1_022_000_000_000_000_000, upper: 1_033_000_000_000_000_000})
+        );
+
+        usd.mint(address(this), 10_001);
+        usd.approve(address(vault), 10_001);
+        vault.initDeposit(10_001);
+        deal(CBBTC, address(dex), 1_000_000);
+
+        uint256 sessionStart = ((block.timestamp - 21_600) / 28_800) * 28_800 + 21_600;
+        context = SyntheticContext({
+            vault: vault,
+            usd: usd,
+            usdOracle: usdOracle,
+            dex: dex,
+            underlyingOracle: ITargetControllerPhase5A(CONTROLLER).underlyingOracle(),
+            targetPrice: targetPrice,
+            timestamp: sessionStart + 3_600
+        });
+    }
+
+    function _probeGuard(SyntheticContext memory context, uint256 usdPrice, uint256 referencePrice, uint256 feePerc)
+        private
+        returns (bool ok, bytes memory result)
+    {
+        uint256 snapshotId = vm.snapshotState();
+        context.usdOracle.setPrice(usdPrice);
+        vm.mockCall(
+            context.underlyingOracle,
+            abi.encodeWithSelector(ITargetPriceOraclePhase5A.getValidPrice.selector),
+            abi.encode(context.targetPrice)
+        );
+        vm.mockCall(context.underlyingOracle, abi.encodeWithSignature("cachePrice()"), abi.encode(context.targetPrice));
+        vm.mockCall(
+            address(context.dex),
+            abi.encodeWithSelector(Phase5AFunctionalDex.referencePrice.selector, CBBTC, address(context.usd)),
+            abi.encode(referencePrice)
+        );
+        vm.mockCall(
+            CONTROLLER,
+            abi.encodeWithSelector(bytes4(keccak256("flashMint2(uint256,uint256,uint256,uint256)"))),
+            abi.encode(uint256(12), uint256(0), feePerc, uint256(0), uint256(0), uint256(0))
+        );
+        vm.warp(context.timestamp);
+        (ok, result) = address(context.vault).call(abi.encodeCall(context.vault.rebalance, ()));
+        assertTrue(vm.revertToState(snapshotId));
+        vm.clearMockedCalls();
+    }
+
+    function _deploySyntheticRedeemContext() private returns (SyntheticRedeemContext memory context) {
+        vm.createSelectFork(vm.envString("BASE_RPC_URL"), REDEEM_TX);
+        uint256 targetPrice = 77_368_295_716_660_000_000_000;
+        MockERC20 usd = new MockERC20("Phase5B Redeem USD", "P5BRUSD", 6);
+        MockERC20 perp = new MockERC20("Phase5B Redeem Perp", "P5BRPERP", 8);
+        MockERC20 underlying = new MockERC20("Phase5B Redeem Underlying", "P5BRUND", 8);
+        MockPriceOracle usdOracle = new MockPriceOracle(1e18);
+        MockPriceOracle underlyingOracle = new MockPriceOracle(targetPrice);
+        Phase5AFunctionalDex dex =
+            new Phase5AFunctionalDex(address(usd), address(underlying), targetPrice, type(uint256).max);
+
+        _mockSyntheticControllerTokens(perp, underlying, underlyingOracle);
+        bytes memory initData = abi.encodeWithSignature(
+            "init(string,string,address,address,address)",
+            "Phase5B Redeem Guards",
+            "P5B-R-GUARD",
+            address(usd),
+            CONTROLLER,
+            address(dex)
+        );
+        ITargetUsdVaultPhase5A vault = ITargetUsdVaultPhase5A(address(new ERC1967Proxy(VAULT_IMPLEMENTATION, initData)));
+        assertEq(vault.perpSr(), address(perp));
+        assertEq(vault.underlying(), address(underlying));
+        vault.updateHealthCheckParams(address(usdOracle), 5e15, 5e16);
+        vault.updateOpLimits(0, 5e15, 5e15);
+        vault.updateSessionParams(28_800, 21_600, 3_600, uint64(1e18 - 1));
+        vault.updateSwapper(address(this), true);
+        vault.updateTargetDR(
+            1_027_500_000_000_000_000,
+            ITargetUsdVaultPhase5A.Range({lower: 1_022_000_000_000_000_000, upper: 1_033_000_000_000_000_000})
+        );
+
+        usd.mint(address(this), 10_001);
+        usd.approve(address(vault), 10_001);
+        vault.initDeposit(10_001);
+        usd.mint(address(this), 1_000_000_000);
+        usd.approve(address(vault), type(uint256).max);
+        perp.mint(address(vault), 10_000_000_000_000);
+        underlying.mint(address(vault), 1_000_000);
+        usd.mint(address(dex), 1_000_000_000);
+
+        context = SyntheticRedeemContext({
+            vault: vault,
+            usd: usd,
+            perp: perp,
+            underlying: underlying,
+            usdOracle: usdOracle,
+            underlyingOracle: underlyingOracle,
+            dex: dex,
+            targetPrice: targetPrice,
+            timestamp: block.timestamp
+        });
+    }
+
+    function _assertSwapGuard(
+        string memory label,
+        SyntheticRedeemContext memory context,
+        uint256 usdPrice,
+        uint256 referencePrice,
+        uint256 feePerc,
+        bool expectedOk,
+        string memory expectedReason
+    ) private {
+        uint256 snapshotId = vm.snapshotState();
+        context.usdOracle.setPrice(usdPrice);
+        _mockSyntheticControllerTokens(context.perp, context.underlying, context.underlyingOracle);
+        vm.mockCall(
+            address(context.dex),
+            abi.encodeWithSelector(
+                Phase5AFunctionalDex.referencePrice.selector, address(context.underlying), address(context.usd)
+            ),
+            abi.encode(referencePrice)
+        );
+        vm.mockCall(
+            CONTROLLER,
+            abi.encodeWithSelector(bytes4(keccak256("flashRedeem2(uint256,uint256,uint256)"))),
+            abi.encode(uint256(1_000), feePerc, uint256(0), uint256(0), uint256(0))
+        );
+        vm.warp(context.timestamp);
+        (bool ok, bytes memory result) = address(context.vault)
+            .call(
+                abi.encodeCall(
+                    context.vault.swap, (address(context.usd), address(context.underlying), uint256(1_000), uint256(1))
+                )
+            );
+        _logGuardResult(label, ok, result);
+        assertEq(ok, expectedOk);
+        if (expectedOk) {
+            assertEq(result.length, 0);
+        } else {
+            assertEq(_selector(result), bytes4(keccak256("OpUnavailable(string)")));
+            assertEq(abi.decode(_sliceAfterSelector(result), (string)), expectedReason);
+        }
+        assertTrue(vm.revertToState(snapshotId));
+        vm.clearMockedCalls();
+    }
+
+    function _probeRedeemFee(SyntheticRedeemContext memory context, uint256 feePerc)
+        private
+        returns (bool ok, bytes memory result)
+    {
+        uint256 snapshotId = vm.snapshotState();
+        _mockSyntheticControllerTokens(context.perp, context.underlying, context.underlyingOracle);
+        vm.mockCall(
+            CONTROLLER,
+            abi.encodeWithSelector(bytes4(keccak256("flashRedeem2(uint256,uint256,uint256)"))),
+            abi.encode(uint256(1_000), feePerc, uint256(0), uint256(0), uint256(0))
+        );
+        vm.warp(context.timestamp);
+        (ok, result) = address(context.vault).call(abi.encodeCall(context.vault.rebalance, ()));
+        assertTrue(vm.revertToState(snapshotId));
+        vm.clearMockedCalls();
+    }
+
+    function _mockSyntheticControllerTokens(MockERC20 perp, MockERC20 underlying, MockPriceOracle underlyingOracle)
+        private
+    {
+        bytes memory reserveDataCall = abi.encodeWithSignature("reserveData()");
+        (bool reserveDataOk, bytes memory reserveDataResult) = PERP_SR.staticcall(reserveDataCall);
+        assertTrue(reserveDataOk);
+        vm.mockCall(address(perp), reserveDataCall, reserveDataResult);
+        vm.mockCall(CONTROLLER, abi.encodeWithSignature("perpSr()"), abi.encode(address(perp)));
+        vm.mockCall(CONTROLLER, abi.encodeWithSignature("underlying()"), abi.encode(address(underlying)));
+        vm.mockCall(
+            CONTROLLER,
+            abi.encodeWithSelector(ITargetControllerPhase5A.underlyingOracle.selector),
+            abi.encode(address(underlyingOracle))
+        );
+    }
+
+    function _logGuardResult(string memory label, bool ok, bytes memory result) private pure {
+        console2.log(label);
+        console2.log("ok", ok);
+        console2.log("selector");
+        console2.logBytes4(_selector(result));
+        if (!ok && result.length >= 100 && _selector(result) == bytes4(keccak256("OpUnavailable(string)"))) {
+            console2.log("reason", abi.decode(_sliceAfterSelector(result), (string)));
+        }
+    }
+
+    function _probeAndAssert(
+        string memory label,
+        SyntheticContext memory context,
+        uint256 usdPrice,
+        uint256 referencePrice,
+        uint256 feePerc,
+        bool expectedOk,
+        string memory expectedReason
+    ) private {
+        (bool ok, bytes memory result) = _probeGuard(context, usdPrice, referencePrice, feePerc);
+        _logGuardResult(label, ok, result);
+        assertEq(ok, expectedOk);
+        if (expectedOk) {
+            assertEq(result.length, 0);
+            return;
+        }
+        assertEq(_selector(result), bytes4(keccak256("OpUnavailable(string)")));
+        assertEq(abi.decode(_sliceAfterSelector(result), (string)), expectedReason);
     }
 
     function _assertVersionAndRoles() private view {
@@ -396,6 +697,10 @@ contract UsdVaultPhase5ARealRebalanceProbe is Test {
         assertEq(vault.owner(), 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d);
         assertEq(vault.keeper(), 0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d);
         assertEq(vault.activeRebalanceDelaySec(), 3_600);
+        assertEq(vault.maxUsdDeviationPerc(), 5e15);
+        assertEq(vault.maxUnderlyingDeviationPerc(), 5e16);
+        assertEq(vault.maxFlashMintFeePerc(), 5e15);
+        assertEq(vault.maxFlashRedeemFeePerc(), 5e15);
         console2.log("vault owner", vault.owner());
         console2.log("vault keeper", vault.keeper());
         console2.log("inventory is swapper", vault.isSwapper(INVENTORY));

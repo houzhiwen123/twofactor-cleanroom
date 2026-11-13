@@ -18,8 +18,9 @@ not for mainnet use.
 - `src/policy/PerpBalancer.sol`: underlying-first rebalance plan, then tranche withdrawals ordered
   by time to maturity.
 - `src/vault/UsdVault.sol`: clean-room USD Senior Vault core with exact paired mint quotes,
-  USDC/Perp SR deposits, pro-rata exits and the target-observed session-capacity preview/state reuse.
-  Rebalance execution remains pending.
+  USDC/Perp SR deposits, pro-rata exits, target-observed session capacity, authorized inventory
+  swaps and a permissionless delayed direct-rebalance fallback. Target-unconfirmed external
+  settlement remains outside the Vault.
 - `test/ref/`: independent integer settlement and rebalance models.
 - `test/mocks/`: 8-decimal ERC-20, mutable Chainlink/sequencer feeds, and a settable price oracle.
 
@@ -101,4 +102,18 @@ preflight remained deferred. Phase 3 is recorded in
 [`evidence/USD_VAULT_PHASE3_SESSION_CAPACITY.md`](evidence/USD_VAULT_PHASE3_SESSION_CAPACITY.md); it
 adds the active/inactive session state machine, exact expiry and DR-equality boundaries, and target
 evidence that deposits neither enforce nor consume the rebalance session minimum/direction/budget.
-Rebalance execution, DEX/oracle health checks and keeper/admin/pause behavior remain deferred.
+At that checkpoint, rebalance execution, DEX/oracle health checks and keeper/admin/pause behavior
+were still deferred.
+
+Phase 4 freezes the target capacity formulas, inclusive DR deadband, minimum-size guards, budget
+clipping and post-success session commit in
+[`evidence/USD_VAULT_PHASE4_REBALANCE_CAPACITY.md`](evidence/USD_VAULT_PHASE4_REBALANCE_CAPACITY.md).
+Phase 5A records two natural inventory transactions, exact transfer/event order, the direct-delay
+boundary and dependency-failure rollback in
+[`evidence/USD_VAULT_PHASE5A_REAL_REBALANCE.md`](evidence/USD_VAULT_PHASE5A_REAL_REBALANCE.md).
+Phase 5B implements those execution seams and is verified in
+[`evidence/USD_VAULT_PHASE5B_REBALANCE_EXECUTION.md`](evidence/USD_VAULT_PHASE5B_REBALANCE_EXECUTION.md).
+It also locks the target's inclusive USD-peg, Oracle/DEX-deviation and mint/redeem flash-fee
+boundaries with synthetic target-fork probes and matching local atomic-rollback regressions.
+The target-unconfirmed state-changing `upkeep` branch, target initializer/admin/pause controls and
+the external inventory/DEX settlement component remain deferred rather than inferred.

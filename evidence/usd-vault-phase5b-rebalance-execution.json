@@ -1,0 +1,82 @@
+{
+  "schema": "twofactor-cleanroom.usd-vault-phase5b.v2",
+  "baseline_commit": "34f97f1ab1bf340b83f240c98cca5fa450415f70",
+  "classification": {
+    "inventory_vectors": "TARGET_CONFIRMED_AND_LOCAL_VAULT_LEG",
+    "direct_success_paths": "LOCAL_CLEANROOM",
+    "stateful_upkeep": "UNKNOWN_NOT_IMPLEMENTED",
+    "external_settlement": "OUTSIDE_VAULT_NOT_IMPLEMENTED"
+  },
+  "target_phase5a": {
+    "fork_tests_passed": 6,
+    "fork_tests_failed": 0,
+    "chain_id": 8453,
+    "vault_proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+    "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+    "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4"
+  },
+  "target_phase5b_synthetic": {
+    "classification": "SYNTHETIC_FORK_TARGET_CONFIRMED",
+    "tests_passed": 3,
+    "tests_failed": 0,
+    "max_usd_deviation_perc": "5000000000000000",
+    "max_underlying_deviation_perc": "50000000000000000",
+    "max_flash_mint_fee_perc": "5000000000000000",
+    "max_flash_redeem_fee_perc": "5000000000000000",
+    "usd_boundary": "INCLUSIVE",
+    "underlying_boundary": "INCLUSIVE",
+    "flash_fee_boundary": "INCLUSIVE",
+    "authorized_swap_uses_same_guards": true,
+    "usd_error": "OpUnavailable(usd peg)",
+    "underlying_error": "OpUnavailable(oracle divergence)",
+    "flash_fee_error": "OpUnavailable(flash fee)"
+  },
+  "inventory_mint": {
+    "underlying_in": "4316589",
+    "controller_gross_perp_sr": "332778700917",
+    "controller_net_perp_sr": "331220012568",
+    "controller_fee_perp_sr": "1558688349",
+    "usd_out": "3390111185",
+    "rebalance_usd_value": "3390111185000000000000",
+    "budget_before": "33016963790403425541687",
+    "budget_after": "29626852605403425541687",
+    "match": true
+  },
+  "inventory_redeem": {
+    "usd_in": "731851567",
+    "controller_perp_sr_burn": "73659360073",
+    "controller_gross_underlying": "960289",
+    "underlying_out": "955487",
+    "underlying_retained": "4802",
+    "rebalance_usd_value": "742959233254557147400",
+    "budget_before": "33016915546003499111958",
+    "budget_after": "32273956312748941964558",
+    "match": true
+  },
+  "boundaries": {
+    "unauthorized_swap_selector": "0x7bf6a16f",
+    "active_delay_seconds": 3600,
+    "delay_minus_one": "OpUnavailable(active delayed)",
+    "delay_exact": "GATE_PASSED",
+    "delay_plus_one": "GATE_PASSED"
+  },
+  "atomic_failures": [
+    "UNDERLYING_ORACLE_CACHE",
+    "DEX_TRADE_AFTER_INPUT_TRANSFER",
+    "CONTROLLER_STATE_QUERY",
+    "CONTROLLER_EXECUTION_AFTER_DEX_TRANSFER",
+    "UNDERLYING_ORACLE_RESET_AFTER_SESSION_COMMIT"
+  ],
+  "verification": {
+    "focused_local_passed": 18,
+    "focused_local_failed": 0,
+    "full_local_passed": 169,
+    "full_local_failed": 0,
+    "controller_runtime_bytes": 22475,
+    "usd_vault_runtime_bytes": 15763,
+    "controller_storage_unchanged": true,
+    "usd_vault_frozen_prefix_unchanged": true,
+    "format_check_passed": true,
+    "diff_check_passed": true
+  }
+}
