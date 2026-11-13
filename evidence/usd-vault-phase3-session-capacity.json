@@ -16,10 +16,12 @@
   },
   "state_machine": {
     "active_condition": "stored_session_opened_at == current_window_opened_at",
-    "inactive_direction": "controller_sub_dr > target_dr",
-    "dr_equality_is_minting": false,
+    "inactive_direction": "stored_session_is_minting_perp",
+    "current_rebalance_direction": "rebalance_capacity_current_dr > target_dr",
+    "rebalance_dr_equality_is_minting": false,
     "inactive_budget": "floor(get_tvl * max_deployment_velocity_perc / 1e18)",
-    "expiry_equality_is_active": false
+    "expiry_equality_is_active": false,
+    "correction_evidence": "phase4 fresh implementation proxy distinguished stored inactive direction from current rebalance direction"
   },
   "vectors": [
     {

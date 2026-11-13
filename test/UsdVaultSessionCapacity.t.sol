@@ -58,6 +58,7 @@ contract UsdVaultSessionCapacityTest is Test {
 
     function testInactivePreviewMatchesTargetVectorExactly() public {
         Env memory env = _deploy();
+        env.vault.setSessionState(true, 0, 0);
         env.controller.setSystemDeviations(TARGET_SUB_DR, TARGET_VM_DR);
         vm.warp(TARGET_WINDOW_OPEN);
 
@@ -70,21 +71,22 @@ contract UsdVaultSessionCapacityTest is Test {
         assertEq(budget, env.vault.getTVL() * env.vault.maxDeploymentVelocityPerc() / WAD);
     }
 
-    function testInactiveDirectionUsesStrictGreaterThanTargetDr() public {
+    function testInactivePreviewKeepsStoredDirectionWhileCapacityUsesCurrentDr() public {
         Env memory env = _deploy();
         vm.warp(TARGET_WINDOW_OPEN);
 
-        env.controller.setSystemDeviations(TARGET_DR - 1, TARGET_VM_DR);
-        (, bool below,,) = env.vault.sessionCapacity();
-        assertFalse(below);
-
-        env.controller.setSystemDeviations(TARGET_DR, TARGET_VM_DR);
-        (, bool equal,,) = env.vault.sessionCapacity();
-        assertFalse(equal);
-
         env.controller.setSystemDeviations(TARGET_DR + 1, TARGET_VM_DR);
-        (, bool above,,) = env.vault.sessionCapacity();
-        assertTrue(above);
+        (, bool storedDirection,,) = env.vault.sessionCapacity();
+        (,, bool currentDirection,,) = env.vault.rebalanceCapacity();
+        assertFalse(storedDirection);
+        assertTrue(currentDirection);
+
+        env.vault.setSessionState(true, 0, 0);
+        env.controller.setSystemDeviations(TARGET_DR - 1, TARGET_VM_DR);
+        (, storedDirection,,) = env.vault.sessionCapacity();
+        (,, currentDirection,,) = env.vault.rebalanceCapacity();
+        assertTrue(storedDirection);
+        assertFalse(currentDirection);
     }
 
     function testActiveSessionReusesStoredStateUntilButNotAtExpiry() public {
@@ -106,7 +108,7 @@ contract UsdVaultSessionCapacityTest is Test {
         vm.warp(expiry);
         (bool atActive, bool atDirection, uint256 atBudget, uint256 atOpenedAt) = env.vault.sessionCapacity();
         assertFalse(atActive);
-        assertTrue(atDirection);
+        assertFalse(atDirection);
         assertEq(atBudget, TARGET_PREVIEW_BUDGET);
         assertEq(atOpenedAt, expiry);
         _assertStoredSession(env.vault, false, storedBudget, openedAt);
@@ -115,7 +117,7 @@ contract UsdVaultSessionCapacityTest is Test {
         (bool afterActive, bool afterDirection, uint256 afterBudget, uint256 afterOpenedAt) =
             env.vault.sessionCapacity();
         assertFalse(afterActive);
-        assertTrue(afterDirection);
+        assertFalse(afterDirection);
         assertEq(afterBudget, atBudget);
         assertEq(afterOpenedAt, expiry);
         _assertStoredSession(env.vault, false, storedBudget, openedAt);

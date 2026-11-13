@@ -6,6 +6,22 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Evidence-backed mint/deposit and exit surface for the clean-room USD Senior Vault.
 /// @dev Includes the target-observed session-capacity view; rebalance execution remains deferred.
 interface IUsdVault is IERC20 {
+    struct ReserveState {
+        uint256 totalSupply;
+        uint256 reserveValue;
+        uint256 vm;
+    }
+
+    struct SystemState {
+        ReserveState perpSr;
+        ReserveState perpJr;
+    }
+
+    struct Range {
+        uint96 lower;
+        uint96 upper;
+    }
+
     event Deposit(uint256 usdAmtIn, uint256 perpSrAmtIn, uint256 notesMinted);
     event Redeem(uint256 notesAmt, uint256 usdAmtOut, uint256 perpSrAmtOut);
 
@@ -48,4 +64,21 @@ interface IUsdVault is IERC20 {
     function maxDeploymentVelocityPerc() external view returns (uint64);
 
     function targetDR() external view returns (uint96);
+
+    function eqDRRange() external view returns (Range memory);
+
+    function minOpUsdVal() external view returns (uint128);
+
+    function activeRebalanceDelaySec() external view returns (uint32);
+
+    function rebalanceCapacity()
+        external
+        view
+        returns (
+            uint256 maxRebalanceUnderlying,
+            uint256 underlyingPrice,
+            bool isMintingPerp,
+            uint256 currentDR,
+            SystemState memory state
+        );
 }

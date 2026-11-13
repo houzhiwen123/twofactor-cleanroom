@@ -48,12 +48,12 @@ The session is active only when the stored `sessionOpenedAtSec` equals `windowOp
 When active, `sessionCapacity()` returns the three stored fields unchanged. When inactive, it previews:
 
 ```text
-sessionIsMintingPerp = controller.subDR > targetDR
+sessionIsMintingPerp = stored sessionIsMintingPerp
 sessionBudgetUsdVal  = floor(getTVL() * maxDeploymentVelocityPerc / 1e18)
 sessionOpenedAtSec   = windowOpenedAt
 ```
 
-The strict comparison was closed with a fresh local proxy pointing at the version-locked public implementation: `subDR == targetDR` returns `isMintingPerp = false`.
+Phase 4's fresh-proxy discriminator corrected the earlier direction interpretation: an inactive preview preserves the last stored direction; it does not recompute direction from the current DR. The current rebalance direction is returned separately by `rebalanceCapacity()` and uses `subDR > targetDR`; exact equality returns `false`. Historical inactive rows had happened to have a stored direction equal to the current required direction, so they did not distinguish these rules.
 
 ### Historical vectors
 
@@ -93,7 +93,8 @@ Because no target deposit capacity boundary exists, “budget exactly” and “
 
 - Phase 1/2 storage slots `0`–`3` remain unchanged.
 - Phase 3 appends packed session state/config in slots `4` and `5`.
-- `sessionCapacity()` matches active reuse, inactive preview, strict direction comparison and exact time equality behavior.
+- `sessionCapacity()` matches active reuse, inactive budget/time preview, stored-direction reporting and exact time equality behavior.
+- `rebalanceCapacity()` (Phase 4) owns the strict current-direction comparison; session direction is updated only after successful future asset execution.
 - Target snapshot defaults are initialized by the explicitly local scaffolding initializer.
 - The production contract exposes no external session mutator; the internal hook is reserved for the future evidence-backed rebalance phase.
 - `deposit()` is unchanged because target probes show it neither checks nor consumes the session budget.

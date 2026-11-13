@@ -30,6 +30,8 @@ interface IUsdVaultController {
     function systemDeviations() external view returns (uint256 subDR, uint256 vmDR);
 
     function underlyingOracle() external view returns (address);
+
+    function targetSystemRatio() external view returns (uint256);
 }
 
 /// @notice Clean-room implementation of the evidence-backed USD Vault mint/deposit and exit paths.
@@ -38,6 +40,8 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     using SafeERC20 for IERC20;
 
     error InvalidParamDefn();
+    error NoOp();
+    error OpUnavailable(string reason);
 
     uint256 private constant WAD = 1e18;
     uint256 private constant USD_UNIT = 1e6;
@@ -46,6 +50,10 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     uint32 private constant DEFAULT_REBALANCE_OFFSET_SEC = 21_600;
     uint64 private constant DEFAULT_MAX_DEPLOYMENT_VELOCITY_PERC = 330_000_000_000_000_000;
     uint96 private constant DEFAULT_TARGET_DR = 1_027_500_000_000_000_000;
+    uint96 private constant DEFAULT_EQ_DR_LOWER = 1_022_000_000_000_000_000;
+    uint96 private constant DEFAULT_EQ_DR_UPPER = 1_033_000_000_000_000_000;
+    uint128 private constant DEFAULT_MIN_OP_USD_VAL = 50e18;
+    uint32 private constant DEFAULT_ACTIVE_REBALANCE_DELAY_SEC = 3_600;
 
     IERC20 private _usdToken;
     IERC20 private _perpSrToken;
@@ -58,6 +66,21 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     uint32 internal _rebalanceOffsetSec;
     uint64 internal _maxDeploymentVelocityPerc;
     uint96 internal _targetDR;
+    uint128 internal _minOpUsdVal;
+    uint96 internal _eqDRLower;
+    uint32 internal _activeRebalanceDelaySec;
+    uint96 internal _eqDRUpper;
+
+    struct RebalancePlan {
+        uint256 maxRebalanceUnderlying;
+        uint256 underlyingPrice;
+        uint256 rebalanceUsdVal;
+        bool isMintingPerp;
+        uint256 currentDR;
+        bool sessionActive;
+        uint256 sessionBudgetUsdVal;
+        uint256 sessionOpenedAtSec;
+    }
 
     constructor() {
         _disableInitializers();
@@ -87,6 +110,10 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         _rebalanceOffsetSec = DEFAULT_REBALANCE_OFFSET_SEC;
         _maxDeploymentVelocityPerc = DEFAULT_MAX_DEPLOYMENT_VELOCITY_PERC;
         _targetDR = DEFAULT_TARGET_DR;
+        _minOpUsdVal = DEFAULT_MIN_OP_USD_VAL;
+        _eqDRLower = DEFAULT_EQ_DR_LOWER;
+        _eqDRUpper = DEFAULT_EQ_DR_UPPER;
+        _activeRebalanceDelaySec = DEFAULT_ACTIVE_REBALANCE_DELAY_SEC;
     }
 
     function usdBalance() public view returns (uint256) {
@@ -133,8 +160,28 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         return _targetDR;
     }
 
+    function eqDRRange() external view returns (IUsdVault.Range memory) {
+        return IUsdVault.Range({lower: _eqDRLower, upper: _eqDRUpper});
+    }
+
+    function minOpUsdVal() external view returns (uint128) {
+        return _minOpUsdVal;
+    }
+
+    function activeRebalanceDelaySec() external view returns (uint32) {
+        return _activeRebalanceDelaySec;
+    }
+
     function sessionCapacity()
         external
+        view
+        returns (bool active, bool sessionIsMintingPerp_, uint256 sessionBudgetUsdVal_, uint256 sessionOpenedAtSec_)
+    {
+        return _sessionCapacity();
+    }
+
+    function _sessionCapacity()
+        internal
         view
         returns (bool active, bool sessionIsMintingPerp_, uint256 sessionBudgetUsdVal_, uint256 sessionOpenedAtSec_)
     {
@@ -145,9 +192,93 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
             return (true, _sessionIsMintingPerp, _sessionBudgetUsdVal, _sessionOpenedAtSec);
         }
 
-        (uint256 subDR,) = IUsdVaultController(_perpController).systemDeviations();
-        sessionIsMintingPerp_ = subDR > _targetDR;
+        // An inactive preview keeps the last persisted direction. The current
+        // required direction belongs to rebalanceCapacity(); it is committed
+        // here only after a successful rebalance execution.
+        sessionIsMintingPerp_ = _sessionIsMintingPerp;
         sessionBudgetUsdVal_ = Math.mulDiv(getTVL(), _maxDeploymentVelocityPerc, WAD);
+    }
+
+    function rebalanceCapacity()
+        public
+        view
+        returns (
+            uint256 maxRebalanceUnderlying,
+            uint256 underlyingPrice,
+            bool isMintingPerp,
+            uint256 currentDR,
+            IUsdVault.SystemState memory state
+        )
+    {
+        IUsdVaultController.SystemState memory controllerState =
+            IUsdVaultController(_perpController).systemReserveState();
+        state.perpSr = IUsdVault.ReserveState({
+            totalSupply: controllerState.perpSr.totalSupply,
+            reserveValue: controllerState.perpSr.reserveValue,
+            vm: controllerState.perpSr.vm
+        });
+        state.perpJr = IUsdVault.ReserveState({
+            totalSupply: controllerState.perpJr.totalSupply,
+            reserveValue: controllerState.perpJr.reserveValue,
+            vm: controllerState.perpJr.vm
+        });
+        underlyingPrice = IUsdVaultPriceOracle(IUsdVaultController(_perpController).underlyingOracle()).getValidPrice();
+        (currentDR,) = IUsdVaultController(_perpController).systemDeviations();
+        isMintingPerp = currentDR > _targetDR;
+
+        if (currentDR >= _eqDRLower && currentDR <= _eqDRUpper) {
+            return (0, underlyingPrice, isMintingPerp, currentDR, state);
+        }
+
+        uint256 targetSystemRatio_ = IUsdVaultController(_perpController).targetSystemRatio();
+        if (targetSystemRatio_ == 0 || _targetDR == 0) return (0, underlyingPrice, isMintingPerp, currentDR, state);
+        uint256 denominator = targetSystemRatio_ * uint256(_targetDR);
+        uint256 targetSrReserve;
+
+        if (isMintingPerp) {
+            targetSrReserve = Math.mulDiv(state.perpJr.reserveValue, WAD * WAD, denominator);
+            uint256 systemCapacity =
+                targetSrReserve > state.perpSr.reserveValue ? targetSrReserve - state.perpSr.reserveValue : 0;
+            uint256 usdValue = Math.mulDiv(usdBalance(), WAD, USD_UNIT);
+            uint256 assetCapacity = underlyingPrice == 0 ? 0 : Math.mulDiv(usdValue, UNDERLYING_UNIT, underlyingPrice);
+            maxRebalanceUnderlying = Math.min(systemCapacity, assetCapacity);
+        } else {
+            targetSrReserve = Math.mulDiv(state.perpJr.reserveValue, WAD * WAD, denominator, Math.Rounding.Ceil);
+            uint256 systemCapacity =
+                state.perpSr.reserveValue > targetSrReserve ? state.perpSr.reserveValue - targetSrReserve : 0;
+            uint256 assetCapacity = state.perpSr.totalSupply == 0
+                ? 0
+                : Math.mulDiv(perpSrBalance(), state.perpSr.reserveValue, state.perpSr.totalSupply);
+            maxRebalanceUnderlying = Math.min(systemCapacity, assetCapacity);
+        }
+    }
+
+    /// @dev Planning-only guard surface. Asset movement remains deferred. The
+    ///      returned plan is committed only after a future executor succeeds.
+    function _validatedRebalancePlan() internal view returns (RebalancePlan memory plan) {
+        (plan.maxRebalanceUnderlying, plan.underlyingPrice, plan.isMintingPerp, plan.currentDR,) = rebalanceCapacity();
+        if (plan.maxRebalanceUnderlying == 0) revert NoOp();
+
+        bool sessionDirection;
+        (plan.sessionActive, sessionDirection, plan.sessionBudgetUsdVal, plan.sessionOpenedAtSec) = _sessionCapacity();
+        if (plan.sessionActive && sessionDirection != plan.isMintingPerp) revert OpUnavailable("direction");
+
+        uint256 sessionCapacityUnderlying = plan.underlyingPrice == 0
+            ? 0
+            : Math.mulDiv(plan.sessionBudgetUsdVal, UNDERLYING_UNIT, plan.underlyingPrice);
+        plan.maxRebalanceUnderlying = Math.min(plan.maxRebalanceUnderlying, sessionCapacityUnderlying);
+        if (plan.maxRebalanceUnderlying == 0) revert OpUnavailable("no capacity");
+        plan.rebalanceUsdVal = Math.mulDiv(plan.maxRebalanceUnderlying, plan.underlyingPrice, UNDERLYING_UNIT);
+        if (plan.rebalanceUsdVal < _minOpUsdVal) revert OpUnavailable("min size");
+    }
+
+    /// @dev Must be called only as the last state-changing step after future
+    ///      rebalance asset execution has succeeded atomically.
+    function _commitRebalanceSession(RebalancePlan memory plan, uint256 consumedUsdVal) internal {
+        if (consumedUsdVal > plan.sessionBudgetUsdVal) revert OpUnavailable("capacity");
+        _setSessionState(
+            plan.isMintingPerp, uint128(plan.sessionBudgetUsdVal - consumedUsdVal), uint64(plan.sessionOpenedAtSec)
+        );
     }
 
     function getTVL() public view returns (uint256) {

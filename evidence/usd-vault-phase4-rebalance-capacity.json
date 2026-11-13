@@ -1,0 +1,152 @@
+{
+  "schema": "twofactor-cleanroom.usd-vault-phase4.v1",
+  "baseline_commit": "c466a7cfa9c30e49d69b651d2cf4a06d6a024317",
+  "chain_id": 8453,
+  "vault_proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+  "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+  "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+  "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+  "dex_strategy": "0xE0fC0566ADCD6b83149874619A1FAFdF3345144f",
+  "configuration": {
+    "target_dr": "1027500000000000000",
+    "eq_dr_lower": "1022000000000000000",
+    "eq_dr_upper": "1033000000000000000",
+    "min_op_usd_val": "50000000000000000000",
+    "max_deployment_velocity_perc": "330000000000000000",
+    "rebalance_freq_sec": 28800,
+    "rebalance_offset_sec": 21600,
+    "active_rebalance_delay_sec": 3600,
+    "target_system_ratio": "2847475019000000000"
+  },
+  "formula": {
+    "direction": "current_sub_dr > target_dr",
+    "deadband": "eq_dr_lower <= current_sub_dr <= eq_dr_upper",
+    "target_sr_floor": "floor(jr_reserve_value * 1e36 / (target_system_ratio * target_dr))",
+    "target_sr_ceil": "ceil(jr_reserve_value * 1e36 / (target_system_ratio * target_dr))",
+    "mint_system_capacity": "max(target_sr_floor - sr_reserve_value, 0)",
+    "redeem_system_capacity": "max(sr_reserve_value - target_sr_ceil, 0)",
+    "session_underlying_capacity": "floor(session_budget_usd_val * 1e8 / underlying_price)",
+    "executable_capacity": "min(raw_capacity, session_underlying_capacity)"
+  },
+  "golden_vectors": [
+    {
+      "block": 53526143,
+      "direction": "MINT_PERP",
+      "capacity_underlying": "4651",
+      "underlying_price": "80248101897110000000000",
+      "current_dr": "1052430305854682822",
+      "limiter": "VAULT_USD_BALANCE"
+    },
+    {
+      "block": 53490000,
+      "direction": "MINT_PERP",
+      "capacity_underlying": "3422518",
+      "current_dr": "1055663647561289239",
+      "limiter": "SYSTEM_CORRECTION"
+    },
+    {
+      "block": 53480533,
+      "direction": "REDEEM_PERP",
+      "capacity_underlying": "960289",
+      "current_dr": "1019867585526484997"
+    },
+    {
+      "block": 53492000,
+      "direction": "NO_OP_DEADBAND",
+      "capacity_underlying": "0",
+      "current_dr": "1026428101402202294"
+    }
+  ],
+  "guards": [
+    {
+      "block": 53492000,
+      "selector": "NoOp()",
+      "reason": "raw capacity is zero"
+    },
+    {
+      "block": 53490000,
+      "selector": "OpUnavailable(string)",
+      "argument": "direction"
+    },
+    {
+      "block": 53526143,
+      "selector": "OpUnavailable(string)",
+      "argument": "min size"
+    },
+    {
+      "construction": "fresh target implementation proxy with zero executable session budget",
+      "selector": "OpUnavailable(string)",
+      "argument": "no capacity"
+    }
+  ],
+  "budget_boundary": {
+    "raw_capacity_underlying": "12",
+    "exact_budget_usd_val": "9629772227653200",
+    "exact_sell_usd_base_units": "9629",
+    "one_wei_less_budget_usd_val": "9629772227653199",
+    "one_wei_less_sell_usd_base_units": "8827",
+    "one_wei_less_behavior": "CLIP_TO_11_UNDERLYING_UNITS_NOT_REVERT",
+    "zero_budget_behavior": "REVERT_OP_UNAVAILABLE_NO_CAPACITY"
+  },
+  "historical_session_transitions": [
+    {
+      "path": "NEW_REDEEM_SESSION",
+      "block": 53480534,
+      "transaction_index": 64,
+      "transaction_hash": "0xf49ebfa4f7833f8dec9ed901eb4edaddfaeed352e84362c6c687d52f17c7568e",
+      "pre_budget": "33016915546003499111958",
+      "rebalance_usd_val": "742959233254557147400",
+      "post_budget": "32273956312748941964558",
+      "opened_at_sec": 1793743200
+    },
+    {
+      "path": "ACTIVE_REDEEM_SESSION",
+      "pre_block": 53481733,
+      "post_block": 53481734,
+      "pre_budget": "32273956312748941964558",
+      "rebalance_usd_val": "843614249058466123200",
+      "post_budget": "31430342063690475841358",
+      "opened_at_sec": 1793743200
+    },
+    {
+      "path": "NEW_MINT_SESSION",
+      "block": 53491335,
+      "transaction_index": 117,
+      "transaction_hash": "0x4adb0572701aa84dabb661ad72d31617cf80a441f5696f69825b8a4ee5b80276",
+      "pre_budget": "33016963790403425541687",
+      "rebalance_usd_val": "3390111185000000000000",
+      "post_budget": "29626852605403425541687",
+      "opened_at_sec": 1793772000
+    }
+  ],
+  "phase3_correction": {
+    "inactive_session_direction": "LAST_STORED_DIRECTION",
+    "current_required_direction": "REBALANCE_CAPACITY_DIRECTION",
+    "commit_timing": "ONLY_AFTER_SUCCESSFUL_EXECUTION"
+  },
+  "local_implementation": [
+    "rebalanceCapacity view",
+    "internal validated plan",
+    "internal post-success session commit"
+  ],
+  "verification": {
+    "local_tests_passed": 151,
+    "target_fork_tests_passed": 6,
+    "focused_phase3_phase4_tests_passed": 20,
+    "controller_runtime_bytes": 22475,
+    "usd_vault_runtime_bytes": 8807,
+    "controller_storage_unchanged": true,
+    "usd_vault_slots_0_through_5_unchanged": true,
+    "format_check_passed": true,
+    "diff_check_passed": true
+  },
+  "not_implemented": [
+    "external rebalance",
+    "asset movement",
+    "controller state-changing calls",
+    "dex execution",
+    "oracle health checks",
+    "keeper admin pause",
+    "production initialization"
+  ]
+}

@@ -18,6 +18,10 @@ EXPECTED_STORAGE = [
     ("_rebalanceOffsetSec", "5", 0, "uint32"),
     ("_maxDeploymentVelocityPerc", "5", 4, "uint64"),
     ("_targetDR", "5", 12, "uint96"),
+    ("_minOpUsdVal", "6", 0, "uint128"),
+    ("_eqDRLower", "6", 16, "uint96"),
+    ("_activeRebalanceDelaySec", "6", 28, "uint32"),
+    ("_eqDRUpper", "7", 0, "uint96"),
 ]
 
 
@@ -40,7 +44,7 @@ def main() -> int:
         print(f"Actual:   {actual}", file=sys.stderr)
         return 1
 
-    print("UsdVault storage layout preserves phase 1/2 slots and appends phase-3 session state.")
+    print("UsdVault storage layout preserves slots 0-5 and appends phase-4 rebalance configuration.")
     return 0
 
 

@@ -14,6 +14,7 @@ contract MockUsdVaultController {
     }
 
     address public underlyingOracle;
+    uint256 public targetSystemRatio = 2_847_475_019_000_000_000;
     SystemState private _state;
     uint256 private _subDR;
     uint256 private _vmDR;
@@ -24,6 +25,10 @@ contract MockUsdVaultController {
 
     function setUnderlyingOracle(address underlyingOracle_) external {
         underlyingOracle = underlyingOracle_;
+    }
+
+    function setTargetSystemRatio(uint256 targetSystemRatio_) external {
+        targetSystemRatio = targetSystemRatio_;
     }
 
     function setPerpSrState(uint256 totalSupply, uint256 reserveValue, uint256 vm) external {
