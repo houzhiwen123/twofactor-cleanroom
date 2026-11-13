@@ -27,11 +27,13 @@ interface IUsdVaultController {
 
     function systemReserveState() external view returns (SystemState memory state);
 
+    function systemDeviations() external view returns (uint256 subDR, uint256 vmDR);
+
     function underlyingOracle() external view returns (address);
 }
 
 /// @notice Clean-room implementation of the evidence-backed USD Vault mint/deposit and exit paths.
-/// @dev Session, capacity, rebalance and the target initializer remain outside this phase.
+/// @dev Rebalance execution, keeper/admin controls, health checks and the target initializer remain outside this phase.
 contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable, IUsdVault {
     using SafeERC20 for IERC20;
 
@@ -40,11 +42,22 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     uint256 private constant WAD = 1e18;
     uint256 private constant USD_UNIT = 1e6;
     uint256 private constant UNDERLYING_UNIT = 1e8;
+    uint32 private constant DEFAULT_REBALANCE_FREQ_SEC = 28_800;
+    uint32 private constant DEFAULT_REBALANCE_OFFSET_SEC = 21_600;
+    uint64 private constant DEFAULT_MAX_DEPLOYMENT_VELOCITY_PERC = 330_000_000_000_000_000;
+    uint96 private constant DEFAULT_TARGET_DR = 1_027_500_000_000_000_000;
 
     IERC20 private _usdToken;
     IERC20 private _perpSrToken;
     IERC20 private _underlyingToken;
     address private _perpController;
+    uint128 internal _sessionBudgetUsdVal;
+    uint64 internal _sessionOpenedAtSec;
+    bool internal _sessionIsMintingPerp;
+    uint32 internal _rebalanceFreqSec;
+    uint32 internal _rebalanceOffsetSec;
+    uint64 internal _maxDeploymentVelocityPerc;
+    uint96 internal _targetDR;
 
     constructor() {
         _disableInitializers();
@@ -70,6 +83,10 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         _perpSrToken = IERC20(perpSrToken_);
         _underlyingToken = IERC20(underlyingToken_);
         _perpController = perpController_;
+        _rebalanceFreqSec = DEFAULT_REBALANCE_FREQ_SEC;
+        _rebalanceOffsetSec = DEFAULT_REBALANCE_OFFSET_SEC;
+        _maxDeploymentVelocityPerc = DEFAULT_MAX_DEPLOYMENT_VELOCITY_PERC;
+        _targetDR = DEFAULT_TARGET_DR;
     }
 
     function usdBalance() public view returns (uint256) {
@@ -86,6 +103,51 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
 
     function perpController() external view returns (address) {
         return _perpController;
+    }
+
+    function sessionBudgetUsdVal() external view returns (uint128) {
+        return _sessionBudgetUsdVal;
+    }
+
+    function sessionOpenedAtSec() external view returns (uint64) {
+        return _sessionOpenedAtSec;
+    }
+
+    function sessionIsMintingPerp() external view returns (bool) {
+        return _sessionIsMintingPerp;
+    }
+
+    function rebalanceFreqSec() external view returns (uint32) {
+        return _rebalanceFreqSec;
+    }
+
+    function rebalanceOffsetSec() external view returns (uint32) {
+        return _rebalanceOffsetSec;
+    }
+
+    function maxDeploymentVelocityPerc() external view returns (uint64) {
+        return _maxDeploymentVelocityPerc;
+    }
+
+    function targetDR() external view returns (uint96) {
+        return _targetDR;
+    }
+
+    function sessionCapacity()
+        external
+        view
+        returns (bool active, bool sessionIsMintingPerp_, uint256 sessionBudgetUsdVal_, uint256 sessionOpenedAtSec_)
+    {
+        sessionOpenedAtSec_ = ((block.timestamp - _rebalanceOffsetSec) / _rebalanceFreqSec) * _rebalanceFreqSec
+            + _rebalanceOffsetSec;
+        active = sessionOpenedAtSec_ == _sessionOpenedAtSec;
+        if (active) {
+            return (true, _sessionIsMintingPerp, _sessionBudgetUsdVal, _sessionOpenedAtSec);
+        }
+
+        (uint256 subDR,) = IUsdVaultController(_perpController).systemDeviations();
+        sessionIsMintingPerp_ = subDR > _targetDR;
+        sessionBudgetUsdVal_ = Math.mulDiv(getTVL(), _maxDeploymentVelocityPerc, WAD);
     }
 
     function getTVL() public view returns (uint256) {
@@ -159,5 +221,13 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     ///      reachable only from derived contracts, such as the local test harness.
     function _mintNotes(address to, uint256 amount) internal {
         _mint(to, amount);
+    }
+
+    /// @dev Reserved for the separately evidenced rebalance phase. The production
+    ///      contract has no external session mutator in this phase.
+    function _setSessionState(bool isMintingPerp, uint128 budgetUsdVal, uint64 openedAtSec) internal {
+        _sessionIsMintingPerp = isMintingPerp;
+        _sessionBudgetUsdVal = budgetUsdVal;
+        _sessionOpenedAtSec = openedAtSec;
     }
 }

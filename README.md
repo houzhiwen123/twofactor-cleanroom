@@ -18,7 +18,8 @@ not for mainnet use.
 - `src/policy/PerpBalancer.sol`: underlying-first rebalance plan, then tranche withdrawals ordered
   by time to maturity.
 - `src/vault/UsdVault.sol`: clean-room USD Senior Vault core with exact paired mint quotes,
-  USDC/Perp SR deposits and pro-rata exits. Session, capacity and rebalance behavior remain pending.
+  USDC/Perp SR deposits, pro-rata exits and the target-observed session-capacity preview/state reuse.
+  Rebalance execution remains pending.
 - `test/ref/`: independent integer settlement and rebalance models.
 - `test/mocks/`: 8-decimal ERC-20, mutable Chainlink/sequencer feeds, and a settable price oracle.
 
@@ -95,4 +96,9 @@ proxy initializer and defensive guards are identified separately as local clean-
 unobserved operating state machines are not implemented. Phase 2 is recorded in
 [`evidence/USD_VAULT_PHASE2_MINT_DEPOSIT.md`](evidence/USD_VAULT_PHASE2_MINT_DEPOSIT.md); it adds
 five exact historical mint vectors, the target's two-stage Perp valuation rounding, paired asset
-movement and deposit event order. Session/capacity and full target deposit preflight remain deferred.
+movement and deposit event order. At that checkpoint, session/capacity and full target deposit
+preflight remained deferred. Phase 3 is recorded in
+[`evidence/USD_VAULT_PHASE3_SESSION_CAPACITY.md`](evidence/USD_VAULT_PHASE3_SESSION_CAPACITY.md); it
+adds the active/inactive session state machine, exact expiry and DR-equality boundaries, and target
+evidence that deposits neither enforce nor consume the rebalance session minimum/direction/budget.
+Rebalance execution, DEX/oracle health checks and keeper/admin/pause behavior remain deferred.

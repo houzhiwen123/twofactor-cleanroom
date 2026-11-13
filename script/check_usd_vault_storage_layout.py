@@ -11,6 +11,13 @@ EXPECTED_STORAGE = [
     ("_perpSrToken", "1", 0, "contract IERC20"),
     ("_underlyingToken", "2", 0, "contract IERC20"),
     ("_perpController", "3", 0, "address"),
+    ("_sessionBudgetUsdVal", "4", 0, "uint128"),
+    ("_sessionOpenedAtSec", "4", 16, "uint64"),
+    ("_sessionIsMintingPerp", "4", 24, "bool"),
+    ("_rebalanceFreqSec", "4", 25, "uint32"),
+    ("_rebalanceOffsetSec", "5", 0, "uint32"),
+    ("_maxDeploymentVelocityPerc", "5", 4, "uint64"),
+    ("_targetDR", "5", 12, "uint96"),
 ]
 
 
@@ -33,7 +40,7 @@ def main() -> int:
         print(f"Actual:   {actual}", file=sys.stderr)
         return 1
 
-    print("UsdVault storage layout preserves the frozen phase-1 slots and appends phase-2 state.")
+    print("UsdVault storage layout preserves phase 1/2 slots and appends phase-3 session state.")
     return 0
 
 

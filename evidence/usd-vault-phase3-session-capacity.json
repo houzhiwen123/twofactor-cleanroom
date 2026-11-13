@@ -1,0 +1,105 @@
+{
+  "schema": "twofactor-cleanroom.usd-vault-phase3.v1",
+  "evidence_class": "TARGET-CONFIRMED_SESSION_STATE_MACHINE",
+  "chain_id": 8453,
+  "baseline_commit": "e55ab491fe5f1dafa321612337b478d964e32433",
+  "vault_proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+  "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+  "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+  "controller_proxy": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+  "configuration": {
+    "rebalance_freq_sec": 28800,
+    "rebalance_offset_sec": 21600,
+    "max_deployment_velocity_perc": "330000000000000000",
+    "target_dr": "1027500000000000000",
+    "min_op_usd_val": "50000000000000000000"
+  },
+  "state_machine": {
+    "active_condition": "stored_session_opened_at == current_window_opened_at",
+    "inactive_direction": "controller_sub_dr > target_dr",
+    "dr_equality_is_minting": false,
+    "inactive_budget": "floor(get_tvl * max_deployment_velocity_perc / 1e18)",
+    "expiry_equality_is_active": false
+  },
+  "vectors": [
+    {
+      "block": 53526143,
+      "timestamp": 1793841633,
+      "active": false,
+      "minting_perp": true,
+      "budget_usd_val": "33024675527237586477021",
+      "opened_at_sec": 1793829600,
+      "stored_direction": true,
+      "stored_budget_usd_val": "29251188032403425541687",
+      "stored_opened_at_sec": 1793772000
+    },
+    {
+      "block": 53495000,
+      "active": true,
+      "minting_perp": true,
+      "budget_usd_val": "29251188032403425541687",
+      "opened_at_sec": 1793772000
+    },
+    {
+      "block": 53505726,
+      "timestamp": 1793800799,
+      "active": true,
+      "exact_expiry_sec": 1793800800,
+      "active_at_exact_expiry": false
+    }
+  ],
+  "historical_deposit_replays": [
+    {
+      "block": 53236495,
+      "transaction_index": 132,
+      "transaction_hash": "0x31dca6ff3b7fdec83add824930a85f0bb713dd7659633303a7b135f4ef2f5254",
+      "stored_session_unchanged": true
+    },
+    {
+      "block": 52951098,
+      "transaction_index": 93,
+      "transaction_hash": "0x9332e8818524e3e791f77877df8e1bfca3017483af3aaeaf017ca12c641456f7",
+      "stored_session_unchanged": true
+    }
+  ],
+  "deposit_discriminators": [
+    {
+      "label": "below_min_op",
+      "block": 53526143,
+      "usd_in": "1",
+      "perp_sr_in": "2655861",
+      "notes_minted": "26317272012924662",
+      "deposit_value_upper_bound": "53623010404983847",
+      "result": "SUCCESS"
+    },
+    {
+      "label": "above_inactive_preview_budget",
+      "block": 53526143,
+      "usd_in": "3732531",
+      "perp_sr_in": "9913086977476",
+      "notes_minted": "99400116760033059318061",
+      "deposit_value_lower_bound": "100025592670752701457999",
+      "session_budget": "33024675527237586477021",
+      "result": "SUCCESS"
+    },
+    {
+      "label": "active_direction_conflict",
+      "block": 53490000,
+      "stored_direction": false,
+      "required_direction": true,
+      "usd_in": "1",
+      "perp_sr_in": "2559",
+      "notes_minted": "993981473715",
+      "result": "SUCCESS"
+    }
+  ],
+  "deposit_capacity_boundary": "NOT_APPLICABLE_TARGET_DOES_NOT_GUARD_DEPOSIT",
+  "deferred": [
+    "rebalance_execution",
+    "rebalance_min_direction_budget_reverts",
+    "dex_strategy",
+    "oracle_health_checks",
+    "keeper_admin_pause",
+    "production_initializer"
+  ]
+}

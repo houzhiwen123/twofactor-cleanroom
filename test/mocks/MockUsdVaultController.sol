@@ -15,6 +15,8 @@ contract MockUsdVaultController {
 
     address public underlyingOracle;
     SystemState private _state;
+    uint256 private _subDR;
+    uint256 private _vmDR;
 
     constructor(address underlyingOracle_) {
         underlyingOracle = underlyingOracle_;
@@ -32,7 +34,16 @@ contract MockUsdVaultController {
         _state.perpJr = PerpState({totalSupply: totalSupply, reserveValue: reserveValue, vm: vm});
     }
 
+    function setSystemDeviations(uint256 subDR, uint256 vmDR) external {
+        _subDR = subDR;
+        _vmDR = vmDR;
+    }
+
     function systemReserveState() external view returns (SystemState memory state) {
         return _state;
+    }
+
+    function systemDeviations() external view returns (uint256 subDR, uint256 vmDR) {
+        return (_subDR, _vmDR);
     }
 }
