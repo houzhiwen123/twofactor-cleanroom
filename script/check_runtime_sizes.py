@@ -8,6 +8,7 @@ SOURCE_ROOT = ROOT / "src"
 OUT_ROOT = ROOT / "out"
 MAX_RUNTIME_BYTES = 24_000
 CONTROLLER_MAX_RUNTIME_BYTES = 22_500
+UNDERLYING_PERP_VAULT_MAX_RUNTIME_BYTES = 18_000
 
 
 def main() -> int:
@@ -55,12 +56,12 @@ def main() -> int:
                 return 1
             size = len(code) // 2
             print(f"{source_name}:{contract_name}: {size} runtime bytes")
-            limit = (
-                CONTROLLER_MAX_RUNTIME_BYTES
-                if source_name == "src/controller/PerpController.sol"
-                and contract_name == "PerpController"
-                else MAX_RUNTIME_BYTES
-            )
+            if source_name == "src/controller/PerpController.sol" and contract_name == "PerpController":
+                limit = CONTROLLER_MAX_RUNTIME_BYTES
+            elif source_name == "src/vault/UnderlyingPerpVault.sol" and contract_name == "UnderlyingPerpVault":
+                limit = UNDERLYING_PERP_VAULT_MAX_RUNTIME_BYTES
+            else:
+                limit = MAX_RUNTIME_BYTES
             if size > limit:
                 oversized.append((source_name, contract_name, size, limit))
 
@@ -83,6 +84,7 @@ def main() -> int:
 
     print(
         f"PerpController is at most {CONTROLLER_MAX_RUNTIME_BYTES} bytes; "
+        f"UnderlyingPerpVault is at most {UNDERLYING_PERP_VAULT_MAX_RUNTIME_BYTES} bytes; "
         f"all other src contract runtimes are at most {MAX_RUNTIME_BYTES} bytes."
     )
     return 0

@@ -1,0 +1,763 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_PERP_VAULT_PHASE2_REBALANCE",
+  "generatedAt": "2026-11-13T21:05:41Z",
+  "repositoryBaseline": "656a4d4a9c496255180b093106454c7de4ca0e03",
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "verifiedSourceRead": false,
+    "frontendBundleRead": false,
+    "walletOrPrivateKeyUsed": false,
+    "broadcastTransactions": false
+  },
+  "classificationDefinitions": {
+    "TARGET-CONFIRMED": "Observed in unmodified public-chain state or exact historical transaction-prestate replay.",
+    "SYNTHETIC FORK": "Observed after changing a target parameter on a local fork and reverting the snapshot.",
+    "LOCAL-CLEANROOM": "Behavior of the independent local implementation.",
+    "UNKNOWN": "Not established by the present evidence."
+  },
+  "sourceEvidence": {
+    "probe": "evidence/probe-tests/UnderlyingPerpVaultPhase2Probe.t.sol",
+    "history": "evidence/underlying-perp-vault-rebalance-history.json",
+    "probeResult": {
+      "classification": "TARGET-CONFIRMED",
+      "passed": 18,
+      "failed": 0,
+      "command": "FOUNDRY_TEST=evidence/probe-tests BASE_RPC_URL=https://base-rpc.publicnode.com forge test --match-contract UnderlyingPerpVaultPhase2ProbeTest -vv",
+      "note": "This is the independent target-fork evidence suite; local implementation results are classified separately."
+    }
+  },
+  "versionLock": {
+    "classification": "TARGET-CONFIRMED",
+    "chainId": 8453,
+    "fixedBlock": 53526143,
+    "juniorVaultProxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+    "seniorVaultProxy": "0x805D7eE7F03dE39f2F30F3A7069c6d46642398cB",
+    "implementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+    "implementationCodehash": "0xf44934d03450e1a1ccec20b9f3d6031fb2176e2e90c4d1074a506b8f27285645",
+    "implementationSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+    "targetSystemRatio": "2847475019000000000",
+    "subDR": "1052430305854682822",
+    "vmDR": "1000210729013702352",
+    "controllerReserveState": {
+      "sr": {
+        "totalSupply": "10091631737151",
+        "reserveValue": "126885687",
+        "vm": "234991043552453"
+      },
+      "jr": {
+        "totalSupply": "32509969817791",
+        "reserveValue": "380247094",
+        "vm": "1333614305018199560"
+      }
+    }
+  },
+  "abi": {
+    "classification": "TARGET-CONFIRMED",
+    "functions": {
+      "computeRebalanceAmount()": "0x409304db",
+      "rebalance()": "0x7d7c2a1c",
+      "updateTargetDR(uint96,(uint96,uint96))": "0x45c57816",
+      "updateRebalanceTimingParams(uint32,uint32)": "0xfe4ddddf",
+      "updateMinRebalanceAmt(uint128)": "0x6ae695b7",
+      "updateMaxFlashFeePerc(uint64)": "0xf6de79c6"
+    },
+    "rebalanceEvent": {
+      "signature": "Rebalance(uint256,uint256,bool)",
+      "fields": [
+        "drBefore",
+        "underlyingAmt",
+        "isMintingPerp"
+      ],
+      "topic": "0xd2412c662f48f974143bb2428ce115c948201145d7b96f0eded33ccc43db383d"
+    },
+    "errors": {
+      "LastRebalanceTooRecent()": "0xa3b3f090",
+      "OpUnavailable(string)": "0xf0b62b3b",
+      "SlippageTooHigh()": "0x850c6f76",
+      "InvalidParamDefn()": "0xd126d255",
+      "InvalidRange()": "0x561ce9bb",
+      "InvalidPerc()": "0xcdc62692",
+      "OwnableUnauthorizedAccount(address)": "0x118cdaa7"
+    }
+  },
+  "historyInventory": {
+    "classification": "TARGET-CONFIRMED",
+    "range": {
+      "fromBlock": 51695016,
+      "toBlock": 53526143
+    },
+    "recordCount": 70,
+    "allRecordedTransactionsSucceeded": true,
+    "counts": {
+      "senior": {
+        "mint": 26,
+        "redeem": 37,
+        "total": 63
+      },
+      "junior": {
+        "mint": 5,
+        "redeem": 2,
+        "total": 7
+      }
+    },
+    "topLevelCalls": [
+      {
+        "from": "0xba887c8e396f24e0817be13839850de454ac7e45",
+        "to": "0xca11bde05977b3631167028862be2a173976ca11",
+        "selector": "0x82ad56cb",
+        "count": 68
+      },
+      {
+        "from": "0xd7daaa0648d72afd2470e5b68b3cf1c9fd88c92b",
+        "selector": "0x7d7c2a1c",
+        "count": 2,
+        "destinations": [
+          "0xebee489b84c1b3408838a87a691a4370aed139db",
+          "0x805d7ee7f03de39f2f30f3a7069c6d46642398cb"
+        ]
+      }
+    ],
+    "firstRecord": {
+      "blockNumber": 51753826,
+      "transactionIndex": 26,
+      "transactionHash": "0x07114c7e3baca7be676b961fe55548e688f830b0a6d99116cdc04c25b8c542ff"
+    },
+    "lastRecord": {
+      "blockNumber": 53507860,
+      "transactionIndex": 163,
+      "transactionHash": "0x8820b80dd1068ea9d46040e08a0222b90eb4eb2e9b26ef0901217d95b32ecc02"
+    },
+    "coverageNote": "The scan inventories successful event-producing calls only; it does not enumerate reverted calls or calls that emitted no Rebalance event."
+  },
+  "deploymentDefaults": {
+    "classification": "TARGET-CONFIRMED",
+    "snapshots": {
+      "juniorBlock": 51749808,
+      "seniorBlock": 51749809
+    },
+    "bothSides": {
+      "targetDR": "1000000000000000000",
+      "eqDRLower": "1000000000000000000",
+      "eqDRUpper": "1000000000000000000",
+      "lastRebalanceTimestampSec": "0",
+      "rebalanceFreqSec": 86400,
+      "rebalanceOffsetSec": 0,
+      "minRebalanceVal": "0",
+      "maxFlashFeePerc": "10000000000000000"
+    }
+  },
+  "fixedConfig": {
+    "classification": "TARGET-CONFIRMED",
+    "blockNumber": 53526143,
+    "junior": {
+      "isPerpSrVault": false,
+      "mintsAboveTarget": false,
+      "targetDR": "1053564994000000000",
+      "eqDRLower": "1053564994000000000",
+      "eqDRUpper": "1230000000000000000",
+      "lastRebalanceTimestampSec": "1793318400",
+      "rebalanceFreqSec": 28800,
+      "rebalanceOffsetSec": 0,
+      "minRebalanceVal": "100000",
+      "maxFlashFeePerc": "5000000000000000",
+      "quote": "0",
+      "isMintingPerp": true
+    },
+    "senior": {
+      "isPerpSrVault": true,
+      "mintsAboveTarget": true,
+      "targetDR": "1053564994000000000",
+      "eqDRLower": "1043029344100000000",
+      "eqDRUpper": "1064100643900000000",
+      "lastRebalanceTimestampSec": "1793785200",
+      "rebalanceFreqSec": 28800,
+      "rebalanceOffsetSec": 6000,
+      "minRebalanceVal": "100000",
+      "maxFlashFeePerc": "5000000000000000",
+      "quote": "0",
+      "isMintingPerp": false
+    }
+  },
+  "computeRebalanceAmount": {
+    "classification": "MIXED",
+    "confidence": "BRANCH_SPECIFIC",
+    "classificationNote": "System-capacity formulas are TARGET-CONFIRMED by binding historical states; range and direction boundaries are SYNTHETIC FORK; Junior redeem asset-cap isolation remains UNKNOWN.",
+    "symbols": {
+      "W": "1000000000000000000",
+      "D": "Controller-returned subDR",
+      "T": "Vault targetDR",
+      "R": "Controller targetSystemRatio",
+      "S": "Controller SR reserveValue",
+      "J": "Controller JR reserveValue"
+    },
+    "rangeGate": {
+      "classification": "SYNTHETIC FORK",
+      "formula": "eqDRLower <= D && D <= eqDRUpper",
+      "amountWhenInside": "0",
+      "lowerInclusive": true,
+      "upperInclusive": true
+    },
+    "direction": {
+      "classification": "SYNTHETIC FORK",
+      "formula": "(mintsAboveTarget && D > T) || (!mintsAboveTarget && D < T)",
+      "atEqualityIsMintingPerp": false,
+      "senior": {
+        "D>T": "MINT_SR",
+        "D<T": "REDEEM_SR"
+      },
+      "junior": {
+        "D<T": "MINT_JR",
+        "D>T": "REDEEM_JR"
+      }
+    },
+    "systemCapacity": {
+      "rounding": "ONE_FULL_PRECISION_MULDIV",
+      "jrMint": "floor(S*R*T/W^2)-J",
+      "jrRedeem": "J-ceil(S*R*T/W^2)",
+      "srMint": "floor(J*W^2/(R*T))-S",
+      "srRedeem": "S-ceil(J*W^2/(R*T))",
+      "evidenceGrade": {
+        "jrMint": "TARGET-CONFIRMED_UNCAPPED_HISTORICAL_STATE",
+        "jrRedeem": "TARGET-CONFIRMED_UNCAPPED_TRANSACTION_PRESTATE_REPLAY",
+        "srMint": "TARGET-CONFIRMED_UNCAPPED_TRANSACTION_PRESTATE_REPLAY",
+        "srRedeem": "TARGET-CONFIRMED_UNCAPPED_TRANSACTION_PRESTATE_REPLAY"
+      },
+      "roundingDiscriminators": [
+        {
+          "case": "fixed_jr_redeem",
+          "observed": "3613038",
+          "splitDivisionCandidate": "3613037"
+        },
+        {
+          "case": "fixed_sr_mint",
+          "observed": "1217210",
+          "splitDivisionCandidate": "1217209"
+        }
+      ]
+    },
+    "assetCapacity": {
+      "mint": "underlyingBalance",
+      "redeem": "floor(perpBalance*selectedReserveValue/selectedPerpTotalSupply)",
+      "result": "min(systemCapacity,assetCapacity)",
+      "juniorRedeemBindingCapIsolated": false
+    },
+    "uncappedJuniorMintDiscriminator": {
+      "classification": "TARGET-CONFIRMED",
+      "blockNumber": 51774759,
+      "quote": "745119",
+      "underlyingBalance": "5157264",
+      "assetCapWasBinding": false,
+      "nextBlockTransaction": "0xc91cf6221ad5409a89e4b7367af87ee9568eff6587a7e668eb769be9f594d554",
+      "nextBlockEventAmount": "745119"
+    },
+    "redeemConversion": {
+      "perpIn": "floor(plannedUnderlying*selectedPerpTotalSupply/selectedReserveValue)",
+      "eventAmountSemantics": "planned underlying amount; it can exceed the final Vault underlying balance delta because the Controller applies another conversion and fees"
+    }
+  },
+  "fixedSyntheticMatrix": {
+    "classification": "SYNTHETIC FORK",
+    "blockNumber": 53526143,
+    "systemDR": "1052430305854682822",
+    "delta": "10000000000000000",
+    "cases": [
+      {
+        "side": "junior",
+        "targetDR": "1042430305854682822",
+        "underlyingAmount": "3613038",
+        "isMintingPerp": false
+      },
+      {
+        "side": "junior",
+        "targetDR": "1052430305854682822",
+        "underlyingAmount": "0",
+        "isMintingPerp": false
+      },
+      {
+        "side": "junior",
+        "targetDR": "1062430305854682822",
+        "systemCapacityCandidate": "3613038",
+        "assetCapacity": "0",
+        "underlyingAmount": "0",
+        "isMintingPerp": true
+      },
+      {
+        "side": "senior",
+        "targetDR": "1042430305854682822",
+        "underlyingAmount": "1217210",
+        "isMintingPerp": true
+      },
+      {
+        "side": "senior",
+        "targetDR": "1052430305854682822",
+        "underlyingAmount": "0",
+        "isMintingPerp": false
+      },
+      {
+        "side": "senior",
+        "targetDR": "1062430305854682822",
+        "underlyingAmount": "1194296",
+        "isMintingPerp": false
+      }
+    ]
+  },
+  "realVectors": [
+    {
+      "classification": "TARGET-CONFIRMED",
+      "id": "senior_mint",
+      "transactionHash": "0x07114c7e3baca7be676b961fe55548e688f830b0a6d99116cdc04c25b8c542ff",
+      "blockNumber": 51753826,
+      "blockTimestamp": 1790296999,
+      "transactionIndex": 26,
+      "logIndex": 44,
+      "targetDR": "1053500000000000000",
+      "pre": {
+        "subDR": "1062913147046080812",
+        "vmDR": "997801289674796603",
+        "srSupply": "535596179523",
+        "srReserveValue": "6332857",
+        "srVM": "0",
+        "jrSupply": "1606788538569",
+        "jrReserveValue": "19167143",
+        "jrVM": "1330401719233795042",
+        "vaultUnderlying": "5100000",
+        "vaultPerp": "0",
+        "lastRebalanceTimestampSec": "0"
+      },
+      "formula": {
+        "targetReserveFloor": "6389441",
+        "systemCapacity": "56584",
+        "assetCapacity": "5100000",
+        "quote": "56584"
+      },
+      "controllerCall": {
+        "function": "flashMint2",
+        "srUnderlying": "56584",
+        "jrUnderlying": "0",
+        "minSrOut": "0",
+        "minJrOut": "0"
+      },
+      "post": {
+        "subDR": "1053500136187626147",
+        "vmDR": "997801289674796603",
+        "srSupply": "540381724849",
+        "srReserveValue": "6389441",
+        "jrSupply": "1606788538569",
+        "jrReserveValue": "19167143",
+        "vaultUnderlying": "5043416",
+        "vaultPerp": "4785545326",
+        "lastRebalanceTimestampSec": "1790285400"
+      },
+      "eventUnderlyingAmount": "56584",
+      "actualUnderlyingDelta": "56584",
+      "actualPerpDelta": "4785545326",
+      "targetTotalFeePerc": "0",
+      "targetProtocolFeePerc": "0",
+      "notesSupplyUnchanged": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED",
+      "id": "junior_mint",
+      "transactionHash": "0x8eda4df97e08f8afc1d16ac0685f0d47527ebde30fbd4bbc8b5c177c97e778e0",
+      "blockNumber": 51777393,
+      "blockTimestamp": 1790344133,
+      "transactionIndex": 141,
+      "logIndex": 342,
+      "targetDR": "1075000000000000000",
+      "pre": {
+        "subDR": "1025799406232600248",
+        "vmDR": "1002206743712286605",
+        "srSupply": "560389314486",
+        "srReserveValue": "6704273",
+        "srVM": "5125686260091138",
+        "jrSupply": "1648227965747",
+        "jrReserveValue": "19582767",
+        "jrVM": "1336275657948979893",
+        "vaultUnderlying": "856406",
+        "vaultPerp": "12158434974",
+        "lastRebalanceTimestampSec": "1790312400"
+      },
+      "formula": {
+        "confidence": "TARGET-CONFIRMED_WITH_SEPARATE_UNCAPPED_HISTORICAL_STATE",
+        "targetReserveFloor": "20522018",
+        "systemCapacity": "939251",
+        "assetCapacity": "856406",
+        "quote": "856406"
+      },
+      "controllerCall": {
+        "function": "flashMint2",
+        "srUnderlying": "0",
+        "jrUnderlying": "856406",
+        "minSrOut": "0",
+        "minJrOut": "0"
+      },
+      "post": {
+        "subDR": "1070660317169958399",
+        "vmDR": "991639223764435075",
+        "srSupply": "560389314486",
+        "srReserveValue": "6704273",
+        "jrSupply": "1720309317643",
+        "jrReserveValue": "20439173",
+        "vaultUnderlying": "0",
+        "vaultPerp": "84239786870",
+        "lastRebalanceTimestampSec": "1790341200"
+      },
+      "eventUnderlyingAmount": "856406",
+      "actualUnderlyingDelta": "856406",
+      "actualPerpDelta": "72081351896",
+      "targetTotalFeePerc": "0",
+      "targetProtocolFeePerc": "0",
+      "notesSupplyUnchanged": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED",
+      "id": "senior_redeem",
+      "transactionHash": "0x2c23758afef541c51d2e290e533ab77f9396bf99e3cb9c632e7eec5f6fccd5c0",
+      "blockNumber": 51879760,
+      "blockTimestamp": 1790548867,
+      "transactionIndex": 71,
+      "logIndex": 568,
+      "targetDR": "1053500000000000000",
+      "pre": {
+        "subDR": "1041814726540642981",
+        "vmDR": "1000186216848726058",
+        "srSupply": "981829350997",
+        "srReserveValue": "11661758",
+        "srVM": "3209979147226344",
+        "jrSupply": "2904876173916",
+        "jrReserveValue": "34595088",
+        "jrVM": "1333581622131572672",
+        "vaultUnderlying": "975757",
+        "vaultPerp": "332145234986",
+        "lastRebalanceTimestampSec": "1790337600"
+      },
+      "formula": {
+        "targetReserveCeil": "11532408",
+        "systemCapacity": "129350",
+        "assetCapacity": "3945082",
+        "quote": "129350"
+      },
+      "controllerCall": {
+        "function": "flashRedeem2",
+        "srIn": "10890264276",
+        "jrIn": "0",
+        "minUnderlyingOut": "0"
+      },
+      "post": {
+        "subDR": "1053499856079779655",
+        "vmDR": "998193556868843292",
+        "srSupply": "970939086721",
+        "srReserveValue": "11532409",
+        "jrSupply": "2904876173916",
+        "jrReserveValue": "34595088",
+        "vaultUnderlying": "1104895",
+        "vaultPerp": "321254970710",
+        "lastRebalanceTimestampSec": "1790530800"
+      },
+      "eventUnderlyingAmount": "129350",
+      "reserveValueDelta": "129349",
+      "actualUnderlyingDelta": "129138",
+      "conversionRoundingLoss": "1",
+      "feeRetainedAfterConversion": "211",
+      "actualPerpDelta": "10890264276",
+      "targetTotalFeePerc": "1637628506141442",
+      "targetProtocolFeePerc": "0",
+      "notesSupplyUnchanged": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED",
+      "id": "junior_redeem",
+      "transactionHash": "0x3562298f878658f89d970f77da8bc7ae8c0e0d14fa389ee6f794c8b814e9259b",
+      "blockNumber": 52543960,
+      "blockTimestamp": 1791877267,
+      "transactionIndex": 64,
+      "logIndex": 1277,
+      "targetDR": "1053564994000000000",
+      "pre": {
+        "subDR": "1074832671032280587",
+        "vmDR": "994620691945484069",
+        "srSupply": "3994483750531",
+        "srReserveValue": "47834333",
+        "srVM": "0",
+        "jrSupply": "12336647658528",
+        "jrReserveValue": "146399807",
+        "jrVM": "1326160922262438529",
+        "vaultUnderlying": "0",
+        "vaultPerp": "12336647658528",
+        "lastRebalanceTimestampSec": "1790341200"
+      },
+      "formula": {
+        "targetReserveCeil": "143503000",
+        "systemCapacity": "2896807",
+        "assetCapacity": "146399807",
+        "quote": "2896807"
+      },
+      "controllerCall": {
+        "function": "flashRedeem2",
+        "srIn": "0",
+        "jrIn": "244104743210",
+        "minUnderlyingOut": "0"
+      },
+      "post": {
+        "subDR": "1053565008224211881",
+        "vmDR": "999558697998811684",
+        "srSupply": "3994483750531",
+        "srReserveValue": "47834333",
+        "jrSupply": "12092542915318",
+        "jrReserveValue": "143503001",
+        "vaultUnderlying": "2896806",
+        "vaultPerp": "12092542915318",
+        "lastRebalanceTimestampSec": "1791849600"
+      },
+      "eventUnderlyingAmount": "2896807",
+      "reserveValueDelta": "2896806",
+      "actualUnderlyingDelta": "2896806",
+      "conversionRoundingLoss": "1",
+      "feeRetainedAfterConversion": "0",
+      "actualPerpDelta": "244104743210",
+      "targetTotalFeePerc": "0",
+      "targetProtocolFeePerc": "0",
+      "notesSupplyUnchanged": true
+    }
+  ],
+  "additionalCapEvidence": {
+    "classification": "TARGET-CONFIRMED",
+    "confidence": "NATURAL_EVENT_PLUS_PRECEDING_BLOCK_STATE_NOT_TXINDEX_EXACT",
+    "side": "senior",
+    "transactionHash": "0x082d21936b731dc204fc66e57d0e30c0ca218f0a400cd650178b1c8a52f10d0b",
+    "blockNumber": 52936360,
+    "transactionIndex": 47,
+    "eventUnderlyingAmount": "2121382",
+    "systemCapacity": "2462744",
+    "perpBalance": "172169004276",
+    "reserveValue": "75465291",
+    "totalSupply": "6124678500393",
+    "floorPerpValue": "2121382",
+    "requiresExactTransactionReplay": true
+  },
+  "boundaryProbes": {
+    "classification": "SYNTHETIC FORK",
+    "permissionlessRebalance": {
+      "state": "valid senior mint prestate",
+      "callers": [
+        "owner",
+        "configured keeper 0x000000000000000000000000000000000000CA11",
+        "random 0x000000000000000000000000000000000000bEEF"
+      ],
+      "allSucceededFromIndependentSnapshots": true
+    },
+    "minimumBoundary": {
+      "quote": "856406",
+      "cases": [
+        {
+          "minimum": "856405",
+          "result": "SUCCESS"
+        },
+        {
+          "minimum": "856406",
+          "result": "SUCCESS"
+        },
+        {
+          "minimum": "856407",
+          "result": "REVERT",
+          "error": "OpUnavailable(\"no capacity\")",
+          "selector": "0xf0b62b3b"
+        }
+      ],
+      "comparison": "quote >= minimum"
+    },
+    "timing": {
+      "frequency": 100,
+      "offset": 50,
+      "callTimestamp": "1790296999",
+      "storedAlignedBucket": "1790296950",
+      "formula": "floor((timestamp-offset)/frequency)*frequency+offset",
+      "alignedPlus99": {
+        "result": "REVERT",
+        "error": "LastRebalanceTooRecent()",
+        "selector": "0xa3b3f090"
+      },
+      "alignedPlus100": {
+        "cooldownPassed": true,
+        "result": "REVERT",
+        "error": "OpUnavailable(\"no capacity\")",
+        "selector": "0xf0b62b3b"
+      }
+    },
+    "maxFlashFee": {
+      "targetTotalFeePerc": "1637628506141442",
+      "targetMinusOne": {
+        "result": "REVERT",
+        "error": "SlippageTooHigh()",
+        "selector": "0x850c6f76",
+        "monitoredStateUnchanged": true
+      },
+      "targetExactly": {
+        "result": "SUCCESS"
+      },
+      "comparison": "targetTotalFeePerc <= maxFlashFeePerc",
+      "fingerprintedState": [
+        "vault underlying balance",
+        "vault Perp balance",
+        "vault note supply",
+        "last rebalance timestamp",
+        "Controller subDR",
+        "Controller vmDR",
+        "complete Controller systemReserveState() return tuple"
+      ]
+    }
+  },
+  "setters": {
+    "classification": "SYNTHETIC FORK",
+    "authorization": {
+      "testedFunctions": [
+        "updateTargetDR",
+        "updateRebalanceTimingParams",
+        "updateMinRebalanceAmt",
+        "updateMaxFlashFeePerc"
+      ],
+      "owner": "SUCCESS",
+      "keeper": {
+        "result": "REVERT",
+        "error": "OwnableUnauthorizedAccount(address)",
+        "selector": "0x118cdaa7"
+      },
+      "random": {
+        "result": "REVERT",
+        "error": "OwnableUnauthorizedAccount(address)",
+        "selector": "0x118cdaa7"
+      },
+      "updateKeeperRole": "UNKNOWN"
+    },
+    "validation": {
+      "targetAndRange": {
+        "allowed": [
+          "targetDR > 0",
+          "lower <= targetDR <= upper",
+          "lower == targetDR == upper"
+        ],
+        "rejected": [
+          {
+            "case": "targetDR == 0",
+            "error": "InvalidParamDefn()",
+            "selector": "0xd126d255"
+          },
+          {
+            "case": "lower > upper or target outside range",
+            "error": "InvalidRange()",
+            "selector": "0x561ce9bb"
+          }
+        ]
+      },
+      "timing": {
+        "allowed": [
+          "frequency >= 1",
+          "offset < frequency"
+        ],
+        "rejected": [
+          {
+            "case": "frequency == 0 or offset >= frequency",
+            "error": "InvalidParamDefn()",
+            "selector": "0xd126d255"
+          }
+        ]
+      },
+      "minimum": {
+        "allowedTested": [
+          "0",
+          "1",
+          "340282366920938463463374607431768211455"
+        ],
+        "rejectedInRangeValueObserved": false
+      },
+      "maxFlashFee": {
+        "allowedRange": "0..1000000000000000000 inclusive",
+        "wadPlusOne": {
+          "result": "REVERT",
+          "error": "InvalidPerc()",
+          "selector": "0xcdc62692"
+        }
+      }
+    }
+  },
+  "localCleanroom": {
+    "classification": "LOCAL-CLEANROOM",
+    "phase2CompatibilityAssessed": true,
+    "productionFilesChangedByThisEvidenceTask": true,
+    "focusedLocalTestsPassed": 14,
+    "realComponentIntegrationTestsPassed": 3,
+    "realComponentIntegrationCoverage": [
+      "SR mint rebalance",
+      "JR redeem rebalance",
+      "Controller failure atomic rollback"
+    ],
+    "fullRepositoryTestsPassed": 199,
+    "runtimeBytes": {
+      "UnderlyingPerpVault": 11799,
+      "PerpController": 22475
+    },
+    "storage": "Phase 1 prefix unchanged in slots 0..4; Phase 2 appended in slots 5..7.",
+    "gates": {
+      "runtimeSize": "PASS",
+      "controllerStorage": "PASS",
+      "underlyingPerpVaultStorage": "PASS",
+      "format": "PASS",
+      "json": "PASS",
+      "diffCheck": "PASS"
+    },
+    "note": "The independent local Phase 2 implementation is covered by focused formula, execution, fee, timing, authorization, storage and atomicity tests."
+  },
+  "unknowns": [
+    {
+      "classification": "UNKNOWN",
+      "id": "event_full_order",
+      "question": "What is the exact order of the Vault Rebalance event relative to all Controller, Perp, underlying, and reserve-sync events?",
+      "probe": "Assert the full ordered log sequence in all four transaction-prestate replays."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "pause_and_error_precedence",
+      "question": "What are pause behavior and precedence among pause, cooldown, no-capacity, minimum, and flash-fee errors?",
+      "probe": "Cross the pause state with each independently proven failure branch on snapshot-isolated forks."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "update_keeper",
+      "question": "What are updateKeeper authorization, zero-address validation, and event behavior?",
+      "probe": "Test owner, keeper, and random callers with zero, same, and new keeper addresses."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "junior_redeem_binding_asset_cap",
+      "question": "Does Junior redeem use the same floor Perp-value cap when that cap is binding?",
+      "probe": "Construct a snapshot-reverted target fork where JR system capacity exceeds the Vault JR Perp value."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "redeem_cap_one_unit_discriminator",
+      "question": "Which cap rule applies when floor(P*V/Q) differs by one from the largest q whose floored Perp conversion is spendable?",
+      "probe": "Construct an exact one-unit discriminator vector and compare the target quote."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "degenerate_arithmetic",
+      "question": "How does computeRebalanceAmount behave for zero reserveValue or zero Perp totalSupply?",
+      "probe": "Use a fresh target implementation fixture or natural deployment prestate if available."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "setter_event_order",
+      "question": "What events and ordering accompany each configuration setter?",
+      "probe": "Record and assert setter logs for each valid state transition."
+    },
+    {
+      "classification": "UNKNOWN",
+      "id": "history_outside_scan",
+      "question": "What successful and reverted rebalance behavior exists outside blocks 51,695,016..53,526,143?",
+      "probe": "Expand only if compatibility work requires those versions; do not infer absence from this bounded scan."
+    }
+  ]
+}
