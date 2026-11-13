@@ -1,0 +1,193 @@
+{
+  "schema": "twofactor-cleanroom.usd-vault-phase5a.v1",
+  "baseline_commit": "9ceeccc78891244dbc187d55a30cd58ae327ffa1",
+  "chain_id": 8453,
+  "classification": "EVIDENCE_ONLY_NO_PRODUCTION_IMPLEMENTATION",
+  "vault_proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+  "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+  "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+  "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+  "perp_sr": "0x4be28E7597A928835245a10E9161E0c44687b70b",
+  "dex_strategy": "0xE0fC0566ADCD6b83149874619A1FAFdF3345144f",
+  "usd": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+  "inventory": "0x7f3D9cA062371429666018E949FbCB39fa602e25",
+  "batch_executor": "0x60Bf78233f48eC42eE3F101b9a05eC7878728006",
+  "owner_and_keeper": "0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d",
+  "natural_vectors": [
+    {
+      "classification": "TARGET_CONFIRMED",
+      "direction": "REDEEM_PERP",
+      "transaction_hash": "0xf49ebfa4f7833f8dec9ed901eb4edaddfaeed352e84362c6c687d52f17c7568e",
+      "block": 53480534,
+      "transaction_index": 64,
+      "timestamp": 1793750415,
+      "top_level_from": "0x588ef3de14875ff9c4fc74c9e2c308767d665e30",
+      "top_level_to": "0x9da8b48441583a2b93e2ef8213aad0ec0b392c69",
+      "top_level_selector": "0xe7c438c9",
+      "controller_input_perp_sr": "73659360073",
+      "controller_gross_cb_btc": "960289",
+      "vault_to_inventory_cb_btc": "955487",
+      "inventory_to_vault_initial_usdc": "731851567",
+      "settlement_surplus_to_vault_usdc": "7451582",
+      "vault_final_usdc_delta": "739303149",
+      "vault_retained_cb_btc": "4802",
+      "rebalance_event": {
+        "dr_before": "1019867585526484997",
+        "underlying_price": "77368295716660000000000",
+        "rebalance_usd_val": "742959233254557147400",
+        "is_minting_perp": false
+      },
+      "session": {
+        "pre_budget": "33016915546003499111958",
+        "post_budget": "32273956312748941964558",
+        "opened_at_sec": 1793743200
+      },
+      "vault_pre": {
+        "usdc": "302318628",
+        "cb_btc": "38782",
+        "perp_sr": "9886455001392",
+        "perp_sr_supply": "9916265965245"
+      },
+      "vault_post": {
+        "usdc": "1041621777",
+        "cb_btc": "43584",
+        "perp_sr": "9812795641319",
+        "perp_sr_supply": "9842606605172"
+      }
+    },
+    {
+      "classification": "TARGET_CONFIRMED",
+      "direction": "MINT_PERP",
+      "transaction_hash": "0x4adb0572701aa84dabb661ad72d31617cf80a441f5696f69825b8a4ee5b80276",
+      "block": 53491335,
+      "transaction_index": 117,
+      "timestamp": 1793772017,
+      "top_level_from": "0xbee156a1f0c92a1c1da9b31595e4b88d163dcccc",
+      "top_level_to": "0xbee162fa5ae892be74f3f3e01c23da89adbccccc",
+      "top_level_selector": "0x6d7b7040",
+      "inventory_to_vault_cb_btc": "4316589",
+      "controller_gross_perp_sr": "332778700917",
+      "controller_net_perp_sr_to_vault": "331220012568",
+      "controller_fee_perp_sr": "1558688349",
+      "vault_to_inventory_initial_usdc": "3390111185",
+      "settlement_surplus_to_vault_usdc": "36919325",
+      "vault_final_usdc_delta": "-3353191860",
+      "rebalance_event": {
+        "dr_before": "1063211455382090274",
+        "underlying_price": "77759215172770000000000",
+        "rebalance_usd_val": "3390111185000000000000",
+        "is_minting_perp": true
+      },
+      "session": {
+        "pre_budget": "33016963790403425541687",
+        "post_budget": "29626852605403425541687",
+        "opened_at_sec": 1793772000
+      },
+      "vault_pre": {
+        "usdc": "3728960649",
+        "cb_btc": "61287",
+        "perp_sr": "9544991123949",
+        "perp_sr_supply": "9574802087802"
+      },
+      "vault_post": {
+        "usdc": "375768789",
+        "cb_btc": "61287",
+        "perp_sr": "9876211136517",
+        "perp_sr_supply": "9907580788719"
+      }
+    }
+  ],
+  "dex_views": [
+    {
+      "classification": "TARGET_CONFIRMED",
+      "direction": "SELL_CBBTC_BUY_USDC",
+      "healthy": true,
+      "quote_sell": "955487",
+      "quote_buy": "739076600",
+      "max_fillable_max_sell": "960289",
+      "max_fillable_min_buy": "0",
+      "max_fillable_sell": "960289",
+      "max_fillable_buy": "742790479"
+    },
+    {
+      "classification": "TARGET_CONFIRMED",
+      "direction": "SELL_USDC_BUY_CBBTC",
+      "healthy": true,
+      "quote_sell": "3390111185",
+      "quote_buy": "4362680",
+      "max_fillable_max_sell": "3390111185",
+      "max_fillable_min_buy": "0",
+      "max_fillable_sell": "3390111185",
+      "max_fillable_buy": "4362680"
+    }
+  ],
+  "authorization": {
+    "swap": {
+      "inventory_is_swapper": true,
+      "random_is_swapper": false,
+      "random_result": "UnauthorizedCall()",
+      "selector": "0x7bf6a16f"
+    },
+    "rebalance_and_upkeep": {
+      "natural_block": 53493126,
+      "random_and_owner_same_result": "NoOp()",
+      "selector": "0x00219cf1",
+      "conclusion": "PERMISSIONLESS_BEFORE_BUSINESS_GUARDS"
+    }
+  },
+  "active_delay": {
+    "classification": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION",
+    "seconds": 3600,
+    "delay_minus_one": {
+      "result": "OpUnavailable(active delayed)",
+      "selector": "0xf0b62b3b"
+    },
+    "exact_delay": {
+      "delay_passed": true,
+      "downstream_mock_result": "SlippageTooHigh()",
+      "selector": "0x850c6f76"
+    },
+    "delay_plus_one": {
+      "delay_passed": true,
+      "downstream_mock_result": "SlippageTooHigh()",
+      "selector": "0x850c6f76"
+    }
+  },
+  "atomic_failures": {
+    "classification": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION",
+    "dependencies": [
+      "UNDERLYING_ORACLE_CACHE_PRICE",
+      "DEX_TRADE",
+      "CONTROLLER_SYSTEM_RESERVE_STATE"
+    ],
+    "marker_selector": "0xe0a6dd53",
+    "marker_bubbled_unchanged": true,
+    "fingerprint_unchanged": true,
+    "fingerprint_fields": [
+      "vault_usd_balance",
+      "vault_cb_btc_balance",
+      "vault_perp_sr_balance",
+      "dex_usd_balance",
+      "dex_cb_btc_balance",
+      "perp_sr_total_supply",
+      "session_active",
+      "session_direction",
+      "session_budget",
+      "session_opened_at"
+    ]
+  },
+  "verification": {
+    "phase5a_fork_tests_passed": 6,
+    "phase5a_fork_tests_failed": 0,
+    "local_tests_passed": 151,
+    "local_tests_failed": 0,
+    "controller_runtime_bytes": 22475,
+    "usd_vault_runtime_bytes": 8807,
+    "controller_storage_unchanged": true,
+    "usd_vault_slots_0_through_5_unchanged": true,
+    "format_check_passed": true,
+    "diff_check_passed": true,
+    "production_source_changed": false
+  }
+}
