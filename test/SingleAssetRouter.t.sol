@@ -367,6 +367,20 @@ contract UniswapV3DexStrategyTest is Test {
         assertEq(sellAmt, 0);
         assertEq(buyAmt, 0);
 
+        assertEq(strategy.quote(address(usd), address(underlying), 3_390_111_185), 4_232_086);
+        (sellAmt, buyAmt) = strategy.maxFillable(address(usd), address(underlying), 3_390_111_185, 4_232_087);
+        assertEq(sellAmt, 3_370_247_252);
+        assertEq(buyAmt, 4_207_290);
+
+        assertEq(strategy.quote(address(underlying), address(usd), 960_289), 768_428_817);
+        (sellAmt, buyAmt) = strategy.maxFillable(address(underlying), address(usd), 960_289, 768_428_818);
+        assertEq(sellAmt, 959_351);
+        assertEq(buyAmt, 767_678_656);
+
+        (sellAmt, buyAmt) = strategy.maxFillable(address(usd), address(underlying), 0, 1);
+        assertEq(sellAmt, 0);
+        assertEq(buyAmt, 0);
+
         pool.setLiquidity(199_999_999_999);
         assertFalse(strategy.isHealthy());
         vm.expectRevert(UniswapV3DexStrategy.UnauthorizedCall.selector);

@@ -34,7 +34,8 @@ interface IUniswapV3PoolStrategy {
 }
 
 /// @notice Stateless two-token Uniswap V3 strategy used by Vaults and the SingleAssetRouter.
-/// @dev The current-tick quote path is exact for the target-confirmed vectors. Execution itself delegates to the pool.
+/// @dev Target quotes extrapolate current active liquidity without traversing initialized ticks.
+///      Execution itself delegates to the pool and therefore follows the pool's real tick transitions.
 contract UniswapV3DexStrategy is IDexStrategy {
     using SafeERC20 for IERC20;
 
@@ -46,6 +47,7 @@ contract UniswapV3DexStrategy is IDexStrategy {
     uint256 private constant WAD = 1e18;
     uint256 private constant Q96 = 1 << 96;
     uint256 private constant FEE_DENOMINATOR = 1_000_000;
+    uint256 private constant MAX_FILL_SEARCH_STEPS = 10;
     uint160 private constant MIN_SQRT_RATIO_PLUS_ONE = 4_295_128_740;
     uint160 private constant MAX_SQRT_RATIO_MINUS_ONE =
         1_461_446_703_485_210_103_287_273_052_203_988_822_378_723_970_341;
@@ -124,8 +126,21 @@ contract UniswapV3DexStrategy is IDexStrategy {
         returns (uint256 sellAmt, uint256 buyAmt)
     {
         buyAmt = quote(sellToken, buyToken, maxSellAmt);
-        if (buyAmt < minBuyAmt) return (0, 0);
-        return (maxSellAmt, buyAmt);
+        if (maxSellAmt == 0) return (0, 0);
+        if (buyAmt >= minBuyAmt) return (maxSellAmt, buyAmt);
+
+        uint256 high = maxSellAmt;
+        for (uint256 i; i < MAX_FILL_SEARCH_STEPS; ++i) {
+            uint256 candidate = sellAmt + (high - sellAmt) / 2;
+            uint256 candidateBuy = quote(sellToken, buyToken, candidate);
+            uint256 scaledMinimum = Math.mulDiv(minBuyAmt, candidate, maxSellAmt, Math.Rounding.Ceil);
+            if (candidateBuy >= scaledMinimum) {
+                sellAmt = candidate;
+            } else {
+                high = candidate;
+            }
+        }
+        buyAmt = quote(sellToken, buyToken, sellAmt);
     }
 
     function trade(address sellToken, address buyToken, uint256 sellAmt) external returns (uint256 buyAmt) {

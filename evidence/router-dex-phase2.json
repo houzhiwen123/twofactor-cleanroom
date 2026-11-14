@@ -1,0 +1,125 @@
+{
+  "phase": "ROUTER_DEX_PHASE2",
+  "chain_id": 8453,
+  "labels": [
+    "TARGET-CONFIRMED",
+    "LOCAL-CLEANROOM",
+    "UNKNOWN"
+  ],
+  "version_lock": {
+    "strategy": "0xe0fc0566adcd6b83149874619a1fafdf3345144f",
+    "strategy_codehash": "0x5179730df56d2d569376affd12ff8014ac2c7d9940dca3b78cb9dc22db5d5302",
+    "pool": "0xfbb6eed8e7aa03b138556eeDaF5D271A5E1e43ef",
+    "transaction_hash": "0xaf7d86860fa149f0fdddb186f74753dc2b912294c7e4f4b1b8930934fe7144ab",
+    "block": 53243583,
+    "transaction_index": 77,
+    "pool_state": {
+      "sqrt_price_x96": "2800063142574549000000000000",
+      "tick": -66858,
+      "tick_spacing": 10,
+      "liquidity": "2782022353822",
+      "nearest_initialized_down": -66860,
+      "nearest_initialized_up": -66850
+    }
+  },
+  "quote": {
+    "classification": "TARGET-CONFIRMED",
+    "semantic": "CURRENT_ACTIVE_LIQUIDITY_EXTRAPOLATION_WITHOUT_INITIALIZED_TICK_TRAVERSAL",
+    "vectors": 20,
+    "exact_matches": 20,
+    "representative": [
+      {
+        "direction": "USDC_TO_CBBTC",
+        "sell": "100000000000",
+        "target_buy": "124683273",
+        "cleanroom_buy": "124683273"
+      },
+      {
+        "direction": "USDC_TO_CBBTC",
+        "sell": "1000000000000000",
+        "target_buy": "91143394595",
+        "cleanroom_buy": "91143394595"
+      },
+      {
+        "direction": "CBBTC_TO_USDC",
+        "sell": "100000000",
+        "target_buy": "79940167314",
+        "cleanroom_buy": "79940167314"
+      },
+      {
+        "direction": "CBBTC_TO_USDC",
+        "sell": "1000000000000",
+        "target_buy": "71667690303320",
+        "cleanroom_buy": "71667690303320"
+      }
+    ]
+  },
+  "max_fillable": {
+    "classification": "TARGET-CONFIRMED",
+    "search_rounds": 10,
+    "candidate_rounding": "FLOOR_AVERAGE",
+    "scaled_minimum": "CEIL(minBuy * candidate / maxSell)",
+    "full_fast_path": "quote(maxSell) >= minBuy",
+    "zero_max_sell": [
+      "0",
+      "0"
+    ],
+    "formal_vectors": 60,
+    "exact_matches": 60,
+    "representative": [
+      {
+        "direction": "USDC_TO_CBBTC",
+        "max_sell": "3390111185",
+        "min_buy": "4232086",
+        "sell_out": "3390111185",
+        "buy_out": "4232086",
+        "branch": "FULL"
+      },
+      {
+        "direction": "USDC_TO_CBBTC",
+        "max_sell": "3390111185",
+        "min_buy": "4232087",
+        "sell_out": "3370247252",
+        "buy_out": "4207290",
+        "branch": "PARTIAL"
+      },
+      {
+        "direction": "USDC_TO_CBBTC",
+        "max_sell": "3390111185",
+        "min_buy": "8464172",
+        "sell_out": "0",
+        "buy_out": "0",
+        "branch": "ZERO"
+      },
+      {
+        "direction": "CBBTC_TO_USDC",
+        "max_sell": "960289",
+        "min_buy": "768428818",
+        "sell_out": "959351",
+        "buy_out": "767678656",
+        "branch": "PARTIAL"
+      }
+    ]
+  },
+  "verification": {
+    "phase2_target_fork_tests": "4/4",
+    "local_router_strategy_tests": "4/4",
+    "full_offline_tests": "211/211",
+    "runtime_bytes": {
+      "UniswapV3DexStrategy": 4530,
+      "SingleAssetRouter": 5753,
+      "PerpController": 22475,
+      "UsdVault": 15996
+    },
+    "storage_layout": "PASS",
+    "underlying_vault_abi": "PASS",
+    "format": "PASS",
+    "diff_check": "PASS"
+  },
+  "unknowns": [
+    "unsupported pair error selectors",
+    "zero pool liquidity target behavior",
+    "Router zero-supply genesis behavior",
+    "unreachable extreme uint256 word inputs"
+  ]
+}
