@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_SINGLE_ASSET_ROUTER_PHASE1",
+  "repositoryBaseline": "96f663d",
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "verifiedSourceRead": false,
+    "frontendBundleRead": false,
+    "walletOrPrivateKeyUsed": false,
+    "broadcastTransactions": false,
+    "targetDealOrStoreUsed": false
+  },
+  "versionLock": {
+    "classification": "TARGET-CONFIRMED_JUNIOR_TARGET_SURFACE",
+    "chainId": 8453,
+    "router": "0xbf0f2aa8784a1a459C7E2eB87CF25E5cABF4d296",
+    "routerRuntimeCodehash": "0xefe9f9c0563e83464998417f8bf820d3f7b9e47205cb836bee3679cb8f02ac59",
+    "juniorVaultProxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+    "vaultProxyRuntimeCodehash": "0x0a16141b955fdc3548daeab3d02a4f007fcd407b6f88758a94caae8e8f4a4ab7",
+    "vaultImplementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+    "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "perpJunior": "0x8cd04668292dC32F519972495C179E4f02C0e8AB"
+  },
+  "selectors": {
+    "depositUnderlying": "0x13297e55",
+    "redeemUnderlying": "0x62c73c62",
+    "slippageTooHigh": "0x850c6f76"
+  },
+  "vectors": [
+    {
+      "classification": "TARGET-CONFIRMED_HISTORICAL",
+      "kind": "deposit",
+      "transactionHash": "0x14d7b798cfd88264135cc1e343c6d4cdb0ce45ab461a9d9c1adae64b449361fa",
+      "blockNumber": 53372806,
+      "transactionIndex": 52,
+      "underlyingIn": "166464",
+      "maxIters": 2,
+      "vaultUnderlyingIn": "0",
+      "vaultPerpIn": "14411197784",
+      "notesOut": "1711753692854663",
+      "localExactMatch": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_FORK_AFTER_HISTORICAL_REBALANCE",
+      "kind": "deposit",
+      "stateTransactionHash": "0x3562298f878658f89d970f77da8bc7ae8c0e0d14fa389ee6f794c8b814e9259b",
+      "blockNumber": 52543960,
+      "transactionIndex": 64,
+      "model": {
+        "vaultUnderlying": "2896806",
+        "vaultPerp": "12092542915318",
+        "perpSupply": "12092542915318",
+        "perpReserveValue": "143503001"
+      },
+      "underlyingIn": "100000",
+      "directUnderlyingMax": "1979",
+      "flashUnderlying": "98021",
+      "vaultUnderlyingAccepted": "1978",
+      "perpAccepted": "8259918892",
+      "notesOut": "1001004523584842",
+      "underlyingSpent": "99999",
+      "underlyingRefund": "1",
+      "localExactMatch": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_FORK_NATURAL_BALANCE",
+      "kind": "redeem",
+      "blockNumber": 54990962,
+      "holder": "0x5A42A1667d2E9656e364385fB1b982Fad805cdCa",
+      "naturalNotesBalance": "2724303154369610",
+      "notesIn": "1000000000000000",
+      "vaultPerpOut": "8418966960",
+      "underlyingOut": "95934",
+      "exactMinOutSucceeds": true,
+      "plusOneSelector": "0x850c6f76",
+      "localExactMatch": true
+    }
+  ],
+  "implementation": {
+    "classification": {
+      "junior": "TARGET-MATCHED",
+      "senior": "LOCAL-CLEANROOM_EXTENSION"
+    },
+    "contract": "src/router/UnderlyingSingleAssetRouter.sol",
+    "runtimeBytes": 3994,
+    "storageSlots": 0,
+    "targetDifferentialsPassed": 3,
+    "targetDifferentialsFailed": 0,
+    "localTestsPassed": 4,
+    "localTestsFailed": 0
+  },
+  "unknowns": [
+    "No target-equivalent Senior Underlying single-asset Router was observed",
+    "No natural historical redeemUnderlying transaction was found in the bounded component history",
+    "Malicious or unrelated caller-supplied Vault behavior was not expanded"
+  ]
+}
