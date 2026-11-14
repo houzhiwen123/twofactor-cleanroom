@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_PERP_VAULT_PHASE4A_REAL_CONFIG",
+  "generatedAt": "2026-11-14T11:10:00+08:00",
+  "repositoryBaseline": "401e84f",
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "verifiedSourceRead": false,
+    "frontendBundleRead": false,
+    "walletOrPrivateKeyUsed": false,
+    "broadcastTransactions": false
+  },
+  "versionLock": {
+    "classification": "TARGET-CONFIRMED",
+    "chainId": 8453,
+    "fixedBlock": 53526143,
+    "implementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+    "implementationCodehash": "0xf44934d03450e1a1ccec20b9f3d6031fb2176e2e90c4d1074a506b8f27285645",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+    "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+    "underlyingDecimals": 8,
+    "currentOwnerKeeper": "0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d"
+  },
+  "deployments": {
+    "classification": "TARGET-CONFIRMED_AND_DERIVED_CALLDATA",
+    "deployer": "0xd7dAAA0648d72AFd2470e5B68B3Cf1c9Fd88c92b",
+    "initializerSelector": "0xc3d9e2fd",
+    "initializerSignature": "init(string,string,address,address,bool,bool)",
+    "creationReplay": {
+      "status": "NOT_COMPLETED_ON_PUBLIC_RPC",
+      "fallbackEvidence": [
+        "code absent at deploymentBlock-1",
+        "code and initialized state present at deploymentBlock",
+        "successful public receipt",
+        "public creation calldata decoded"
+      ]
+    },
+    "junior": {
+      "proxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+      "blockNumber": 51749808,
+      "transactionIndex": 89,
+      "transactionHash": "0x72eb95ae4ffeab83d7e736a0018c60a584ddd23f4280f8b6a91f18290b2506c3",
+      "transactionInputBytes": 3281,
+      "transactionInputKeccak256": "0xe342d67d910cfc6c9a916ce8ef48bbb4c8df7425af25cacffd1ea8b701075295",
+      "receiptStatus": "SUCCESS",
+      "createdCodeBytes": 830,
+      "proxyRuntimeCodehash": "0x0a16141b955fdc3548daeab3d02a4f007fcd407b6f88758a94caae8e8f4a4ab7",
+      "proxyAdmin": "0xe49e746cccd4c897ca3ad985747b30dd0a88d18d",
+      "init": {
+        "name": "cbBTC Junior Keeper",
+        "symbol": "cbBTC-Jr-Keeper",
+        "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+        "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+        "isPerpSrVault": false,
+        "mintsAboveTarget": false
+      }
+    },
+    "senior": {
+      "proxy": "0x805D7eE7F03dE39f2F30F3A7069c6d46642398cB",
+      "blockNumber": 51749809,
+      "transactionIndex": 94,
+      "transactionHash": "0xb1e500ac0e936bd907e09f515813156394d2b26dcc25f0a5a1824956ec40b5ce",
+      "transactionInputBytes": 3281,
+      "transactionInputKeccak256": "0x136a89a45b1ef9f3ba741047e0be12b6096ae51c310f9d7bb52a09af27286844",
+      "receiptStatus": "SUCCESS",
+      "createdCodeBytes": 830,
+      "proxyRuntimeCodehash": "0x2aed056fa5d6761cedf311376549767d063f32970ddc944418f0f16c965b65c3",
+      "proxyAdmin": "0x558818c8f369e6804041a8bdca5afcafa9acb06d",
+      "init": {
+        "name": "cbBTC Senior Keeper",
+        "symbol": "cbBTC-Sr-Keeper",
+        "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf",
+        "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+        "isPerpSrVault": true,
+        "mintsAboveTarget": true
+      }
+    }
+  },
+  "proxyAdministration": {
+    "classification": "TARGET-CONFIRMED",
+    "implementationSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "adminSlot": "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
+    "proxyAdminRuntimeCodehash": "0x097b23f80b082223dac6782c1aac884dc42d49a1b459e83df1efe5c1d794e0ce",
+    "currentProxyAdminOwner": "0xd3493F286f1B6e084D1CE5f6d6E6016fa7c8454d",
+    "initialProxyAdminOwner": "0xd7dAAA0648d72AFd2470e5B68B3Cf1c9Fd88c92b"
+  },
+  "dependencies": {
+    "classification": "TARGET-CONFIRMED",
+    "perpJunior": "0x8cd04668292dC32F519972495C179E4f02C0e8AB",
+    "perpSenior": "0x4be28E7597A928835245a10E9161E0c44687b70b",
+    "perpDecimals": 8,
+    "vaultShareDecimals": 18,
+    "underlyingUnitAmount": "100000000",
+    "minimumLiquidity": "10000000000"
+  },
+  "deploymentDefaults": {
+    "classification": "TARGET-CONFIRMED",
+    "ownerAndKeeper": "deployer",
+    "paused": false,
+    "targetDR": "1000000000000000000",
+    "eqDRLower": "1000000000000000000",
+    "eqDRUpper": "1000000000000000000",
+    "lastRebalanceTimestampSec": "0",
+    "rebalanceFreqSec": 86400,
+    "rebalanceOffsetSec": 0,
+    "minRebalanceVal": "0",
+    "maxFlashFeePerc": "10000000000000000",
+    "totalSupply": "0",
+    "underlyingBalance": "0",
+    "perpBalance": "0",
+    "controllerAllowances": "UINT256_MAX"
+  },
+  "fixedConfig": {
+    "classification": "TARGET-CONFIRMED",
+    "junior": {
+      "name": "cbBTC Junior Keeper",
+      "symbol": "cbBTC-Jr-Keeper",
+      "perp": "0x8cd04668292dC32F519972495C179E4f02C0e8AB",
+      "isPerpSrVault": false,
+      "mintsAboveTarget": false,
+      "targetDR": "1053564994000000000",
+      "eqDRLower": "1053564994000000000",
+      "eqDRUpper": "1230000000000000000",
+      "lastRebalanceTimestampSec": "1793318400",
+      "rebalanceFreqSec": 28800,
+      "rebalanceOffsetSec": 0,
+      "minRebalanceVal": "100000",
+      "maxFlashFeePerc": "5000000000000000",
+      "totalSupply": "3813064395481201456",
+      "underlyingBalance": "0",
+      "perpBalance": "32102063162351",
+      "tvl": "375476086",
+      "rebalanceAmount": "0",
+      "zeroAmountDirection": "MINT",
+      "underlyingAllowance": "115792089237316195423570985008687907853269984665640564039457584007913118077089",
+      "perpAllowance": "UINT256_MAX"
+    },
+    "senior": {
+      "name": "cbBTC Senior Keeper",
+      "symbol": "cbBTC-Sr-Keeper",
+      "perp": "0x4be28E7597A928835245a10E9161E0c44687b70b",
+      "isPerpSrVault": true,
+      "mintsAboveTarget": true,
+      "targetDR": "1053564994000000000",
+      "eqDRLower": "1043029344100000000",
+      "eqDRUpper": "1064100643900000000",
+      "lastRebalanceTimestampSec": "1793785200",
+      "rebalanceFreqSec": 28800,
+      "rebalanceOffsetSec": 6000,
+      "minRebalanceVal": "100000",
+      "maxFlashFeePerc": "5000000000000000",
+      "totalSupply": "121588631786949865",
+      "underlyingBalance": "10259975",
+      "perpBalance": "170465061177",
+      "tvl": "12403293",
+      "rebalanceAmount": "0",
+      "zeroAmountDirection": "REDEEM",
+      "underlyingAllowance": "115792089237316195423570985008687907853269984665640564039457584007913113892084",
+      "perpAllowance": "UINT256_MAX"
+    }
+  },
+  "testResults": {
+    "targetPhase4A": {"passed": 5, "failed": 0},
+    "fullTargetRegression": {"passed": 37, "failed": 0},
+    "localRegression": {"passed": 206, "failed": 0},
+    "releaseGates": {
+      "controllerRuntimeBytes": 22475,
+      "underlyingPerpVaultRuntimeBytes": 11806,
+      "controllerStorageLayout": "PASS",
+      "usdVaultStorageLayout": "PASS",
+      "underlyingPerpVaultStorageLayout": "PASS",
+      "underlyingPerpVaultAbiEntries": 83,
+      "underlyingPerpVaultAbiSha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+      "forgeFmtCheck": "PASS",
+      "gitDiffCheck": "PASS",
+      "jsonParse": "PASS"
+    }
+  },
+  "unknowns": [
+    "Exact source/build identity of the target proxy creation bytecode",
+    "Full historical creation replay on the bounded public RPC",
+    "Complete setter and upgrade history outside the fixed evidence blocks",
+    "Phase 4B end-to-end deposit, rebalance, rollover and redeem differential"
+  ]
+}
