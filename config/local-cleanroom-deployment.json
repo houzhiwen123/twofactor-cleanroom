@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "classification": "LOCAL-CLEANROOM-SIMULATION",
+  "broadcastAllowed": false,
+  "fixedTimestamp": 1800000000,
+  "roles": {
+    "admin": "0x00000000000000000000000000000000000A11cE",
+    "controllerKeeper": "0x00000000000000000000000000000000000A11cE",
+    "vaultKeeper": "0x00000000000000000000000000000000000A11cE",
+    "usdInventorySwapper": "0x00000000000000000000000000000000000A11cE"
+  },
+  "genesis": {
+    "underlyingDecimals": 8,
+    "underlyingPriceWad": "80000000000000000000000",
+    "initialUnderlyingUnits": "100000000",
+    "maxJuniorIdleTopUpUnits": "100001000",
+    "lockedSharesPerSide": "100000000"
+  },
+  "underlyingVaults": {
+    "seedUnderlyingUnitsPerVault": "1000000",
+    "targetDrWad": "1053564994000000000",
+    "rebalanceFrequencySec": 28800,
+    "minimumRebalanceUnderlyingUnits": "100000",
+    "maxFlashFeeWad": "5000000000000000",
+    "junior": {
+      "isPerpSrVault": false,
+      "mintsAboveTarget": false,
+      "eqDrLowerWad": "1053564994000000000",
+      "eqDrUpperWad": "1230000000000000000",
+      "rebalanceOffsetSec": 0
+    },
+    "senior": {
+      "isPerpSrVault": true,
+      "mintsAboveTarget": true,
+      "eqDrLowerWad": "1043029344100000000",
+      "eqDrUpperWad": "1064100643900000000",
+      "rebalanceOffsetSec": 6000
+    }
+  },
+  "usdVault": {
+    "dependenciesInitialized": true,
+    "activation": "BLOCKED_PENDING_EVIDENCE_BACKED_FIRST_NOTES_ISSUANCE",
+    "seedAssets": false
+  },
+  "dex": {
+    "strategy": "UniswapV3DexStrategy",
+    "pool": "LOCAL_NON_EXECUTING_MOCK",
+    "healthAndQuoteEnabled": true,
+    "tradeEnabled": false
+  }
+}

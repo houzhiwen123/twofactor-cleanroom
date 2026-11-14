@@ -4,7 +4,14 @@
 
 This design applies only to the Solidity contracts in this repository. The deployment script uses
 local mocks, a fixed local administrator (`0xA11CE`), no RPC URL, no wallet and no private key. It
-must be run without `--broadcast`.
+must be run without `--broadcast`. The script now continues beyond core Genesis to deploy the two
+UnderlyingPerpVaults, both Routers, a USD Vault dependency graph and the DEX Strategy.
+
+The USD Vault is deliberately left with zero notes and zero seed assets. Its first-notes issuance
+rule is not closed by current target evidence, so the local deployment marks it activation-pending
+instead of using a storage edit or a test harness mint. The local DEX pool exposes a healthy quote
+surface but intentionally rejects trade execution. These two limits are recorded in
+`config/local-cleanroom-deployment.json` and are not production-readiness claims.
 
 ## State machine
 
@@ -75,6 +82,7 @@ unchanged. `PerpToken` is constructor-initialized and has no initializer to repl
 ```sh
 forge script script/DeployGenesisLocal.s.sol:DeployGenesisLocal --offline -vvv
 forge test --offline --match-path test/GenesisDeployment.t.sol -vv
+forge test --offline --match-path test/OperationalDeployment.t.sol -vv
 ```
 
 The script intentionally contains no `startBroadcast(privateKey)` call and no network endpoint. Do

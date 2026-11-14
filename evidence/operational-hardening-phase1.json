@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "task": "OPERATIONAL_HARDENING_PHASE1",
+  "repositoryBaseline": "eb6fbb9",
+  "classification": "LOCAL-CLEANROOM_DEPLOYMENT_CANDIDATE",
+  "safety": {
+    "rpcUsed": false,
+    "walletOrPrivateKeyUsed": false,
+    "signatureUsed": false,
+    "broadcastUsed": false,
+    "targetSourceRead": false,
+    "storageEditUsed": false
+  },
+  "deployment": {
+    "fixedTimestamp": 1800000000,
+    "fixedAdmin": "0x00000000000000000000000000000000000A11cE",
+    "gasUsed": 36789439,
+    "coreGenesisComplete": true,
+    "userOpsPaused": false,
+    "juniorUnderlyingVaultActive": true,
+    "seniorUnderlyingVaultActive": true,
+    "underlyingRouterDeployed": true,
+    "usdRouterDeployed": true,
+    "dexStrategyDeployed": true,
+    "localDexTradeEnabled": false,
+    "usdVaultDependenciesInitialized": true,
+    "usdVaultActive": false,
+    "usdVaultBlocker": "EVIDENCE_BACKED_FIRST_NOTES_ISSUANCE_UNKNOWN"
+  },
+  "keeperBoundaries": {
+    "controllerMaintenancePermissionless": true,
+    "controllerSettersOwnerOnly": true,
+    "underlyingVaultRebalancePermissionless": true,
+    "underlyingVaultPauseKeeperOnly": true,
+    "underlyingVaultSettersOwnerOnly": true,
+    "usdVaultMaintenancePermissionless": true,
+    "usdVaultSwapAuthorizedInventoryOnly": true
+  },
+  "focusedTests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "verification": {
+    "deploymentSimulationSucceeded": true,
+    "fullOfflinePassed": 219,
+    "fullOfflineFailed": 0,
+    "runtimeBytes": {
+      "PerpController": 22475,
+      "UnderlyingPerpVault": 11806,
+      "UsdVault": 15996,
+      "UnderlyingSingleAssetRouter": 3994,
+      "UniswapV3DexStrategy": 4530
+    },
+    "storageLayoutChecksPassed": true,
+    "underlyingPerpVaultAbiEntries": 83,
+    "underlyingPerpVaultAbiSha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+    "formatCheckPassed": true,
+    "diffCheckPassed": true
+  },
+  "unknowns": [
+    "USD Vault first-notes issuance",
+    "production DEX pool and executable settlement",
+    "production multisig and keeper operating runbook",
+    "stateful invariant and economic attack results"
+  ]
+}
