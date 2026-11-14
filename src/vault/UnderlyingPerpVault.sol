@@ -142,15 +142,9 @@ contract UnderlyingPerpVault is
     }
 
     /// @notice Establishes the target-observed initial share price and locks the minimum notes in the vault itself.
-    function initDeposit(uint256 underlyingAmt)
-        external
-        override
-        onlyOwner
-        whenNotPaused
-        nonReentrant
-        returns (uint256 notesMinted)
-    {
+    function initDeposit(uint256 underlyingAmt) external override onlyOwner nonReentrant returns (uint256 notesMinted) {
         if (_vaultInitialized) revert VaultInitialized();
+        _requireNotPaused();
 
         notesMinted = Math.mulDiv(underlyingAmt, ONE, underlyingUnitAmt);
         if (notesMinted <= MINIMUM_LIQUIDITY) return 0;
@@ -219,11 +213,11 @@ contract UnderlyingPerpVault is
     function deposit(uint256 underlyingMax, uint256 perpMax)
         external
         override
-        whenNotPaused
         nonReentrant
         returns (uint256 notesMinted)
     {
         if (!_vaultInitialized) revert VaultNotInitialized();
+        _requireNotPaused();
 
         uint256 underlyingAmtIn;
         uint256 perpAmtIn;
@@ -309,7 +303,8 @@ contract UnderlyingPerpVault is
             uint256 drBefore,
             IUnderlyingPerpVaultController.SystemState memory state
         ) = _rebalanceCapacity();
-        if (underlyingAmt == 0 || underlyingAmt < _phase2.minRebalanceVal) revert OpUnavailable("no capacity");
+        if (underlyingAmt == 0) revert NoOp();
+        if (underlyingAmt < _phase2.minRebalanceVal) revert OpUnavailable("no capacity");
 
         IUnderlyingPerpVaultController controller = IUnderlyingPerpVaultController(perpController);
         IUnderlyingPerpVaultController.FeePerc memory selectedFee;

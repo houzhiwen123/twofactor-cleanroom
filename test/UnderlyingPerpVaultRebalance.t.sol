@@ -265,7 +265,7 @@ contract UnderlyingPerpVaultRebalanceTest is Test {
         vm.warp(DEFAULT_FREQ);
 
         controller.setDeviations(WAD, WAD);
-        vm.expectRevert(abi.encodeWithSelector(UnderlyingPerpVault.OpUnavailable.selector, "no capacity"));
+        vm.expectRevert(UnderlyingPerpVault.NoOp.selector);
         vault.rebalance();
 
         vault.updateMinRebalanceAmt(100);
@@ -279,6 +279,120 @@ contract UnderlyingPerpVaultRebalanceTest is Test {
         controller.setMintResult(100, 0, _fee(0), _fee(0));
         vault.rebalance();
         assertEq(controller.lastSrUnderlyingIn(), 100);
+    }
+
+    function testTargetConfirmedPauseMatrixAndAdminAvailability() public {
+        UnderlyingPerpVault vault = _deploy(true);
+        vault.updateKeeper(KEEPER);
+        vm.prank(KEEPER);
+        vault.pause();
+
+        vm.expectRevert(UnderlyingPerpVault.VaultInitialized.selector);
+        vault.initDeposit(0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.deposit(0, 0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.redeem(0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.rebalance();
+
+        vault.updateTargetDR(uint96(WAD), IUnderlyingPerpVault.DRRange(uint96(WAD), uint96(WAD)));
+        vault.updateRebalanceTimingParams(100, 0);
+        vault.updateMinRebalanceAmt(9);
+        vault.updateMaxFlashFeePerc(1);
+        vault.updateKeeper(RANDOM);
+        assertTrue(vault.paused());
+
+        vm.prank(KEEPER);
+        vm.expectRevert(UnderlyingPerpVault.UnauthorizedCall.selector);
+        vault.unpause();
+        vm.prank(RANDOM);
+        vault.unpause();
+        assertFalse(vault.paused());
+    }
+
+    function testFreshPausedInitializationErrorPrecedenceMatchesTarget() public {
+        UnderlyingPerpVault vault = _deployUninitialized(true);
+        vault.updateKeeper(KEEPER);
+        vm.prank(KEEPER);
+        vault.pause();
+
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.initDeposit(0);
+        vm.expectRevert(UnderlyingPerpVault.VaultNotInitialized.selector);
+        vault.deposit(0, 0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.redeem(0);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        vault.rebalance();
+    }
+
+    function testPausePrecedesCooldownNoOpAndExcessiveFee() public {
+        UnderlyingPerpVault cooldownVault = _deploy(true);
+        cooldownVault.updateKeeper(KEEPER);
+        underlying.mint(address(cooldownVault), 1_000);
+        _setState(1_000, 1_000, 1_000, 2_000);
+        controller.setDeviations(WAD + 1, WAD);
+        controller.setMintResult(1_000, 0, _fee(0), _fee(0));
+        vm.warp(DEFAULT_FREQ);
+        cooldownVault.rebalance();
+        vm.prank(KEEPER);
+        cooldownVault.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        cooldownVault.rebalance();
+        vm.prank(KEEPER);
+        cooldownVault.unpause();
+        vm.expectRevert(UnderlyingPerpVault.LastRebalanceTooRecent.selector);
+        cooldownVault.rebalance();
+
+        UnderlyingPerpVault noOpVault = _deploy(true);
+        noOpVault.updateKeeper(KEEPER);
+        controller.setDeviations(WAD, WAD);
+        vm.prank(KEEPER);
+        noOpVault.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        noOpVault.rebalance();
+        vm.prank(KEEPER);
+        noOpVault.unpause();
+        vm.expectRevert(UnderlyingPerpVault.NoOp.selector);
+        noOpVault.rebalance();
+
+        UnderlyingPerpVault feeVault = _deploy(true);
+        feeVault.updateKeeper(KEEPER);
+        underlying.mint(address(feeVault), 998);
+        _setState(1_000, 1_000, 1_000, 2_000);
+        controller.setDeviations(WAD + 1, WAD);
+        controller.setMintResult(777, 0, _fee(DEFAULT_MAX_FEE + 1), _fee(0));
+        vm.prank(KEEPER);
+        feeVault.pause();
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        feeVault.rebalance();
+        vm.prank(KEEPER);
+        feeVault.unpause();
+        vm.expectRevert(UnderlyingPerpVault.SlippageTooHigh.selector);
+        feeVault.rebalance();
+    }
+
+    function testTargetConfirmedKeeperAndOneStepOwnershipBoundaries() public {
+        UnderlyingPerpVault vault = _deploy(true);
+        vault.updateKeeper(address(0));
+        assertEq(vault.keeper(), address(0));
+        vault.updateKeeper(KEEPER);
+
+        vm.prank(KEEPER);
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", KEEPER));
+        vault.updateKeeper(RANDOM);
+        vm.prank(RANDOM);
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", RANDOM));
+        vault.updateKeeper(RANDOM);
+
+        vault.transferOwnership(RANDOM);
+        assertEq(vault.owner(), RANDOM, "ownership transfer must be immediate");
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", address(this)));
+        vault.updateMinRebalanceAmt(7);
+        vm.prank(RANDOM);
+        vault.updateMinRebalanceAmt(7);
+        assertEq(vault.minRebalanceVal(), 7);
     }
 
     function testCooldownUsesBucketTimestampAndExactLastPlusFrequencyBoundary() public {
@@ -360,7 +474,45 @@ contract UnderlyingPerpVaultRebalanceTest is Test {
         assertEq(vault.lastRebalanceTimestampSec(), 0);
     }
 
+    function testControllerReadFailuresBubbleAndLeaveVaultAtomic() public {
+        UnderlyingPerpVault vault = _deploy(true);
+        underlying.mint(address(vault), 998);
+        _setState(1_000, 1_000, 1_000, 2_000);
+        controller.setDeviations(WAD + 1, WAD);
+        bytes memory failure = abi.encodeWithSignature("ControllerReadFailure()");
+        bytes32 beforeFingerprint = _vaultFingerprint(vault);
+
+        vm.mockCallRevert(address(controller), abi.encodeWithSelector(bytes4(keccak256("systemDeviations()"))), failure);
+        vm.expectRevert(failure);
+        vault.rebalance();
+        assertEq(_vaultFingerprint(vault), beforeFingerprint);
+        vm.clearMockedCalls();
+
+        vm.mockCallRevert(
+            address(controller), abi.encodeWithSelector(bytes4(keccak256("systemReserveState()"))), failure
+        );
+        vm.expectRevert(failure);
+        vault.rebalance();
+        assertEq(_vaultFingerprint(vault), beforeFingerprint);
+        vm.clearMockedCalls();
+
+        vm.mockCallRevert(
+            address(controller), abi.encodeWithSelector(bytes4(keccak256("targetSystemRatio()"))), failure
+        );
+        vm.expectRevert(failure);
+        vault.rebalance();
+        assertEq(_vaultFingerprint(vault), beforeFingerprint);
+    }
+
     function _deploy(bool senior) private returns (UnderlyingPerpVault vault) {
+        vault = _deployUninitialized(senior);
+
+        underlying.mint(address(this), 2);
+        underlying.approve(address(vault), 2);
+        vault.initDeposit(2);
+    }
+
+    function _deployUninitialized(bool senior) private returns (UnderlyingPerpVault vault) {
         UnderlyingPerpVault implementation = new UnderlyingPerpVault();
         bytes memory initData = abi.encodeCall(
             UnderlyingPerpVault.init,
@@ -374,10 +526,6 @@ contract UnderlyingPerpVaultRebalanceTest is Test {
             )
         );
         vault = UnderlyingPerpVault(address(new ERC1967Proxy(address(implementation), initData)));
-
-        underlying.mint(address(this), 2);
-        underlying.approve(address(vault), 2);
-        vault.initDeposit(2);
     }
 
     function _setState(uint256 srSupply, uint256 srValue, uint256 jrSupply, uint256 jrValue) private {
@@ -397,5 +545,19 @@ contract UnderlyingPerpVaultRebalanceTest is Test {
         returns (MockUnderlyingPerpVaultRebalanceController.FeePerc memory)
     {
         return MockUnderlyingPerpVaultRebalanceController.FeePerc({totalFeePerc: totalFeePerc, protocolFeePerc: 0});
+    }
+
+    function _vaultFingerprint(UnderlyingPerpVault vault) private view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                underlying.balanceOf(address(vault)),
+                perpSr.balanceOf(address(vault)),
+                perpJr.balanceOf(address(vault)),
+                vault.totalSupply(),
+                vault.lastRebalanceTimestampSec(),
+                controller.flashMintCalls(),
+                controller.flashRedeemCalls()
+            )
+        );
     }
 }

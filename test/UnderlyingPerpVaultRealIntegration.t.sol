@@ -12,18 +12,37 @@ import {PerpController} from "../src/controller/PerpController.sol";
 import {GenesisSeeder} from "../src/deploy/GenesisSeeder.sol";
 import {IBondsManager} from "../src/interfaces/IBondsManager.sol";
 import {IUnderlyingPerpVault} from "../src/interfaces/IUnderlyingPerpVault.sol";
+import {CachedOracle} from "../src/oracle/CachedOracle.sol";
 import {PerpToken} from "../src/perp/PerpToken.sol";
 import {FeePolicy} from "../src/policy/FeePolicy.sol";
 import {PerpBalancer} from "../src/policy/PerpBalancer.sol";
 import {UnderlyingPerpVault} from "../src/vault/UnderlyingPerpVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {MockChainlinkFeed} from "./mocks/MockChainlinkFeed.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
+
+contract Phase3RevertingOracle {
+    error OracleCallFailure();
+
+    function getValidPrice() external pure returns (uint256) {
+        revert OracleCallFailure();
+    }
+
+    function cachePrice() external pure returns (uint256) {
+        revert OracleCallFailure();
+    }
+
+    function resetCache() external pure {
+        revert OracleCallFailure();
+    }
+}
 
 contract UnderlyingPerpVaultRealIntegrationTest is Test {
     uint256 private constant INITIAL_UNDERLYING = 100_000_000;
     uint256 private constant MAX_JR_IDLE_TOP_UP = INITIAL_UNDERLYING + 1_000;
     uint256 private constant INITIAL_PRICE = 80_000e18;
     uint256 private constant VAULT_SEED = 1_000_000;
+    uint256 private constant SR_REDEEM_LIQUIDITY_TOP_UP = 10 * VAULT_SEED;
     address private constant RECEIVER = address(0xBEEF);
 
     struct LocalSystem {
@@ -136,6 +155,109 @@ contract UnderlyingPerpVaultRealIntegrationTest is Test {
 
         assertEq(_fingerprint(s, vault), beforeFingerprint);
         assertEq(vault.lastRebalanceTimestampSec(), 0);
+    }
+
+    function testRealControllerOracleFailuresLeaveVaultAndSystemAtomic() public {
+        LocalSystem memory s = _deployLiveSystem();
+        UnderlyingPerpVault vault = _deployVault(s, true);
+        MockChainlinkFeed feed = _installCachedOracle(s);
+        _configureCorrectiveTarget(vault, s.controller);
+        (uint256 planned,) = vault.computeRebalanceAmount();
+        assertGt(planned, 0);
+        bytes32 beforeFingerprint = _failureFingerprint(s, vault);
+
+        feed.setRoundData(2, 8_000_000_000_000, block.timestamp, block.timestamp - 3601, 2);
+        vm.expectRevert(CachedOracle.InvalidPrice.selector);
+        vault.rebalance();
+        assertEq(_failureFingerprint(s, vault), beforeFingerprint, "stale oracle changed state");
+
+        feed.setRoundData(3, 0, block.timestamp, block.timestamp, 3);
+        vm.expectRevert(CachedOracle.ZeroPrice.selector);
+        vault.rebalance();
+        assertEq(_failureFingerprint(s, vault), beforeFingerprint, "zero oracle changed state");
+
+        feed.setRoundData(4, -1, block.timestamp, block.timestamp, 4);
+        vm.expectRevert(CachedOracle.InvalidPrice.selector);
+        vault.rebalance();
+        assertEq(_failureFingerprint(s, vault), beforeFingerprint, "negative oracle changed state");
+
+        Phase3RevertingOracle revertingOracle = new Phase3RevertingOracle();
+        s.manager.updateOracle(address(s.underlying), address(revertingOracle));
+        s.controller.setUnderlyingOracle();
+        beforeFingerprint = _failureFingerprint(s, vault);
+        vm.expectRevert(Phase3RevertingOracle.OracleCallFailure.selector);
+        vault.rebalance();
+        assertEq(_failureFingerprint(s, vault), beforeFingerprint, "reverting oracle changed state");
+    }
+
+    function testBothVaultsCompletePriceRebalancePauseAndFullUserExitLifecycle() public {
+        LocalSystem memory s = _deployLiveSystem();
+        UnderlyingPerpVault seniorVault = _deployVault(s, true);
+        UnderlyingPerpVault juniorVault = _deployVault(s, false);
+        uint256 underlyingSupplyBefore = s.underlying.totalSupply();
+
+        s.underlying.mint(RECEIVER, 2 * VAULT_SEED);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(seniorVault), VAULT_SEED);
+        s.underlying.approve(address(juniorVault), VAULT_SEED);
+        uint256 seniorUserNotes = seniorVault.deposit(VAULT_SEED, 0);
+        uint256 juniorUserNotes = juniorVault.deposit(VAULT_SEED, 0);
+        vm.stopPrank();
+        assertGt(seniorUserNotes, 0);
+        assertGt(juniorUserNotes, 0);
+
+        s.oracle.setPrice(INITIAL_PRICE * 11 / 10);
+        _configureDirection(seniorVault, s.controller, true);
+        _configureDirection(juniorVault, s.controller, true);
+        seniorVault.rebalance();
+        juniorVault.rebalance();
+        assertGt(s.perpSr.balanceOf(address(seniorVault)), 0);
+        assertGt(s.perpJr.balanceOf(address(juniorVault)), 0);
+
+        vm.warp(block.timestamp + 86_400);
+        s.oracle.setPrice(INITIAL_PRICE * 9 / 10);
+        // Local lifecycle fixture: flash redemption needs idle underlying on the paying Perp side.
+        s.underlying.mint(address(s.perpSr), SR_REDEEM_LIQUIDITY_TOP_UP);
+        uint256 seniorPerpBefore = s.perpSr.balanceOf(address(seniorVault));
+        uint256 juniorPerpBefore = s.perpJr.balanceOf(address(juniorVault));
+        _configureDirection(seniorVault, s.controller, false);
+        seniorVault.rebalance();
+        _configureDirection(juniorVault, s.controller, false);
+        juniorVault.rebalance();
+        assertLt(s.perpSr.balanceOf(address(seniorVault)), seniorPerpBefore);
+        assertLt(s.perpJr.balanceOf(address(juniorVault)), juniorPerpBefore);
+
+        seniorVault.pause();
+        juniorVault.pause();
+        vm.prank(RECEIVER);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        seniorVault.redeem(1);
+        vm.prank(RECEIVER);
+        vm.expectRevert(abi.encodeWithSignature("EnforcedPause()"));
+        juniorVault.redeem(1);
+        seniorVault.unpause();
+        juniorVault.unpause();
+
+        vm.startPrank(RECEIVER);
+        seniorVault.redeem(seniorUserNotes / 10);
+        juniorVault.redeem(juniorUserNotes / 10);
+        seniorVault.redeem(seniorVault.balanceOf(RECEIVER));
+        juniorVault.redeem(juniorVault.balanceOf(RECEIVER));
+        vm.stopPrank();
+
+        seniorVault.redeem(seniorVault.balanceOf(address(this)));
+        juniorVault.redeem(juniorVault.balanceOf(address(this)));
+
+        assertEq(seniorVault.balanceOf(RECEIVER), 0);
+        assertEq(juniorVault.balanceOf(RECEIVER), 0);
+        assertEq(seniorVault.balanceOf(address(this)), 0);
+        assertEq(juniorVault.balanceOf(address(this)), 0);
+        assertEq(seniorVault.totalSupply(), seniorVault.MINIMUM_LIQUIDITY());
+        assertEq(juniorVault.totalSupply(), juniorVault.MINIMUM_LIQUIDITY());
+        assertEq(seniorVault.balanceOf(address(seniorVault)), seniorVault.MINIMUM_LIQUIDITY());
+        assertEq(juniorVault.balanceOf(address(juniorVault)), juniorVault.MINIMUM_LIQUIDITY());
+        assertEq(s.underlying.totalSupply(), underlyingSupplyBefore + 2 * VAULT_SEED + SR_REDEEM_LIQUIDITY_TOP_UP);
+        assertEq(_trackedUnderlying(s, seniorVault, juniorVault), s.underlying.totalSupply());
     }
 
     function _deployLiveSystem() private returns (LocalSystem memory s) {
@@ -271,11 +393,41 @@ contract UnderlyingPerpVaultRealIntegrationTest is Test {
         vault.updateTargetDR(target, IUnderlyingPerpVault.DRRange(target, target));
     }
 
+    function _configureDirection(UnderlyingPerpVault vault, PerpController controller, bool minting) private {
+        (uint256 subDr,) = controller.systemDeviations();
+        bool targetBelow = vault.isPerpSrVault() ? minting : !minting;
+        uint96 target = targetBelow ? uint96(subDr / 2) : uint96(subDr * 2);
+        vault.updateTargetDR(target, IUnderlyingPerpVault.DRRange(target, target));
+        (uint256 amount, bool observedMinting) = vault.computeRebalanceAmount();
+        assertEq(observedMinting, minting, "direction setup failed");
+        assertGt(amount, 0, "direction has no capacity");
+    }
+
+    function _installCachedOracle(LocalSystem memory s) private returns (MockChainlinkFeed feed) {
+        feed = new MockChainlinkFeed(8);
+        feed.setRoundData(1, 8_000_000_000_000, block.timestamp, block.timestamp, 1);
+        CachedOracle oracle = new CachedOracle(address(feed), 3600, address(0), 0);
+        s.manager.updateOracle(address(s.underlying), address(oracle));
+        s.controller.setUnderlyingOracle();
+    }
+
     function _trackedUnderlying(LocalSystem memory s, UnderlyingPerpVault vault) private view returns (uint256) {
         return s.underlying.balanceOf(address(s.manager)) + s.underlying.balanceOf(address(s.perpSr))
             + s.underlying.balanceOf(address(s.perpJr)) + s.underlying.balanceOf(address(s.controller))
             + s.underlying.balanceOf(address(s.seeder)) + s.underlying.balanceOf(address(this))
             + s.underlying.balanceOf(RECEIVER) + s.underlying.balanceOf(address(vault));
+    }
+
+    function _trackedUnderlying(LocalSystem memory s, UnderlyingPerpVault seniorVault, UnderlyingPerpVault juniorVault)
+        private
+        view
+        returns (uint256)
+    {
+        return s.underlying.balanceOf(address(s.manager)) + s.underlying.balanceOf(address(s.perpSr))
+            + s.underlying.balanceOf(address(s.perpJr)) + s.underlying.balanceOf(address(s.controller))
+            + s.underlying.balanceOf(address(s.seeder)) + s.underlying.balanceOf(address(this))
+            + s.underlying.balanceOf(RECEIVER) + s.underlying.balanceOf(address(seniorVault))
+            + s.underlying.balanceOf(address(juniorVault));
     }
 
     function _fingerprint(LocalSystem memory s, UnderlyingPerpVault vault) private view returns (bytes32) {
@@ -289,6 +441,23 @@ contract UnderlyingPerpVaultRealIntegrationTest is Test {
                 s.underlying.balanceOf(address(s.controller)),
                 s.perpSr.balanceOf(address(s.controller)),
                 vault.lastRebalanceTimestampSec()
+            )
+        );
+    }
+
+    function _failureFingerprint(LocalSystem memory s, UnderlyingPerpVault vault) private view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                s.underlying.balanceOf(address(vault)),
+                s.perpSr.balanceOf(address(vault)),
+                s.perpJr.balanceOf(address(vault)),
+                vault.totalSupply(),
+                vault.lastRebalanceTimestampSec(),
+                s.underlying.balanceOf(address(s.controller)),
+                s.perpSr.balanceOf(address(s.controller)),
+                s.perpJr.balanceOf(address(s.controller)),
+                s.perpSr.totalSupply(),
+                s.perpJr.totalSupply()
             )
         );
     }

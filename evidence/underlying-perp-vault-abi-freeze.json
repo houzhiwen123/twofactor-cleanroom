@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "phase": "UNDERLYING_PERP_VAULT_PHASE3_ADMIN_PAUSE_ORACLE_LIFECYCLE",
+  "contract": "UnderlyingPerpVault",
+  "source": "src/vault/UnderlyingPerpVault.sol",
+  "artifact": "out/UnderlyingPerpVault.sol/UnderlyingPerpVault.json",
+  "scope": "complete artifact ABI; hashes every present entry regardless of whether it is a constructor, error, event, receive/fallback entry or function",
+  "normalization": "sort top-level ABI entries by compact sort-key JSON; recursively sort object keys; preserve all nested array order; serialize without insignificant whitespace",
+  "hashAlgorithm": "sha256",
+  "abiEntryCount": 83,
+  "canonicalSha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea"
+}

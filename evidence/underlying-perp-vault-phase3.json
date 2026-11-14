@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_PERP_VAULT_PHASE3_ADMIN_PAUSE_ORACLE_LIFECYCLE",
+  "generatedAt": "2026-11-14T10:45:00+08:00",
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "verifiedSourceRead": false,
+    "frontendBundleRead": false,
+    "walletOrPrivateKeyUsed": false,
+    "broadcastTransactions": false
+  },
+  "classificationDefinitions": {
+    "TARGET-CONFIRMED": "Observed in unmodified public-chain state or an exact historical transaction-prestate replay.",
+    "SYNTHETIC FORK": "Observed after changing a target parameter or deploying a fresh proxy around the version-locked target implementation on a local fork.",
+    "LOCAL-CLEANROOM": "Behavior of the independent local implementation.",
+    "UNKNOWN": "Not established by the present evidence."
+  },
+  "versionLock": {
+    "classification": "TARGET-CONFIRMED",
+    "chainId": 8453,
+    "fixedBlock": 53526143,
+    "juniorVaultProxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+    "seniorVaultProxy": "0x805D7eE7F03dE39f2F30F3A7069c6d46642398cB",
+    "implementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+    "implementationCodehash": "0xf44934d03450e1a1ccec20b9f3d6031fb2176e2e90c4d1074a506b8f27285645",
+    "implementationSlot": "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+    "historicalPrestates": {
+      "cooldown": "0x07114c7e3baca7be676b961fe55548e688f830b0a6d99116cdc04c25b8c542ff",
+      "excessiveFee": "0x2c23758afef541c51d2e290e533ab77f9396bf99e3cb9c632e7eec5f6fccd5c0"
+    }
+  },
+  "testResults": {
+    "targetFork": {
+      "total": {"passed": 32, "failed": 0},
+      "phase1": {"passed": 7, "failed": 0},
+      "phase2": {"passed": 18, "failed": 0},
+      "phase3": {"passed": 7, "failed": 0},
+      "command": "FOUNDRY_TEST=evidence/probe-tests BASE_RPC_URL=https://base-rpc.publicnode.com forge test --match-contract 'UnderlyingPerpVaultPhase(1|2|3)ProbeTest' --summary"
+    },
+    "localFocused": {
+      "rebalance": {"passed": 19, "failed": 0},
+      "realIntegration": {"passed": 5, "failed": 0},
+      "command": "forge test --match-contract 'UnderlyingPerpVault(Rebalance|RealIntegration)Test' --summary"
+    },
+    "releaseGates": {
+      "status": "PASS",
+      "repositoryTests": {"passed": 206, "failed": 0},
+      "runtimeBytes": {
+        "PerpController": 22475,
+        "UnderlyingPerpVault": 11806
+      },
+      "storageLayout": {
+        "PerpController": "PASS",
+        "UsdVault": "PASS",
+        "UnderlyingPerpVault": "PASS"
+      },
+      "abiFreeze": {
+        "status": "PASS",
+        "entryCount": 83,
+        "canonicalSha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea"
+      },
+      "forgeFmtCheck": "PASS",
+      "gitDiffCheck": "PASS",
+      "jsonParse": "PASS"
+    }
+  },
+  "administration": {
+    "classification": "SYNTHETIC FORK",
+    "setterAuthorization": "owner-only",
+    "setterCountCovered": 5,
+    "updateKeeperZeroAddressAccepted": true,
+    "ownershipTransfer": "ONE_STEP_IMMEDIATE",
+    "ownershipZeroAddressRejected": true,
+    "pauseAndUnpauseAuthorization": "current keeper only",
+    "oldKeeperLosesAuthorityImmediately": true,
+    "failedCallsPreserveFingerprint": true,
+    "fingerprint": [
+      "owner",
+      "keeper",
+      "paused",
+      "targetDR",
+      "eqDRRange",
+      "rebalance timing",
+      "last rebalance timestamp",
+      "minimum rebalance value",
+      "maximum flash fee",
+      "Vault underlying balance",
+      "Vault Perp balance",
+      "note total supply"
+    ]
+  },
+  "pauseMatrix": {
+    "classification": "SYNTHETIC FORK",
+    "initializedPaused": {
+      "initDeposit": "VaultInitialized()",
+      "deposit": "EnforcedPause()",
+      "redeem": "EnforcedPause()",
+      "rebalance": "EnforcedPause()"
+    },
+    "freshUninitializedPaused": {
+      "initDeposit": "EnforcedPause()",
+      "deposit": "VaultNotInitialized()",
+      "redeem": "EnforcedPause()",
+      "rebalance": "EnforcedPause()"
+    },
+    "ownerSettersRemainCallable": true,
+    "pausePrecedes": [
+      "LastRebalanceTooRecent()",
+      "NoOp()",
+      "SlippageTooHigh()"
+    ],
+    "afterUnpauseUnderlyingErrorsObserved": true
+  },
+  "rebalanceCapacityBoundary": {
+    "classification": "SYNTHETIC FORK",
+    "exactZero": "NoOp()",
+    "positiveBelowMinimum": "OpUnavailable(\"no capacity\")",
+    "exactMinimum": "SUCCESS"
+  },
+  "errors": {
+    "OwnableUnauthorizedAccount(address)": "0x118cdaa7",
+    "OwnableInvalidOwner(address)": "0x1e4fbdf7",
+    "UnauthorizedCall()": "0x7bf6a16f",
+    "EnforcedPause()": "0xd93c0665",
+    "VaultInitialized()": "0x13056cf1",
+    "VaultNotInitialized()": "0x9a09fd87",
+    "NoOp()": "0x00219cf1",
+    "LastRebalanceTooRecent()": "0xa3b3f090",
+    "OpUnavailable(string)": "0xf0b62b3b",
+    "SlippageTooHigh()": "0x850c6f76",
+    "InvalidParamDefn()": "0xd126d255",
+    "InvalidRange()": "0x561ce9bb",
+    "InvalidPerc()": "0xcdc62692"
+  },
+  "cleanroomCompatibilityChanges": {
+    "classification": "LOCAL-CLEANROOM",
+    "storageNeutral": true,
+    "changes": [
+      "initDeposit checks VaultInitialized before pause",
+      "deposit checks VaultNotInitialized before pause",
+      "rebalance returns NoOp for exact zero and OpUnavailable for a positive amount below minimum"
+    ],
+    "vaultOracleSetterAdded": false
+  },
+  "localFailureAtomicity": {
+    "classification": "LOCAL-CLEANROOM",
+    "controllerReadFailures": [
+      "systemDeviations()",
+      "systemReserveState()",
+      "targetSystemRatio()"
+    ],
+    "controllerExecutionFailureCovered": true,
+    "oracleFailures": [
+      {"case": "stale", "error": "InvalidPrice()"},
+      {"case": "zero", "error": "ZeroPrice()"},
+      {"case": "negative", "error": "InvalidPrice()"},
+      {"case": "revert", "error": "OracleCallFailure()"}
+    ],
+    "originalRevertDataBubbles": true,
+    "monitoredStateUnchanged": true,
+    "targetOracleBehaviorConfirmed": false
+  },
+  "twoVaultLifecycle": {
+    "classification": "LOCAL-CLEANROOM",
+    "seniorAndJuniorVaults": true,
+    "steps": [
+      "deploy local core and both Vaults",
+      "initialize both Vaults",
+      "user deposits",
+      "price increase",
+      "explicit local targetDR configuration and both mint-direction rebalances",
+      "price decrease",
+      "explicit local targetDR configuration and both redeem-direction rebalances",
+      "pause and resume both Vaults",
+      "partial exits",
+      "all redeemable user notes exit",
+      "locked minimum liquidity remains",
+      "asset conservation"
+    ],
+    "finalUserNotesZero": true,
+    "finalSupplyPerVault": "MINIMUM_LIQUIDITY",
+    "lockedNotesHeldByVault": true,
+    "underlyingConserved": true,
+    "priceAloneSelectsDirectionClaimed": false,
+    "targetLifecycleClaimed": false,
+    "srIdleLiquidityFixture": {
+      "amount": "10 * VAULT_SEED",
+      "destination": "local SR Perp reserve",
+      "includedInConservation": true,
+      "classification": "LOCAL-CLEANROOM TEST FIXTURE",
+      "targetEvidence": false,
+      "productionRule": false
+    }
+  },
+  "unknowns": [
+    "Target Oracle stale, zero, negative, and reverting-call selectors and precedence",
+    "Target full lifecycle from a freshly deployed core and both Vaults",
+    "Complete successful administrative event inventory and event ordering",
+    "Any target liquidity mechanism corresponding to the local SR idle-liquidity fixture"
+  ]
+}
