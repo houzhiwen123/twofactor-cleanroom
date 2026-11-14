@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_PERP_VAULT_PHASE4B_LIFECYCLE",
+  "repositoryBaseline": "3108239",
+  "classificationDefinitions": {
+    "TARGET-CONFIRMED": "Public historical state or exact historical transaction replay already archived by Phase 1/2.",
+    "TARGET-SYNTHETIC-FORK": "Target bytecode executed on a disposable Base fork with explicitly constructed local conditions.",
+    "LOCAL-CLEANROOM": "Behavior of this repository's independent implementation.",
+    "UNKNOWN": "Not established by current target evidence."
+  },
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "walletOrPrivateKeyUsed": false,
+    "signedOrBroadcastTransactions": false,
+    "targetBalanceOrStorageMutationForHistoricalVectors": false,
+    "verifiedSourceOrFrontendRead": false
+  },
+  "target": {
+    "depositRedeem": {
+      "classification": "TARGET-CONFIRMED",
+      "source": "evidence/underlying-perp-vault-phase1.json",
+      "note": "Quote and state vectors at transaction pre-state; Phase 4B does not relabel them as full transaction replay.",
+      "vectors": [
+        {
+          "side": "junior",
+          "operation": "deposit",
+          "blockNumber": 51777456,
+          "transactionIndex": 245,
+          "transactionHash": "0x57d37a67cb7497bb613e6d1c04805586b8a48130896575a378aa732a8a18132a",
+          "underlyingAccepted": "0",
+          "perpAccepted": "1636069530773",
+          "notes": "194416786128004843"
+        },
+        {
+          "side": "senior",
+          "operation": "deposit",
+          "blockNumber": 51777490,
+          "transactionIndex": 48,
+          "transactionHash": "0xfbcb1b0804631f55de0d5f2460fd4b4681be20a8a87459719d5d5391de28ec48",
+          "underlyingAccepted": "1587122",
+          "perpAccepted": "540252299306",
+          "notes": "80494093785850860"
+        },
+        {
+          "side": "junior",
+          "operation": "redeem",
+          "blockNumber": 51777350,
+          "transactionIndex": 180,
+          "transactionHash": "0x21eb05f37f07bd2c08da8d3f3c32621c11b0144f3c1eb0190d75c2d9ada5334a",
+          "notes": "41562290000000000",
+          "underlyingOut": "3555739",
+          "perpOut": "50480992204"
+        },
+        {
+          "side": "senior",
+          "operation": "redeem",
+          "blockNumber": 51777359,
+          "transactionIndex": 158,
+          "transactionHash": "0x55f37956343d2ec453a4421de2ca98427fcd7d10fca3a8353b22062994d61ae4",
+          "notes": "49620700000000000",
+          "underlyingOut": "4907016",
+          "perpOut": "4656119783"
+        }
+      ]
+    },
+    "rebalance": {
+      "classification": "TARGET-CONFIRMED",
+      "source": "evidence/underlying-perp-vault-phase2-rebalance.json",
+      "vectors": [
+        {"id":"senior_mint","transactionHash":"0x07114c7e3baca7be676b961fe55548e688f830b0a6d99116cdc04c25b8c542ff","blockNumber":51753826,"transactionIndex":26,"grossUnderlying":"56584","actualUnderlying":"56584","perpDelta":"4785545326","totalFeePerc":"0"},
+        {"id":"junior_mint","transactionHash":"0x8eda4df97e08f8afc1d16ac0685f0d47527ebde30fbd4bbc8b5c177c97e778e0","blockNumber":51777393,"transactionIndex":141,"grossUnderlying":"856406","actualUnderlying":"856406","perpDelta":"72081351896","totalFeePerc":"0"},
+        {"id":"senior_redeem","transactionHash":"0x2c23758afef541c51d2e290e533ab77f9396bf99e3cb9c632e7eec5f6fccd5c0","blockNumber":51879760,"transactionIndex":71,"grossUnderlying":"129350","actualUnderlying":"129138","perpDelta":"10890264276","totalFeePerc":"1637628506141442"},
+        {"id":"junior_redeem","transactionHash":"0x3562298f878658f89d970f77da8bc7ae8c0e0d14fa389ee6f794c8b814e9259b","blockNumber":52543960,"transactionIndex":64,"grossUnderlying":"2896807","actualUnderlying":"2896806","perpDelta":"244104743210","totalFeePerc":"0"}
+      ]
+    },
+    "rollover": {
+      "classification": "TARGET-SYNTHETIC-FORK",
+      "forkBlock": 54990962,
+      "sources": ["evidence/ROUND9_PROBES.md", "evidence/ROUND12_RESERVE_CLEANUP.md", "evidence/ROUND17_BACKUP_E2E.md"],
+      "staleSrTrancheAmount": "3133547705520",
+      "staleJrTrancheAmount": "3133547705527",
+      "underlyingValueRolled": "41875890",
+      "standardDepositAmounts": ["0", "6411258", "77245228"],
+      "vaultNotesAndTvlInvariant": "UNKNOWN"
+    }
+  },
+  "localLifecycle": {
+    "classification": "LOCAL-CLEANROOM",
+    "test": "test/UnderlyingPerpVaultRealIntegration.t.sol::testPhase4BBothVaultsDepositRebalanceRolloverRedeemLifecycle",
+    "depositUnderlyingPerVault": "1000000",
+    "issuePricesWad": ["82000000000000000000000", "79000000000000000000000", "84000000000000000000000"],
+    "issueDepositUnderlyingEach": "10000000",
+    "senior": {
+      "staleTrancheBefore": "4160000000000",
+      "staleTrancheAfter": "0",
+      "tvlBeforeRollover": "1881184",
+      "tvlAfterRollover": "1881184",
+      "tvlAfterFullExit": "0",
+      "notesSupplyChangedByRollover": false,
+      "vaultPerpChangedByRollover": false,
+      "finalNotesSupply": "10000000000"
+    },
+    "junior": {
+      "staleTrancheBefore": "4160000000000",
+      "staleTrancheAfter": "0",
+      "tvlBeforeRollover": "2035909",
+      "tvlAfterRollover": "2035909",
+      "tvlAfterFullExit": "1",
+      "notesSupplyChangedByRollover": false,
+      "vaultPerpChangedByRollover": false,
+      "finalNotesSupply": "10000000000"
+    },
+    "trackedUnderlyingEqualsTotalSupply": true,
+    "focusedResult": {"passed": 6, "failed": 0}
+  },
+  "differential": {
+    "depositRedeemMath": "MATCH",
+    "rebalanceOperationBoundary": "MATCH",
+    "rolloverControllerPerpBehavior": "COMPATIBLE_WITH_PROVEN_TARGET_FORK_BEHAVIOR",
+    "targetVaultInvariantAcrossRollover": "UNKNOWN",
+    "singleContiguousTargetLifecycle": "NOT_OBSERVED",
+    "productionCompatibilityDefectFound": false
+  },
+  "rpcReplayAttempt": {
+    "retainedAsPassingEvidence": false,
+    "outcomes": ["HTTP_429_RATE_LIMIT", "TLS_525", "FIVE_MINUTE_TIMEOUT"],
+    "note": "The unverified full-transaction probe was removed; existing Phase 1 evidence classification remains unchanged."
+  },
+  "verification": {
+    "fullLocalSuite": {"passed": 207, "failed": 0, "skipped": 0},
+    "runtimeSizes": {
+      "controllerBytes": 22475,
+      "underlyingPerpVaultBytes": 11806,
+      "limitsPassed": true
+    },
+    "storageLayouts": {
+      "controllerFrozenBaselinePassed": true,
+      "usdVaultFrozenPrefixPassed": true,
+      "underlyingPerpVaultFrozenBaselinePassed": true
+    },
+    "abi": {
+      "underlyingPerpVaultEntries": 83,
+      "sha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+      "frozenBaselinePassed": true
+    },
+    "formatAndDiff": {
+      "forgeFmtCheckPassed": true,
+      "gitDiffCheckPassed": true,
+      "jsonParsePassed": true
+    }
+  }
+}

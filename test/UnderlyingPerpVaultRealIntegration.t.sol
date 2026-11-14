@@ -260,6 +260,85 @@ contract UnderlyingPerpVaultRealIntegrationTest is Test {
         assertEq(_trackedUnderlying(s, seniorVault, juniorVault), s.underlying.totalSupply());
     }
 
+    function testPhase4BBothVaultsDepositRebalanceRolloverRedeemLifecycle() public {
+        LocalSystem memory s = _deployLiveSystem();
+        UnderlyingPerpVault seniorVault = _deployVault(s, true);
+        UnderlyingPerpVault juniorVault = _deployVault(s, false);
+        uint256 underlyingSupplyBefore = s.underlying.totalSupply();
+
+        s.underlying.mint(RECEIVER, 2 * VAULT_SEED);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(seniorVault), VAULT_SEED);
+        s.underlying.approve(address(juniorVault), VAULT_SEED);
+        uint256 seniorUserNotes = seniorVault.deposit(VAULT_SEED, 0);
+        uint256 juniorUserNotes = juniorVault.deposit(VAULT_SEED, 0);
+        vm.stopPrank();
+
+        _configureDirection(seniorVault, s.controller, true);
+        _configureDirection(juniorVault, s.controller, true);
+        seniorVault.rebalance();
+        juniorVault.rebalance();
+
+        uint256 seniorVaultPerpBefore = s.perpSr.balanceOf(address(seniorVault));
+        uint256 juniorVaultPerpBefore = s.perpJr.balanceOf(address(juniorVault));
+        uint256 seniorNotesBefore = seniorVault.totalSupply();
+        uint256 juniorNotesBefore = juniorVault.totalSupply();
+        assertGt(seniorVaultPerpBefore, 0);
+        assertGt(juniorVaultPerpBefore, 0);
+
+        _advanceIssueAndBalancedMint(s, 82_000e18, 10_000_000);
+        _advanceIssueAndBalancedMint(s, 79_000e18, 10_000_000);
+        _advanceIssueAndBalancedMint(s, 84_000e18, 10_000_000);
+
+        uint256 staleSrBefore = IERC20(s.srTranche).balanceOf(address(s.perpSr));
+        uint256 staleJrBefore = IERC20(s.jrTranche).balanceOf(address(s.perpJr));
+        uint256 seniorTvlBefore = seniorVault.getTVL();
+        uint256 juniorTvlBefore = juniorVault.getTVL();
+        assertGt(staleSrBefore, 0);
+        assertGt(staleJrBefore, 0);
+
+        s.controller.rollover();
+
+        assertEq(IERC20(s.srTranche).balanceOf(address(s.perpSr)), 0);
+        assertEq(IERC20(s.jrTranche).balanceOf(address(s.perpJr)), 0);
+        assertEq(seniorVault.totalSupply(), seniorNotesBefore);
+        assertEq(juniorVault.totalSupply(), juniorNotesBefore);
+        assertEq(s.perpSr.balanceOf(address(seniorVault)), seniorVaultPerpBefore);
+        assertEq(s.perpJr.balanceOf(address(juniorVault)), juniorVaultPerpBefore);
+        assertEq(seniorVault.balanceOf(RECEIVER), seniorUserNotes);
+        assertEq(juniorVault.balanceOf(RECEIVER), juniorUserNotes);
+        uint256 seniorTvlAfterRollover = seniorVault.getTVL();
+        uint256 juniorTvlAfterRollover = juniorVault.getTVL();
+        assertEq(seniorTvlAfterRollover, seniorTvlBefore);
+        assertEq(juniorTvlAfterRollover, juniorTvlBefore);
+        assertEq(_trackedUnderlying(s, seniorVault, juniorVault), s.underlying.totalSupply());
+
+        vm.startPrank(RECEIVER);
+        seniorVault.redeem(seniorVault.balanceOf(RECEIVER));
+        juniorVault.redeem(juniorVault.balanceOf(RECEIVER));
+        vm.stopPrank();
+        seniorVault.redeem(seniorVault.balanceOf(address(this)));
+        juniorVault.redeem(juniorVault.balanceOf(address(this)));
+
+        assertEq(seniorVault.totalSupply(), seniorVault.MINIMUM_LIQUIDITY());
+        assertEq(juniorVault.totalSupply(), juniorVault.MINIMUM_LIQUIDITY());
+        assertEq(seniorVault.balanceOf(address(seniorVault)), seniorVault.MINIMUM_LIQUIDITY());
+        assertEq(juniorVault.balanceOf(address(juniorVault)), juniorVault.MINIMUM_LIQUIDITY());
+        assertLe(seniorVault.getTVL(), 1);
+        assertLe(juniorVault.getTVL(), 1);
+        assertEq(s.underlying.totalSupply(), underlyingSupplyBefore + 32 * VAULT_SEED);
+        assertEq(_trackedUnderlying(s, seniorVault, juniorVault), s.underlying.totalSupply());
+
+        emit log_named_uint("phase4b.staleSrBefore", staleSrBefore);
+        emit log_named_uint("phase4b.staleJrBefore", staleJrBefore);
+        emit log_named_uint("phase4b.seniorTvlBefore", seniorTvlBefore);
+        emit log_named_uint("phase4b.seniorTvlAfterRollover", seniorTvlAfterRollover);
+        emit log_named_uint("phase4b.juniorTvlBefore", juniorTvlBefore);
+        emit log_named_uint("phase4b.juniorTvlAfterRollover", juniorTvlAfterRollover);
+        emit log_named_uint("phase4b.seniorTvlAfterFullExit", seniorVault.getTVL());
+        emit log_named_uint("phase4b.juniorTvlAfterFullExit", juniorVault.getTVL());
+    }
+
     function _deployLiveSystem() private returns (LocalSystem memory s) {
         s.underlying = new MockERC20("cbBTC", "cbBTC", 8);
         s.oracle = new MockPriceOracle(INITIAL_PRICE);
@@ -385,6 +464,34 @@ contract UnderlyingPerpVaultRealIntegrationTest is Test {
         vault.initDeposit(VAULT_SEED);
         vault.updateMinRebalanceAmt(1);
         vault.updateMaxFlashFeePerc(uint64(1e18));
+    }
+
+    function _advanceIssueAndBalancedMint(LocalSystem memory s, uint256 price, uint256 underlyingAmount)
+        private
+        returns (BondIssuer.BondInfo memory info)
+    {
+        uint256 activeBefore = s.issuer.activeBondIDs().length;
+        vm.warp(block.timestamp + 604_800);
+        s.oracle.setPrice(price);
+        s.controller.upkeep();
+        assertEq(s.issuer.activeBondIDs().length, activeBefore + 1);
+        info = s.issuer.latestBondInfo();
+
+        s.underlying.mint(RECEIVER, underlyingAmount);
+        vm.startPrank(RECEIVER);
+        s.underlying.approve(address(s.manager), type(uint256).max);
+        (IBondsManager.TokenAmount memory srInput, IBondsManager.TokenAmount memory jrInput) =
+            s.manager.deposit(info.bondID, underlyingAmount);
+        IERC20(srInput.token).approve(address(s.controller), type(uint256).max);
+        IERC20(jrInput.token).approve(address(s.controller), type(uint256).max);
+        s.controller
+            .mint2(
+                PerpController.TokenAmount(srInput.token, srInput.amount),
+                PerpController.TokenAmount(jrInput.token, jrInput.amount),
+                0,
+                0
+            );
+        vm.stopPrank();
     }
 
     function _configureCorrectiveTarget(UnderlyingPerpVault vault, PerpController controller) private {
