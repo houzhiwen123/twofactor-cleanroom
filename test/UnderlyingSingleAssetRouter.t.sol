@@ -150,7 +150,7 @@ contract UnderlyingSingleAssetRouterTest is Test {
         assertEq(_fingerprint(vault), beforeFingerprint);
     }
 
-    function testSeniorCleanRoomExtensionSelectsOnlySeniorControllerLegs() public {
+    function testSeniorTargetConfirmedPathSelectsOnlySeniorControllerLegs() public {
         UnderlyingPerpVault vault = _seedVault(true);
         _fundAndApprove(vault);
 

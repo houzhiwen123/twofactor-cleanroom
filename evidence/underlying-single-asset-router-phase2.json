@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "task": "UNDERLYING_SINGLE_ASSET_ROUTER_PHASE2",
+  "repositoryBaseline": "1328322",
+  "classification": "TARGET-CONFIRMED_SHARED_ROUTER_AND_LOCAL_FULL_STACK",
+  "safety": {
+    "publicBaseDataOnly": true,
+    "localForkOnlyForMutations": true,
+    "verifiedSourceRead": false,
+    "frontendBundleRead": false,
+    "walletOrPrivateKeyUsed": false,
+    "broadcastTransactions": false,
+    "targetDealOrStoreUsed": false
+  },
+  "target": {
+    "chainId": 8453,
+    "fixedBlock": 54990962,
+    "router": "0xbf0f2aa8784a1a459C7E2eB87CF25E5cABF4d296",
+    "seniorVault": "0x805D7eE7F03dE39f2F30F3A7069c6d46642398cB",
+    "seniorPerp": "0x4be28E7597A928835245a10E9161E0c44687b70b",
+    "naturalHolder": "0xf582fc610600836534f59e641c808ab1810866eb",
+    "naturalNotesBalance": "249954791674916592",
+    "naturalUnderlyingBalance": "56630950"
+  },
+  "vectors": [
+    {
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_FORK_NATURAL_BALANCE",
+      "kind": "senior_deposit",
+      "underlyingIn": "100000",
+      "maxIters": 2,
+      "underlyingSpent": "99999",
+      "underlyingRefund": "1",
+      "notesOut": "486011106243695",
+      "exactMinSucceeds": true,
+      "plusOneSelector": "0x850c6f76",
+      "localExactMatch": true
+    },
+    {
+      "classification": "TARGET-CONFIRMED_SYNTHETIC_FORK_NATURAL_BALANCE",
+      "kind": "senior_redeem",
+      "notesIn": "1000000000000000",
+      "vaultUnderlyingOut": "102637",
+      "vaultPerpOut": "7640893873",
+      "flashUnderlyingOut": "103113",
+      "totalUnderlyingOut": "205750",
+      "exactMinSucceeds": true,
+      "plusOneSelector": "0x850c6f76",
+      "localExactMatch": true
+    }
+  ],
+  "localIntegration": {
+    "classification": "LOCAL-CLEANROOM",
+    "realLocalComponents": true,
+    "juniorAndSenior": true,
+    "steps": [
+      "single-asset deposit",
+      "vault rebalance",
+      "three issue epochs",
+      "controller rollover",
+      "single-asset redeem"
+    ],
+    "zeroRouterDust": true,
+    "underlyingConservation": true,
+    "realComponentMinOutRollback": true
+  },
+  "verification": {
+    "targetForkProbePassed": 9,
+    "targetForkProbeFailed": 0,
+    "focusedLocalPassed": 6,
+    "focusedLocalFailed": 0,
+    "fullOfflinePassed": 217,
+    "fullOfflineFailed": 0,
+    "runtimeBytes": {
+      "PerpController": 22475,
+      "UnderlyingPerpVault": 11806,
+      "UnderlyingSingleAssetRouter": 3994
+    },
+    "storageLayoutChecksPassed": true,
+    "underlyingPerpVaultAbiEntries": 83,
+    "underlyingPerpVaultAbiSha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+    "formatCheckPassed": true,
+    "diffCheckPassed": true
+  },
+  "unknowns": [
+    "No natural historical Senior transaction routed through the deployed Router was identified in the bounded evidence"
+  ]
+}

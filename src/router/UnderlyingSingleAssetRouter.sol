@@ -37,8 +37,8 @@ interface IUnderlyingSingleAssetController {
 }
 
 /// @notice Converts a single underlying asset into or out of an UnderlyingPerpVault basket.
-/// @dev Junior behavior is target-confirmed. Reusing the same side-selecting state machine for a
-///      Senior UnderlyingPerpVault is an explicit clean-room product extension.
+/// @dev The deployed target Router is confirmed to select both Junior and Senior behavior from the
+///      caller-supplied Vault's `isPerpSrVault` flag.
 contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter {
     using SafeERC20 for IERC20;
 

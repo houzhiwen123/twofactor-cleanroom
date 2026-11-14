@@ -2,6 +2,9 @@
 
 Status: **TARGET-CONFIRMED Junior behavior + LOCAL-CLEANROOM shared implementation**
 
+> Superseded for Senior classification by `UNDERLYING_SINGLE_ASSET_ROUTER_PHASE2.md`, which later
+> confirmed that this same deployed target Router accepts the Senior Vault.
+
 This phase covers the single-cbBTC entry and exit path for `UnderlyingPerpVault`. Target claims are
 limited to the deployed Junior Router. Applying the same side-selecting implementation to the
 Senior cbBTC + Perp SR vault is a clean-room product extension because no equivalent target Senior
