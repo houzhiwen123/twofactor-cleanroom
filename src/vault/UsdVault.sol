@@ -221,6 +221,26 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         return _underlyingToken.balanceOf(address(this));
     }
 
+    function usd() external view returns (address) {
+        return address(_usdToken);
+    }
+
+    function underlying() external view returns (address) {
+        return address(_underlyingToken);
+    }
+
+    function perpSr() external view returns (address) {
+        return address(_perpSrToken);
+    }
+
+    function usdUnitAmt() external pure returns (uint256) {
+        return USD_UNIT;
+    }
+
+    function underlyingUnitAmt() external pure returns (uint256) {
+        return UNDERLYING_UNIT;
+    }
+
     function perpController() external view returns (address) {
         return _perpController;
     }

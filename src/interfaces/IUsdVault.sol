@@ -45,6 +45,16 @@ interface IUsdVault is IERC20 {
 
     function underlyingBalance() external view returns (uint256);
 
+    function usd() external view returns (address);
+
+    function underlying() external view returns (address);
+
+    function perpSr() external view returns (address);
+
+    function usdUnitAmt() external pure returns (uint256);
+
+    function underlyingUnitAmt() external pure returns (uint256);
+
     function perpController() external view returns (address);
 
     function sessionCapacity()

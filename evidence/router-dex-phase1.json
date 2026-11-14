@@ -1,0 +1,106 @@
+{
+  "phase": "ROUTER_DEX_PHASE1",
+  "chain_id": 8453,
+  "labels": [
+    "TARGET-CONFIRMED",
+    "LOCAL-CLEANROOM",
+    "UNKNOWN"
+  ],
+  "version_lock": {
+    "router": {
+      "address": "0x8e868c1f8f82b84a6b0d19d235d50c47b253559f",
+      "codehash": "0x33f265f8c51da59240326566d89a19548bf6ebeb9bb225cb1ab8079d701d71bf"
+    },
+    "strategy": {
+      "address": "0xe0fc0566adcd6b83149874619a1fafdf3345144f",
+      "codehash": "0x5179730df56d2d569376affd12ff8014ac2c7d9940dca3b78cb9dc22db5d5302"
+    },
+    "deposit": {
+      "tx_hash": "0x31dca6ff3b7fdec83add824930a85f0bb713dd7659633303a7b135f4ef2f5254",
+      "block": 53236495,
+      "transaction_index": 132,
+      "account": "0x5a42a1667d2e9656e364385fb1b982fad805cdca"
+    },
+    "redeem": {
+      "tx_hash": "0xaf7d86860fa149f0fdddb186f74753dc2b912294c7e4f4b1b8930934fe7144ab",
+      "block": 53243583,
+      "transaction_index": 77,
+      "account": "0x11649a794f918508027765f6280c1b396ee59f8f"
+    }
+  },
+  "target_deposit": {
+    "usd_max": "110126511",
+    "usd_spent": "110126154",
+    "usd_refund": "357",
+    "dex_usd_sell": "110088881",
+    "dex_underlying_buy": "137552",
+    "vault_usd_max": "37630",
+    "vault_usd_consumed": "37273",
+    "vault_perp_consumed": "10800619432",
+    "notes_out": "108320498554343292777",
+    "max_iters": {
+      "0": "SUCCESS",
+      "1": "REVERT_0x312f6ffa",
+      "2": "REVERT_0x312f6ffa"
+    },
+    "min_notes_exact": "SUCCESS",
+    "min_notes_plus_one": "REVERT_0x850c6f76",
+    "atomic_failures": true
+  },
+  "target_redeem": {
+    "notes_in": "3762930374354620392",
+    "vault_usd_out": "1294",
+    "vault_perp_out": "375200394",
+    "controller_underlying_out": "4723",
+    "dex_usd_out": "3778900",
+    "total_usd_out": "3780194",
+    "min_out_exact": "SUCCESS",
+    "min_out_plus_one": "REVERT_0x850c6f76",
+    "run_upkeep_true": "REVERT_0x00219cf1",
+    "atomic_failures": true
+  },
+  "target_strategy": {
+    "pool": "0xfbb6eed8e7aa03b138556eedaf5d271a5e1e43ef",
+    "pool_fee": 500,
+    "min_liquidity": "200000000000",
+    "underlying_is_token0": false,
+    "reference_underlying_to_usd": "80061462195552451024100",
+    "reference_usd_to_underlying": "12490403904408",
+    "quote_underlying_4723_to_usd": "3778900",
+    "quote_usd_1000000_to_underlying": "1248",
+    "round_trip_target": {
+      "underlying_out": "1248",
+      "usd_out": "998366"
+    },
+    "unauthorized_callback_selector": "0x7bf6a16f"
+  },
+  "differential": {
+    "router_deposit": "MATCH",
+    "router_redeem": "MATCH",
+    "strategy_views": "MATCH",
+    "strategy_forward_trade": "MATCH",
+    "strategy_reverse_trade": "MATCH",
+    "callback_selector": "MATCH"
+  },
+  "unknowns": [
+    "target quote behavior across initialized ticks",
+    "target maxFillable partial-fill search",
+    "invalid-pair and zero-liquidity selectors",
+    "Router zero-supply genesis behavior"
+  ],
+  "verification": {
+    "target_fork_tests": "6/6",
+    "local_tests": "4/4",
+    "full_offline_tests": "211/211",
+    "runtime_bytes": {
+      "SingleAssetRouter": 5753,
+      "UniswapV3DexStrategy": 4388,
+      "PerpController": 22475,
+      "UsdVault": 15996
+    },
+    "storage_layout": "PASS",
+    "underlying_vault_abi": "PASS",
+    "format": "PASS",
+    "diff_check": "PASS"
+  }
+}
