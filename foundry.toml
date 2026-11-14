@@ -13,3 +13,8 @@ remappings = [
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
     "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
 ]
+
+[invariant]
+runs = 32
+depth = 16
+fail_on_revert = false

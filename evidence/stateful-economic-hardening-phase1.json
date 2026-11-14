@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "task": "STATEFUL_ECONOMIC_HARDENING_PHASE1",
+  "baseline": "f57da64",
+  "classification": "LOCAL-CLEANROOM",
+  "safety": {
+    "localOnly": true,
+    "walletOrPrivateKeyUsed": false,
+    "signatureUsed": false,
+    "broadcastUsed": false,
+    "targetStorageEdited": false,
+    "dealOrStoreUsed": false,
+    "targetSourceRead": false
+  },
+  "invariantConfig": {
+    "runs": 32,
+    "depth": 16,
+    "handlerOnlyTarget": true,
+    "actionCount": 13,
+    "actionsPerInvariant": 512,
+    "invariants": [
+      "underlying supply fully accounted",
+      "Perp supplies equal tracked balances",
+      "Vault supplies and locked liquidity intact",
+      "Router retains no user assets",
+      "reserve arrays unique and match Controller value",
+      "expected failures atomic"
+    ]
+  },
+  "economicTests": {
+    "donationRoundTripCannotProfit": true,
+    "repeatedTinyRoundTripsCannotCreateUnderlying": true,
+    "extremePriceShockProRataExit": true
+  },
+  "results": {
+    "focusedPassed": 9,
+    "focusedFailed": 0,
+    "fullSuitePassed": 228,
+    "fullSuiteFailed": 0,
+    "productionCodeChanged": false,
+    "formatCheckPassed": true,
+    "diffCheckPassed": true
+  },
+  "knownLimits": [
+    "bounded fuzzing is not formal verification",
+    "local DEX execution remains disabled",
+    "USD Vault first-notes issuance remains unknown",
+    "no target-fork stateful trace is claimed"
+  ]
+}
