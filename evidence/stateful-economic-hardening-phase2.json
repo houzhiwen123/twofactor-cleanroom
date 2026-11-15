@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "task": "STATEFUL_ECONOMIC_HARDENING_PHASE2",
+  "baseline": "af0d955",
+  "classification": "LOCAL-CLEANROOM",
+  "safety": {
+    "localOnly": true,
+    "walletOrPrivateKeyUsed": false,
+    "signatureUsed": false,
+    "broadcastUsed": false,
+    "targetStorageEdited": false,
+    "dealOrStoreUsed": false,
+    "targetSourceRead": false
+  },
+  "invariantConfig": {
+    "runs": 64,
+    "depth": 32,
+    "handlerOnlyTarget": true,
+    "actionCount": 15,
+    "actionsPerInvariant": 2048,
+    "priceRangeUsdWad": {
+      "minimum": "8000000000000000000000",
+      "maximum": "800000000000000000000000"
+    },
+    "feeStressMaximumWad": "1000000000000000000",
+    "invariants": [
+      "underlying supply fully accounted",
+      "Perp supplies equal tracked balances",
+      "Vault supplies and locked liquidity intact",
+      "Router retains no user assets",
+      "reserve arrays unique and match Controller value",
+      "expected deposit and redemption failures atomic"
+    ]
+  },
+  "deterministicScenarios": {
+    "hundredPercentFlashFeeIsAtomicAndRecoveryExits": true,
+    "rawTwoWadImpactSignalObserved": true,
+    "eightEpochExtremePriceRolloverRebalanceExit": true,
+    "alternatingSingleSidePriceShockExit": true
+  },
+  "results": {
+    "focusedPassed": 12,
+    "focusedFailed": 0,
+    "phase2DeterministicPassed": 3,
+    "phase2DeterministicFailed": 0,
+    "fullSuitePassed": 231,
+    "fullSuiteFailed": 0,
+    "productionCodeChanged": false
+  },
+  "knownLimits": [
+    "bounded fuzzing is not formal verification",
+    "live DEX execution remains untested",
+    "USD Vault first-notes issuance remains unknown",
+    "no target-fork stateful differential is claimed",
+    "economic safety for real capital requires independent audit"
+  ]
+}

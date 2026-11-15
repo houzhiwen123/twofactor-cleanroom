@@ -21,6 +21,31 @@ import {UnderlyingPerpVault} from "../src/vault/UnderlyingPerpVault.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
 
+library OperationalFeeConfig {
+    uint256 private constant WAD = 1e18;
+
+    function flat(uint64 basePerc, uint64 flashBasePerc, uint64 impactPerc)
+        internal
+        pure
+        returns (FeePolicy.Fees memory fees)
+    {
+        FeePolicy.Curve memory curve = FeePolicy.Curve({
+            p1: FeePolicy.Point(0, impactPerc),
+            p2: FeePolicy.Point(WAD, impactPerc),
+            p3: FeePolicy.Point(2 * WAD, impactPerc),
+            p4: FeePolicy.Point(3 * WAD, impactPerc)
+        });
+        fees = FeePolicy.Fees({
+            subDRUp: curve,
+            subDRDown: curve,
+            vmDRUp: curve,
+            vmDRDown: curve,
+            basePerc: basePerc,
+            flashBasePerc: flashBasePerc
+        });
+    }
+}
+
 abstract contract OperationalRealFixture is Test {
     uint256 internal constant INITIAL_UNDERLYING = 100_000_000;
     uint256 internal constant MAX_JR_IDLE_TOP_UP = INITIAL_UNDERLYING + 1_000;
@@ -35,6 +60,7 @@ abstract contract OperationalRealFixture is Test {
         BondIssuer issuer;
         PerpToken perpSr;
         PerpToken perpJr;
+        FeePolicy feePolicy;
         PerpController controller;
         GenesisSeeder seeder;
     }
@@ -111,14 +137,14 @@ abstract contract OperationalRealFixture is Test {
         system.perpJr.updateController(address(system.controller));
 
         FeePolicy feeImplementation = new FeePolicy();
-        FeePolicy feePolicy = FeePolicy(
+        system.feePolicy = FeePolicy(
             address(
                 new TransparentUpgradeableProxy(
                     address(feeImplementation), address(this), abi.encodeCall(FeePolicy.init, ())
                 )
             )
         );
-        system.controller.updateFeePolicy(address(feePolicy));
+        system.controller.updateFeePolicy(address(system.feePolicy));
         system.controller.updatePerpBalancer(address(new PerpBalancer()));
         system.controller.updateIssuer(address(system.issuer));
         system.controller.setUnderlyingOracle();
@@ -201,6 +227,7 @@ contract OperationalStatefulHandler is Test {
     BondIssuer public immutable issuer;
     PerpToken public immutable perpSr;
     PerpToken public immutable perpJr;
+    FeePolicy public immutable feePolicy;
     PerpController public immutable controller;
     UnderlyingPerpVault public immutable seniorVault;
     UnderlyingPerpVault public immutable juniorVault;
@@ -218,6 +245,7 @@ contract OperationalStatefulHandler is Test {
         BondIssuer issuer_,
         PerpToken perpSr_,
         PerpToken perpJr_,
+        FeePolicy feePolicy_,
         PerpController controller_,
         UnderlyingPerpVault seniorVault_,
         UnderlyingPerpVault juniorVault_,
@@ -229,6 +257,7 @@ contract OperationalStatefulHandler is Test {
         issuer = issuer_;
         perpSr = perpSr_;
         perpJr = perpJr_;
+        feePolicy = feePolicy_;
         controller = controller_;
         seniorVault = seniorVault_;
         juniorVault = juniorVault_;
@@ -323,12 +352,12 @@ contract OperationalStatefulHandler is Test {
     }
 
     function changePrice(uint96 rawPrice) external {
-        oracle.setPrice(bound(uint256(rawPrice), 40_000e18, 160_000e18));
+        oracle.setPrice(bound(uint256(rawPrice), 8_000e18, 800_000e18));
     }
 
     function advanceEpoch(uint96 rawPrice) external {
         vm.warp(block.timestamp + 604_800);
-        oracle.setPrice(bound(uint256(rawPrice), 40_000e18, 160_000e18));
+        oracle.setPrice(bound(uint256(rawPrice), 8_000e18, 800_000e18));
         (bool ok,) = address(controller).call(abi.encodeCall(PerpController.upkeep, ()));
         if (ok) successfulCalls += 1;
         else revertedCalls += 1;
@@ -385,6 +414,19 @@ contract OperationalStatefulHandler is Test {
         else vault.pause();
     }
 
+    function acceptFeePolicyOwnership() external {
+        feePolicy.acceptOwnership();
+    }
+
+    function setFeeStress(uint64 rawBasePerc, uint64 rawFlashBasePerc, uint64 rawImpactPerc) external {
+        uint64 basePerc = uint64(bound(uint256(rawBasePerc), 0, 1e18));
+        uint64 flashBasePerc = uint64(bound(uint256(rawFlashBasePerc), 0, 1e18));
+        uint64 impactPerc = uint64(bound(uint256(rawImpactPerc), 0, 1e18));
+        FeePolicy.Fees memory fees = OperationalFeeConfig.flat(basePerc, flashBasePerc, impactPerc);
+        feePolicy.updateFeeParams(fees, fees);
+        successfulCalls += 1;
+    }
+
     function failedMinOutDeposit(uint8 actorSeed, bool senior, uint96 rawAmount) external {
         address actor = _actor(actorSeed);
         UnderlyingPerpVault vault = senior ? seniorVault : juniorVault;
@@ -403,18 +445,45 @@ contract OperationalStatefulHandler is Test {
         if (ok || _failureFingerprint(actor, vault) != beforeState) atomicityBroken = true;
     }
 
+    function failedMinOutRedeem(uint8 actorSeed, bool senior, uint96 rawNotes) external {
+        address actor = _actor(actorSeed);
+        UnderlyingPerpVault vault = senior ? seniorVault : juniorVault;
+        uint256 balance = vault.balanceOf(actor);
+        if (balance == 0) return;
+        uint256 notes = bound(uint256(rawNotes), 1, balance);
+        vm.prank(actor);
+        vault.approve(address(router), notes);
+        bytes32 beforeState = _failureFingerprint(actor, vault);
+        vm.prank(actor);
+        (bool ok,) = address(router)
+            .call(
+                abi.encodeCall(UnderlyingSingleAssetRouter.redeemUnderlying, (address(vault), notes, type(uint256).max))
+            );
+        if (ok || _failureFingerprint(actor, vault) != beforeState) atomicityBroken = true;
+    }
+
     function _failureFingerprint(address actor, UnderlyingPerpVault vault) private view returns (bytes32) {
+        PerpToken selectedPerp = vault.isPerpSrVault() ? perpSr : perpJr;
         return keccak256(
             abi.encode(
                 underlying.balanceOf(actor),
                 underlying.balanceOf(address(vault)),
                 underlying.balanceOf(address(router)),
+                selectedPerp.balanceOf(actor),
+                selectedPerp.balanceOf(address(vault)),
+                selectedPerp.balanceOf(address(router)),
                 vault.balanceOf(actor),
                 vault.balanceOf(address(router)),
                 vault.totalSupply(),
                 perpSr.totalSupply(),
                 perpJr.totalSupply(),
-                underlying.balanceOf(address(controller))
+                underlying.balanceOf(address(controller)),
+                controller.collectedFeeBal(address(underlying)),
+                controller.collectedFeeBal(address(perpSr)),
+                controller.collectedFeeBal(address(perpJr)),
+                controller.protocolFeeBals(address(underlying)),
+                controller.protocolFeeBals(address(perpSr)),
+                controller.protocolFeeBals(address(perpJr))
             )
         );
     }
@@ -436,6 +505,7 @@ contract OperationalStatefulInvariantTest is StdInvariant, OperationalRealFixtur
             system.issuer,
             system.perpSr,
             system.perpJr,
+            system.feePolicy,
             system.controller,
             seniorVault,
             juniorVault,
@@ -446,8 +516,10 @@ contract OperationalStatefulInvariantTest is StdInvariant, OperationalRealFixtur
         juniorVault.updateKeeper(address(handler));
         seniorVault.transferOwnership(address(handler));
         juniorVault.transferOwnership(address(handler));
+        system.feePolicy.transferOwnership(address(handler));
+        handler.acceptFeePolicyOwnership();
 
-        bytes4[] memory selectors = new bytes4[](13);
+        bytes4[] memory selectors = new bytes4[](15);
         selectors[0] = handler.depositRouter.selector;
         selectors[1] = handler.redeemRouter.selector;
         selectors[2] = handler.directRedeem.selector;
@@ -461,6 +533,8 @@ contract OperationalStatefulInvariantTest is StdInvariant, OperationalRealFixtur
         selectors[10] = handler.rebalance.selector;
         selectors[11] = handler.togglePause.selector;
         selectors[12] = handler.failedMinOutDeposit.selector;
+        selectors[13] = handler.failedMinOutRedeem.selector;
+        selectors[14] = handler.setFeeStress.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 
@@ -615,5 +689,204 @@ contract OperationalEconomicAttackTest is OperationalRealFixture {
         assertEq(seniorVault.balanceOf(address(seniorVault)), seniorVault.MINIMUM_LIQUIDITY());
         assertEq(juniorVault.balanceOf(address(juniorVault)), juniorVault.MINIMUM_LIQUIDITY());
         assertEq(system.underlying.balanceOf(address(router)), 0);
+    }
+}
+
+contract OperationalEconomicHardeningPhase2Test is OperationalRealFixture {
+    uint256 private constant WAD = 1e18;
+    address private constant ACTOR = address(0xA71AC);
+
+    function setUp() public {
+        _deployOperationalSystem(address(this));
+    }
+
+    function testHundredPercentFeeFailureIsAtomicAndRecoveryRestoresExit() public {
+        uint256 notes = _routerDeposit(juniorVault, 2_000_000);
+        assertGt(notes, 0);
+        assertTrue(_configureAndTryRebalance(juniorVault, true));
+        assertGt(system.perpJr.balanceOf(address(juniorVault)), 0);
+
+        vm.prank(ACTOR);
+        juniorVault.approve(address(router), notes);
+        _setFlatFees(0, uint64(WAD), 0);
+        bytes32 beforeState = _exitFingerprint(juniorVault);
+
+        vm.prank(ACTOR);
+        vm.expectRevert(PerpController.OpDisabled.selector);
+        router.redeemUnderlying(address(juniorVault), notes, 0);
+        assertEq(_exitFingerprint(juniorVault), beforeState);
+
+        _setFlatFees(0, 0, uint64(WAD));
+        FeePolicy.OpFees memory rawSignal = system.feePolicy
+            .computeOpFees(
+                FeePolicy.OpFeeInput({
+                    isPerpSrOp: false,
+                    isFlashOp: true,
+                    systemDeviation: FeePolicy.OpSystemChange({
+                        subDRPre: 9e17, subDRPost: 11e17, vmDRPre: 9e17, vmDRPost: 11e17
+                    })
+                })
+            );
+        assertEq(rawSignal.totalFeePerc, 2 * WAD);
+
+        _setFlatFees(0, 0, 0);
+        vm.prank(ACTOR);
+        uint256 underlyingOut = router.redeemUnderlying(address(juniorVault), notes, 0);
+        assertGt(underlyingOut, 0);
+        assertEq(juniorVault.balanceOf(ACTOR), 0);
+        _assertGlobalAccounting();
+    }
+
+    function testEightEpochExtremePriceRolloverRebalanceAndBasketExit() public {
+        (uint256 seniorNotes, uint256 juniorNotes) = _routerDepositBoth(4_000_000);
+        uint256[8] memory prices =
+            [uint256(82_000e18), 79_000e18, 84_000e18, 8_000e18, 800_000e18, 40_000e18, 160_000e18, 80_000e18];
+        uint256 upkeepSuccesses;
+        uint256 rolloverSuccesses;
+        uint256 rebalanceSuccesses;
+
+        for (uint256 i; i < prices.length; ++i) {
+            vm.warp(block.timestamp + 604_800);
+            system.oracle.setPrice(prices[i]);
+            (bool upkeepOk,) = address(system.controller).call(abi.encodeCall(PerpController.upkeep, ()));
+            if (upkeepOk) upkeepSuccesses += 1;
+
+            if (i < 3) _balancedControllerMint(2_000_000);
+            if (_configureAndTryRebalance(seniorVault, i % 2 == 0)) rebalanceSuccesses += 1;
+            if (_configureAndTryRebalance(juniorVault, i % 2 != 0)) rebalanceSuccesses += 1;
+
+            (bool rolloverOk,) = address(system.controller).call(abi.encodeCall(PerpController.rollover, ()));
+            if (rolloverOk) rolloverSuccesses += 1;
+        }
+
+        assertGt(upkeepSuccesses, 0);
+        assertGt(rebalanceSuccesses, 0);
+        assertGt(rolloverSuccesses, 0);
+
+        system.oracle.setPrice(INITIAL_PRICE);
+        vm.startPrank(ACTOR);
+        seniorVault.redeem(seniorNotes);
+        juniorVault.redeem(juniorNotes);
+        vm.stopPrank();
+
+        assertEq(seniorVault.balanceOf(ACTOR), 0);
+        assertEq(juniorVault.balanceOf(ACTOR), 0);
+        assertEq(seniorVault.balanceOf(address(seniorVault)), seniorVault.MINIMUM_LIQUIDITY());
+        assertEq(juniorVault.balanceOf(address(juniorVault)), juniorVault.MINIMUM_LIQUIDITY());
+        _assertGlobalAccounting();
+    }
+
+    function testAlternatingSingleSidePriceShockFlowsRemainExitAvailable() public {
+        for (uint256 i; i < 8; ++i) {
+            system.oracle.setPrice(INITIAL_PRICE);
+            UnderlyingPerpVault vault = i % 2 == 0 ? seniorVault : juniorVault;
+            uint256 notes = _routerDeposit(vault, 500_000 + i);
+            assertGt(notes, 0);
+
+            system.oracle.setPrice(i % 4 < 2 ? 8_000e18 : 800_000e18);
+            vm.prank(ACTOR);
+            vault.redeem(notes / 2);
+        }
+
+        system.oracle.setPrice(INITIAL_PRICE);
+        uint256 remainingSenior = seniorVault.balanceOf(ACTOR);
+        uint256 remainingJunior = juniorVault.balanceOf(ACTOR);
+        vm.startPrank(ACTOR);
+        if (remainingSenior != 0) seniorVault.redeem(remainingSenior);
+        if (remainingJunior != 0) juniorVault.redeem(remainingJunior);
+        vm.stopPrank();
+
+        assertEq(seniorVault.balanceOf(ACTOR), 0);
+        assertEq(juniorVault.balanceOf(ACTOR), 0);
+        _assertGlobalAccounting();
+    }
+
+    function _routerDepositBoth(uint256 amountEach) private returns (uint256 seniorNotes, uint256 juniorNotes) {
+        system.underlying.mint(ACTOR, 2 * amountEach);
+        vm.startPrank(ACTOR);
+        system.underlying.approve(address(router), type(uint256).max);
+        seniorNotes = router.depositUnderlying(address(seniorVault), amountEach, 0, 2);
+        juniorNotes = router.depositUnderlying(address(juniorVault), amountEach, 0, 2);
+        vm.stopPrank();
+        assertGt(seniorNotes, 0);
+        assertGt(juniorNotes, 0);
+    }
+
+    function _routerDeposit(UnderlyingPerpVault vault, uint256 amount) private returns (uint256 notes) {
+        system.underlying.mint(ACTOR, amount);
+        vm.startPrank(ACTOR);
+        system.underlying.approve(address(router), type(uint256).max);
+        notes = router.depositUnderlying(address(vault), amount, 0, 2);
+        vm.stopPrank();
+    }
+
+    function _balancedControllerMint(uint256 amount) private {
+        BondIssuer.BondInfo memory info = system.issuer.latestBondInfo();
+        system.underlying.mint(address(this), amount);
+        system.underlying.approve(address(system.manager), amount);
+        (IBondsManager.TokenAmount memory srInput, IBondsManager.TokenAmount memory jrInput) =
+            system.manager.deposit(info.bondID, amount);
+        IERC20(srInput.token).approve(address(system.controller), srInput.amount);
+        IERC20(jrInput.token).approve(address(system.controller), jrInput.amount);
+        system.controller
+            .mint2(
+                PerpController.TokenAmount(srInput.token, srInput.amount),
+                PerpController.TokenAmount(jrInput.token, jrInput.amount),
+                0,
+                0
+            );
+    }
+
+    function _configureAndTryRebalance(UnderlyingPerpVault vault, bool minting) private returns (bool ok) {
+        (uint256 subDr,) = system.controller.systemDeviations();
+        bool targetBelow = vault.isPerpSrVault() ? minting : !minting;
+        uint96 target = targetBelow ? uint96(subDr / 2) : uint96(subDr * 2);
+        vault.updateTargetDR(target, IUnderlyingPerpVault.DRRange(target, target));
+        (ok,) = address(vault).call(abi.encodeCall(UnderlyingPerpVault.rebalance, ()));
+    }
+
+    function _setFlatFees(uint64 basePerc, uint64 flashBasePerc, uint64 impactPerc) private {
+        FeePolicy.Fees memory fees = OperationalFeeConfig.flat(basePerc, flashBasePerc, impactPerc);
+        system.feePolicy.updateFeeParams(fees, fees);
+    }
+
+    function _exitFingerprint(UnderlyingPerpVault vault) private view returns (bytes32) {
+        PerpToken selectedPerp = vault.isPerpSrVault() ? system.perpSr : system.perpJr;
+        return keccak256(
+            abi.encode(
+                system.underlying.balanceOf(ACTOR),
+                system.underlying.balanceOf(address(vault)),
+                system.underlying.balanceOf(address(router)),
+                selectedPerp.balanceOf(ACTOR),
+                selectedPerp.balanceOf(address(vault)),
+                selectedPerp.balanceOf(address(router)),
+                vault.balanceOf(ACTOR),
+                vault.balanceOf(address(router)),
+                vault.totalSupply(),
+                system.perpSr.totalSupply(),
+                system.perpJr.totalSupply(),
+                system.controller.collectedFeeBal(address(system.underlying)),
+                system.controller.collectedFeeBal(address(system.perpSr)),
+                system.controller.collectedFeeBal(address(system.perpJr))
+            )
+        );
+    }
+
+    function _assertGlobalAccounting() private view {
+        address[3] memory actors = [ACTOR, address(0), address(0)];
+        assertEq(_trackedUnderlying(address(0), actors), system.underlying.totalSupply());
+        assertEq(_trackedPerpWithActor(system.perpSr), system.perpSr.totalSupply());
+        assertEq(_trackedPerpWithActor(system.perpJr), system.perpJr.totalSupply());
+        assertEq(system.underlying.balanceOf(address(router)), 0);
+        assertEq(system.perpSr.balanceOf(address(router)), 0);
+        assertEq(system.perpJr.balanceOf(address(router)), 0);
+    }
+
+    function _trackedPerpWithActor(PerpToken perp) private view returns (uint256) {
+        return perp.balanceOf(address(this)) + perp.balanceOf(ACTOR) + perp.balanceOf(address(router))
+            + perp.balanceOf(address(seniorVault)) + perp.balanceOf(address(juniorVault))
+            + perp.balanceOf(address(system.controller)) + perp.balanceOf(address(system.manager))
+            + perp.balanceOf(address(system.issuer)) + perp.balanceOf(address(system.seeder))
+            + perp.balanceOf(address(system.perpSr)) + perp.balanceOf(address(system.perpJr)) + perp.balanceOf(DEAD);
     }
 }
