@@ -1,0 +1,51 @@
+{
+  "classification": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION_BEHAVIOR",
+  "chain_id": 8453,
+  "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+  "prestates": {
+    "mint_block": 53526143,
+    "redeem_transaction": "0xf49ebfa4f7833f8dec9ed901eb4edaddfaeed352e84362c6c687d52f17c7568e"
+  },
+  "probe": "evidence/probe-tests/UsdVaultDirectUpkeepProbe.t.sol",
+  "selector": {
+    "NoOp()": "0x00219cf1",
+    "SlippageTooHigh()": "0x850c6f76",
+    "ObservedMaxFillable()": "0xe453baa5"
+  },
+  "direct_rebalance": {
+    "mint": {
+      "requested_max_sell": 1000000009580,
+      "requested_min_buy": 1244266201,
+      "returned_sell": 500000004790,
+      "trade_buy_success": 622133101,
+      "trade_buy_zero": {"success": false, "error": "SlippageTooHigh()"},
+      "returned_buy_quote_one_wei_low_floor": {"trade_buy": 622133100, "success": false, "error": "SlippageTooHigh()"}
+    },
+    "redeem": {
+      "requested_max_sell": 2001421796385,
+      "requested_min_buy": 1546143235063888,
+      "returned_sell_for_quote_probe": 1000710898192,
+      "trade_buy_success": 773071617531945,
+      "trade_buy_zero": {"success": false, "error": "SlippageTooHigh()"},
+      "call_order_observed": ["maxFillable", "flashRedeem2", "trade"]
+    }
+  },
+  "upkeep": {
+    "mint_direction_at_opened_at_minus_equal_plus_one": {"success": false, "error": "NoOp()"},
+    "redeem_quote_failure": {"success": false, "error": "ObservedMaxFillable()"},
+    "redeem_executable_synthetic": {
+      "success": true,
+      "usd_before": 1000000010001,
+      "usd_after": 1547143235073889,
+      "underlying_before": 2000000000000,
+      "underlying_after": 1000000000000,
+      "perp_before": 10000000000000,
+      "perp_after": 10000000000000,
+      "session_active_before_after": [false, false],
+      "session_direction_before_after": [false, false],
+      "session_opened_at": 1793743200
+    }
+  },
+  "test_result": {"passed": 5, "failed": 0, "skipped": 0},
+  "production_changes": false
+}
