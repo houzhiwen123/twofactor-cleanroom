@@ -1,0 +1,35 @@
+{
+  "classification": "BNB-DESIGN / CLEANROOM SAFETY",
+  "baseline_commit": "bccfb72",
+  "target_confirmed": false,
+  "production_changes": {
+    "perp_token_canonical_tranche_validation": true,
+    "perp_token_deposit_balance_delta_validation": true,
+    "external_stateless_rollover_plan_guard": true,
+    "controller_storage_changed": false,
+    "controller_runtime_changed": false,
+    "local_genesis_uses_guard": true
+  },
+  "verification": {
+    "full_foundry": {"passed": 254, "failed": 0},
+    "guard_focused": {"passed": 7, "failed": 0},
+    "perp_token_focused": {"passed": 15, "failed": 0},
+    "controller_phase1b": {"passed": 41, "failed": 0},
+    "local_genesis_deployment": "PASS",
+    "runtime_size_check": "PASS",
+    "controller_storage_layout": "PASS",
+    "underlying_vault_storage_layout": "PASS",
+    "usd_vault_storage_layout": "PASS",
+    "underlying_vault_abi": "PASS"
+  },
+  "runtime_bytes": {
+    "PerpController": 22475,
+    "PerpToken": 11424,
+    "RolloverPlanGuard": 4752
+  },
+  "limitations": [
+    "The Guard does not protect against a compromised owner that replaces it.",
+    "New validation errors are clean-room safety behavior, not target-confirmed selectors.",
+    "Production multisig, timelock, upgrade delay and monitoring remain pending."
+  ]
+}

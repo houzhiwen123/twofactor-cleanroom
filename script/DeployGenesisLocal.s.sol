@@ -15,6 +15,7 @@ import {IUnderlyingPerpVault} from "../src/interfaces/IUnderlyingPerpVault.sol";
 import {PerpToken} from "../src/perp/PerpToken.sol";
 import {FeePolicy} from "../src/policy/FeePolicy.sol";
 import {PerpBalancer} from "../src/policy/PerpBalancer.sol";
+import {RolloverPlanGuard} from "../src/policy/RolloverPlanGuard.sol";
 import {SingleAssetRouter} from "../src/router/SingleAssetRouter.sol";
 import {UnderlyingSingleAssetRouter} from "../src/router/UnderlyingSingleAssetRouter.sol";
 import {UniswapV3DexStrategy} from "../src/strategy/UniswapV3DexStrategy.sol";
@@ -40,6 +41,7 @@ contract DeployGenesisLocal is Script {
         PerpController controller;
         FeePolicy feePolicy;
         PerpBalancer balancer;
+        RolloverPlanGuard planGuard;
         GenesisSeeder seeder;
         address firstBondSr;
         address firstBondJr;
@@ -160,8 +162,9 @@ contract DeployGenesisLocal is Script {
             )
         );
         d.balancer = new PerpBalancer();
+        d.planGuard = new RolloverPlanGuard(address(d.balancer), address(d.manager));
         d.controller.updateFeePolicy(address(d.feePolicy));
-        d.controller.updatePerpBalancer(address(d.balancer));
+        d.controller.updatePerpBalancer(address(d.planGuard));
         d.controller.updateIssuer(address(d.issuer));
         d.controller.setUnderlyingOracle();
 
@@ -299,6 +302,8 @@ contract DeployGenesisLocal is Script {
         console2.log("manager", address(core.manager));
         console2.log("issuer", address(core.issuer));
         console2.log("controller", address(core.controller));
+        console2.log("canonicalBalancer", address(core.balancer));
+        console2.log("rolloverPlanGuard", address(core.planGuard));
         console2.log("perpSr", address(core.perpSr));
         console2.log("perpJr", address(core.perpJr));
         console2.log("firstBondSr", core.firstBondSr);

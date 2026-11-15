@@ -9,28 +9,92 @@ import {IPerpToken} from "../src/interfaces/IPerpToken.sol";
 import {PerpToken} from "../src/perp/PerpToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
+contract MockRolloverTranche is MockERC20 {
+    address public immutable manager;
+    bytes32 public immutable bondID;
+    bool public immutable isSenior;
+
+    constructor(address manager_, bytes32 bondID_, bool isSenior_)
+        MockERC20(isSenior_ ? "Senior tranche" : "Junior tranche", isSenior_ ? "SR-T" : "JR-T", 8)
+    {
+        manager = manager_;
+        bondID = bondID_;
+        isSenior = isSenior_;
+    }
+
+    function data() external view returns (IBondsManager.TrancheData memory result) {
+        (address senior, address junior) = MockRolloverBondsManager(manager).tranches(bondID);
+        uint256 supply = totalSupply();
+        result = IBondsManager.TrancheData({
+            trancheSupply: supply,
+            trancheClaim: supply,
+            totalClaim: supply * 2,
+            volatilityMultiplier: isSenior ? 0 : 2e18,
+            underlyingOpenPrice: 1e18,
+            isMature: false,
+            secondsToMaturity: 30 days,
+            trancheRatio: 5e17,
+            valueRatio: 5e17,
+            bondID: bondID,
+            isSenior: isSenior,
+            tranche: address(this),
+            counterpart: isSenior ? junior : senior,
+            manager: manager
+        });
+    }
+}
+
 contract MockRolloverBondsManager {
     using SafeERC20 for IERC20;
 
     error ForcedFailure();
 
+    struct Pair {
+        MockRolloverTranche senior;
+        MockRolloverTranche junior;
+    }
+
     MockERC20 public immutable underlying;
-    MockERC20 public immutable senior;
-    MockERC20 public immutable junior;
+    mapping(bytes32 => Pair) private _pairs;
     uint256 public callCount;
     uint256 public revertOnCall;
+    bool public misreportSeniorAmount;
 
     constructor(MockERC20 underlying_) {
         underlying = underlying_;
-        senior = new MockERC20("Senior tranche", "SR-T", 8);
-        junior = new MockERC20("Junior tranche", "JR-T", 8);
+    }
+
+    function createPair(bytes32 bondID)
+        external
+        returns (MockRolloverTranche seniorTranche, MockRolloverTranche juniorTranche)
+    {
+        seniorTranche = new MockRolloverTranche(address(this), bondID, true);
+        juniorTranche = new MockRolloverTranche(address(this), bondID, false);
+        _pairs[bondID] = Pair(seniorTranche, juniorTranche);
+    }
+
+    function tranches(bytes32 bondID) external view returns (address seniorTranche, address juniorTranche) {
+        Pair storage pair = _pairs[bondID];
+        return (address(pair.senior), address(pair.junior));
+    }
+
+    function senior(bytes32 bondID) external view returns (MockRolloverTranche) {
+        return _pairs[bondID].senior;
+    }
+
+    function junior(bytes32 bondID) external view returns (MockRolloverTranche) {
+        return _pairs[bondID].junior;
     }
 
     function setRevertOnCall(uint256 callNumber) external {
         revertOnCall = callNumber;
     }
 
-    function deposit(bytes32, uint256 underlyingAmt)
+    function setMisreportSeniorAmount(bool enabled) external {
+        misreportSeniorAmount = enabled;
+    }
+
+    function deposit(bytes32 bondID, uint256 underlyingAmt)
         external
         returns (IBondsManager.TokenAmount memory srTrAmt, IBondsManager.TokenAmount memory jrTrAmt)
     {
@@ -39,10 +103,13 @@ contract MockRolloverBondsManager {
         IERC20(underlying).safeTransferFrom(msg.sender, address(this), underlyingAmt);
         uint256 srAmount = underlyingAmt * 2;
         uint256 jrAmount = underlyingAmt * 3;
-        senior.mint(msg.sender, srAmount);
-        junior.mint(msg.sender, jrAmount);
-        return
-            (IBondsManager.TokenAmount(address(senior), srAmount), IBondsManager.TokenAmount(address(junior), jrAmount));
+        Pair storage pair = _pairs[bondID];
+        pair.senior.mint(msg.sender, srAmount);
+        pair.junior.mint(msg.sender, jrAmount);
+        return (
+            IBondsManager.TokenAmount(address(pair.senior), srAmount + (misreportSeniorAmount ? 1 : 0)),
+            IBondsManager.TokenAmount(address(pair.junior), jrAmount)
+        );
     }
 }
 
@@ -58,6 +125,8 @@ contract PerpTokenRolloverTest is Test {
     function setUp() public {
         underlying = new MockERC20("Wrapped BTC", "WBTC", 8);
         manager = new MockRolloverBondsManager(underlying);
+        manager.createPair(bytes32(uint256(1)));
+        manager.createPair(bytes32(uint256(2)));
         juniorPerp = new PerpToken(
             "Junior Perp", "JR-P", address(underlying), address(manager), address(this), true, address(this)
         );
@@ -96,8 +165,8 @@ contract PerpTokenRolloverTest is Test {
         juniorPerp.bondDepositsForRollover(address(manager), zero);
         logs = vm.getRecordedLogs();
         assertEq(_reserveSyncCount(logs), 3);
-        _assertNthReserveSync(logs, 0, address(manager.senior()), 0);
-        _assertNthReserveSync(logs, 1, address(manager.junior()), 0);
+        _assertNthReserveSync(logs, 0, address(manager.senior(bytes32(uint256(1)))), 0);
+        _assertNthReserveSync(logs, 1, address(manager.junior(bytes32(uint256(1)))), 0);
         _assertNthReserveSync(logs, 2, address(underlying), 1_000);
         assertEq(juniorPerp.trancheTokens().length, 0);
     }
@@ -116,14 +185,16 @@ contract PerpTokenRolloverTest is Test {
 
         assertEq(underlying.balanceOf(address(juniorPerp)), 0);
         assertEq(underlying.balanceOf(address(manager)), 1_000);
-        assertEq(manager.senior().balanceOf(address(juniorPerp)), 2_000);
-        assertEq(manager.junior().balanceOf(address(juniorPerp)), 3_000);
+        assertEq(manager.senior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 800);
+        assertEq(manager.junior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 1_200);
+        assertEq(manager.senior(bytes32(uint256(2))).balanceOf(address(juniorPerp)), 1_200);
+        assertEq(manager.junior(bytes32(uint256(2))).balanceOf(address(juniorPerp)), 1_800);
         assertEq(underlying.allowance(address(juniorPerp), address(manager)), type(uint256).max);
 
         address[] memory tranches = juniorPerp.trancheTokens();
-        assertEq(tranches.length, 2);
-        assertEq(tranches[0], address(manager.senior()));
-        assertEq(tranches[1], address(manager.junior()));
+        assertEq(tranches.length, 4);
+        assertEq(tranches[0], address(manager.senior(bytes32(uint256(1)))));
+        assertEq(tranches[1], address(manager.junior(bytes32(uint256(1)))));
         assertEq(_reserveSyncCount(logs), 5);
         _assertNthReserveSync(logs, 4, address(underlying), 0);
     }
@@ -143,20 +214,25 @@ contract PerpTokenRolloverTest is Test {
         assertEq(manager.callCount(), 0);
         assertEq(underlying.balanceOf(address(juniorPerp)), 1_000);
         assertEq(underlying.balanceOf(address(manager)), 0);
-        assertEq(manager.senior().balanceOf(address(juniorPerp)), 0);
-        assertEq(manager.junior().balanceOf(address(juniorPerp)), 0);
+        assertEq(manager.senior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 0);
+        assertEq(manager.junior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 0);
         assertEq(juniorPerp.trancheTokens().length, 0);
     }
 
     function testCapacityFailureIsAtomic() public {
         _primeManagerApproval();
         underlying.mint(address(juniorPerp), 1_000);
-        for (uint160 i = 1; i <= 49; ++i) {
-            juniorPerp.registerTranche(address(i));
+        for (uint256 i = 10; i < 34; ++i) {
+            (MockRolloverTranche senior, MockRolloverTranche junior) = manager.createPair(bytes32(i));
+            juniorPerp.registerTranche(address(senior));
+            juniorPerp.registerTranche(address(junior));
         }
+        (MockRolloverTranche lastSenior,) = manager.createPair(bytes32(uint256(34)));
+        juniorPerp.registerTranche(address(lastSenior));
+        manager.createPair(bytes32(uint256(99)));
 
         IPerpToken.BondDeposit[] memory deposits = new IPerpToken.BondDeposit[](1);
-        deposits[0] = IPerpToken.BondDeposit(bytes32(uint256(1)), 1_000);
+        deposits[0] = IPerpToken.BondDeposit(bytes32(uint256(99)), 1_000);
 
         vm.expectRevert(PerpToken.ReserveOverflow.selector);
         juniorPerp.bondDepositsForRollover(address(manager), deposits);
@@ -164,8 +240,37 @@ contract PerpTokenRolloverTest is Test {
         assertEq(juniorPerp.trancheTokens().length, 49);
         assertEq(underlying.balanceOf(address(juniorPerp)), 1_000);
         assertEq(underlying.balanceOf(address(manager)), 0);
-        assertEq(manager.senior().balanceOf(address(juniorPerp)), 0);
-        assertEq(manager.junior().balanceOf(address(juniorPerp)), 0);
+        assertEq(manager.senior(bytes32(uint256(99))).balanceOf(address(juniorPerp)), 0);
+        assertEq(manager.junior(bytes32(uint256(99))).balanceOf(address(juniorPerp)), 0);
+    }
+
+    function testRejectsNonCanonicalManagerBeforeAssetMovement() public {
+        underlying.mint(address(juniorPerp), 1_000);
+        IPerpToken.BondDeposit[] memory deposits = new IPerpToken.BondDeposit[](1);
+        deposits[0] = IPerpToken.BondDeposit(bytes32(uint256(1)), 1_000);
+
+        vm.expectRevert(PerpToken.InvalidBondsManager.selector);
+        juniorPerp.bondDepositsForRollover(address(0xBEEF), deposits);
+
+        assertEq(underlying.balanceOf(address(juniorPerp)), 1_000);
+        assertEq(juniorPerp.trancheTokens().length, 0);
+    }
+
+    function testMisreportedDepositAmountRollsBackAllBalances() public {
+        _primeManagerApproval();
+        underlying.mint(address(juniorPerp), 1_000);
+        manager.setMisreportSeniorAmount(true);
+        IPerpToken.BondDeposit[] memory deposits = new IPerpToken.BondDeposit[](1);
+        deposits[0] = IPerpToken.BondDeposit(bytes32(uint256(1)), 1_000);
+
+        vm.expectRevert(PerpToken.InvalidDepositResult.selector);
+        juniorPerp.bondDepositsForRollover(address(manager), deposits);
+
+        assertEq(underlying.balanceOf(address(juniorPerp)), 1_000);
+        assertEq(underlying.balanceOf(address(manager)), 0);
+        assertEq(manager.senior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 0);
+        assertEq(manager.junior(bytes32(uint256(1))).balanceOf(address(juniorPerp)), 0);
+        assertEq(juniorPerp.trancheTokens().length, 0);
     }
 
     function _reserveSyncCount(Vm.Log[] memory logs) private pure returns (uint256 count) {

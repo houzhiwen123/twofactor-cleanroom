@@ -72,6 +72,36 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
         }
     }
 
+    contract MockReserveManager {
+        struct Pair {
+            address senior;
+            address junior;
+        }
+
+        mapping(bytes32 => Pair) private _pairs;
+
+        function setPair(bytes32 bondID, address senior, address junior) external {
+            _pairs[bondID] = Pair(senior, junior);
+        }
+
+        function tranches(bytes32 bondID) external view returns (address senior, address junior) {
+            Pair storage pair = _pairs[bondID];
+            return (pair.senior, pair.junior);
+        }
+
+        function redeem(bytes32, uint256, uint256)
+            external
+            pure
+            returns (
+                uint256 underlyingAmtReturned,
+                IBondsManager.TokenAmount memory srTrAmt,
+                IBondsManager.TokenAmount memory jrTrAmt
+            )
+        {
+            return (0, IBondsManager.TokenAmount(address(0), 0), IBondsManager.TokenAmount(address(0), 0));
+        }
+    }
+
     contract MockReserveTranche is ERC20 {
         IBondsManager.TrancheData private _trancheData;
 
@@ -86,27 +116,15 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
         }
 
         function manager() external view returns (address) {
-            return address(this);
+            return _trancheData.manager;
         }
 
         function bondID() external view returns (bytes32) {
             return _trancheData.bondID;
         }
 
-        function tranches(bytes32) external view returns (address senior, address junior) {
-            return (address(this), address(this));
-        }
-
-        function redeem(bytes32, uint256, uint256)
-            external
-            view
-            returns (
-                uint256 underlyingAmtReturned,
-                IBondsManager.TokenAmount memory srTrAmt,
-                IBondsManager.TokenAmount memory jrTrAmt
-            )
-        {
-            return (0, IBondsManager.TokenAmount(address(this), 0), IBondsManager.TokenAmount(address(this), 0));
+        function isSenior() external view returns (bool) {
+            return _trancheData.isSenior;
         }
 
         function mint(address to, uint256 amount) external {
@@ -119,9 +137,9 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
         uint256 public issueCalls;
         address public override bondsManager;
 
-        constructor(address srTranche, address jrTranche) {
-            _bondInfo = BondInfo(address(0xD00D), bytes32(uint256(1)), srTranche, jrTranche);
-            bondsManager = address(0xD00D);
+        constructor(address manager, address srTranche, address jrTranche) {
+            _bondInfo = BondInfo(manager, bytes32(uint256(1)), srTranche, jrTranche);
+            bondsManager = manager;
         }
 
         function issue() external override returns (bool issued, BondInfo memory info) {
@@ -167,6 +185,8 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
             PerpToken private jr;
             PerpController private controller;
             MockPhase1BFeePolicy private feePolicy;
+            MockReserveManager private reserveManager;
+            uint256 private nextMockBondId = 1;
 
             function setUp() public {
                 (underlying, sr, jr, controller, feePolicy) = _deployFixture();
@@ -303,7 +323,9 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 );
                 _addMint2Tranche(jr, 3_133_547_705_527, 3_133_547_705_527, 35_357_092, 2_184_370_309_639_718_108, false);
                 _addMint2Tranche(jr, 3_392_625_573_183, 3_392_625_573_183, 38_706_913, 2_171_318_880_428_413_397, false);
-                MockPhase1BIssuer issuer = new MockPhase1BIssuer(address(srLatest), address(jrLatest));
+                MockPhase1BIssuer issuer = new MockPhase1BIssuer(
+                    address(reserveManager), address(srLatest), address(jrLatest)
+                );
                 controller.updateIssuer(address(issuer));
                 feePolicy.setFees(2_515_394_810_867_535, 2_515_394_810_867_535, 0);
                 (uint256 subDR, uint256 vmDR) = controller.systemDeviations();
@@ -895,7 +917,7 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 address firstManager = firstIssuer.bondsManager();
                 assertEq(underlying.allowance(address(jr), firstManager), type(uint256).max);
 
-                MockPhase1BIssuer secondIssuer = new MockPhase1BIssuer(address(0), address(0));
+                MockPhase1BIssuer secondIssuer = new MockPhase1BIssuer(address(reserveManager), address(0), address(0));
                 address secondManager = address(0xBEEF);
                 secondIssuer.setBondsManager(secondManager);
                 controller.updateIssuer(address(secondIssuer));
@@ -1056,7 +1078,8 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
             }
 
             function testPerpPermissionsCapDuplicateAndJuniorApproval() public {
-                address manager = address(0x1234);
+                MockReserveManager localManager = new MockReserveManager();
+                address manager = address(localManager);
                 PerpToken token = new PerpToken(
                     "SR", "SR", address(underlying), manager, address(this), false, address(this)
                 );
@@ -1069,13 +1092,19 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 vm.expectRevert(PerpToken.UnauthorizedCall.selector);
                 token.registerTranche(address(0x100));
                 vm.stopPrank();
-                for (uint160 i = 1; i <= 50; ++i) {
-                    token.registerTranche(address(i));
+                address first;
+                for (uint256 i = 1; i <= 25; ++i) {
+                    (MockReserveTranche seniorTranche, MockReserveTranche juniorTranche) =
+                        _newReservePair(localManager, bytes32(i));
+                    token.registerTranche(address(seniorTranche));
+                    token.registerTranche(address(juniorTranche));
+                    if (i == 1) first = address(seniorTranche);
                 }
-                token.registerTranche(address(1));
+                token.registerTranche(first);
                 assertEq(token.trancheTokens().length, 50);
+                (MockReserveTranche overflowTranche,) = _newReservePair(localManager, bytes32(uint256(26)));
                 vm.expectRevert(PerpToken.ReserveOverflow.selector);
-                token.registerTranche(address(1000));
+                token.registerTranche(address(overflowTranche));
 
                 (bool srApproval,) = address(token).call(abi.encodeWithSignature("primeApproval(address)", manager));
                 assertFalse(srApproval);
@@ -1091,14 +1120,15 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 address oldController = address(0xD00D);
                 address newController = address(0xCA11);
                 address random = address(0xBEEF);
-                address manager = address(0x1234);
+                MockReserveManager localManager = new MockReserveManager();
+                address manager = address(localManager);
                 PerpToken senior = new PerpToken(
                     "SR", "SR", address(underlying), manager, oldController, false, address(this)
                 );
                 PerpToken junior = new PerpToken(
                     "JR", "JR", address(underlying), manager, oldController, true, address(this)
                 );
-                MockReserveTranche tranche = new MockReserveTranche();
+                (MockReserveTranche tranche,) = _newReservePair(localManager, bytes32(uint256(1)));
                 senior.updateController(newController);
                 junior.updateController(newController);
 
@@ -1202,27 +1232,20 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
             }
 
             function testReserveDataTrancheValueFloors() public {
+                MockReserveManager localManager = new MockReserveManager();
                 PerpToken token =
-                    new PerpToken("SR", "SR", address(underlying), address(0xD00D), address(this), false, address(this));
-                MockReserveTranche tranche = new MockReserveTranche();
-                tranche.setData(
-                    IBondsManager.TrancheData({
-                        trancheSupply: 3,
-                        trancheClaim: 2,
-                        totalClaim: 3,
-                        volatilityMultiplier: WAD,
-                        underlyingOpenPrice: WAD,
-                        isMature: false,
-                        secondsToMaturity: 1,
-                        trancheRatio: 5e17,
-                        valueRatio: 5e17,
-                        bondID: bytes32(uint256(1)),
-                        isSenior: true,
-                        tranche: address(tranche),
-                        counterpart: address(0),
-                        manager: address(0xD00D)
-                    })
+                    new PerpToken(
+                    "SR", "SR", address(underlying), address(localManager), address(this), false, address(this)
                 );
+                (MockReserveTranche tranche, MockReserveTranche counterpart) =
+                    _newReservePair(localManager, bytes32(uint256(1)));
+                IBondsManager.TrancheData memory data =
+                    _canonicalData(tranche, address(counterpart), localManager, bytes32(uint256(1)), true);
+                data.trancheSupply = 3;
+                data.trancheClaim = 2;
+                data.totalClaim = 3;
+                data.volatilityMultiplier = WAD;
+                tranche.setData(data);
                 token.registerTranche(address(tranche));
                 tranche.mint(address(token), 5);
                 underlying.mint(address(token), 123);
@@ -1245,46 +1268,30 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
             }
 
             function testReservesRawTupleOrderAmountsAndDuplicateRegistration() public {
+                MockReserveManager localManager = new MockReserveManager();
                 PerpToken token =
-                    new PerpToken("SR", "SR", address(underlying), address(0xD00D), address(this), false, address(this));
-                MockReserveTranche first = new MockReserveTranche();
-                MockReserveTranche second = new MockReserveTranche();
-                first.setData(
-                    IBondsManager.TrancheData({
-                        trancheSupply: 3,
-                        trancheClaim: 2,
-                        totalClaim: 3,
-                        volatilityMultiplier: WAD,
-                        underlyingOpenPrice: WAD,
-                        isMature: false,
-                        secondsToMaturity: 1,
-                        trancheRatio: 5e17,
-                        valueRatio: 5e17,
-                        bondID: bytes32(uint256(1)),
-                        isSenior: true,
-                        tranche: address(first),
-                        counterpart: address(second),
-                        manager: address(0xD00D)
-                    })
+                    new PerpToken(
+                    "SR", "SR", address(underlying), address(localManager), address(this), false, address(this)
                 );
-                second.setData(
-                    IBondsManager.TrancheData({
-                        trancheSupply: 5,
-                        trancheClaim: 3,
-                        totalClaim: 3,
-                        volatilityMultiplier: WAD,
-                        underlyingOpenPrice: WAD,
-                        isMature: false,
-                        secondsToMaturity: 2,
-                        trancheRatio: 5e17,
-                        valueRatio: 5e17,
-                        bondID: bytes32(uint256(2)),
-                        isSenior: true,
-                        tranche: address(second),
-                        counterpart: address(first),
-                        manager: address(0xD00D)
-                    })
-                );
+                (MockReserveTranche first, MockReserveTranche firstCounterpart) =
+                    _newReservePair(localManager, bytes32(uint256(1)));
+                (MockReserveTranche second, MockReserveTranche secondCounterpart) =
+                    _newReservePair(localManager, bytes32(uint256(2)));
+                IBondsManager.TrancheData memory firstData =
+                    _canonicalData(first, address(firstCounterpart), localManager, bytes32(uint256(1)), true);
+                firstData.trancheSupply = 3;
+                firstData.trancheClaim = 2;
+                firstData.totalClaim = 3;
+                firstData.volatilityMultiplier = WAD;
+                first.setData(firstData);
+                IBondsManager.TrancheData memory secondData =
+                    _canonicalData(second, address(secondCounterpart), localManager, bytes32(uint256(2)), true);
+                secondData.trancheSupply = 5;
+                secondData.trancheClaim = 3;
+                secondData.totalClaim = 3;
+                secondData.volatilityMultiplier = WAD;
+                secondData.secondsToMaturity = 2;
+                second.setData(secondData);
                 token.registerTranche(address(first));
                 token.registerTranche(address(second));
                 first.mint(address(token), 5);
@@ -1549,7 +1556,8 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 _seed(100_000_000, 1_000_000, 100_000_000, 1_000_000);
                 MockReserveTranche srLatest = _addMint2Tranche(sr, 2_000_000, 1_000_000, 2_000_000, WAD, true);
                 MockReserveTranche jrLatest = _addMint2Tranche(jr, 2_000_000, 1_000_000, 2_000_000, WAD, false);
-                MockPhase1BIssuer localIssuer = new MockPhase1BIssuer(address(srLatest), address(jrLatest));
+                MockPhase1BIssuer localIssuer =
+                    new MockPhase1BIssuer(address(reserveManager), address(srLatest), address(jrLatest));
                 controller.updateIssuer(address(localIssuer));
                 feePolicy.setFees(srInput ? 0 : WAD, srInput ? WAD : 0, 0);
 
@@ -1578,7 +1586,7 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
             function _configureMockIssuer() private returns (MockPhase1BIssuer issuer) {
                 MockReserveTranche srLatest = _addMint2Tranche(sr, 1, 0, 1, 0, true);
                 MockReserveTranche jrLatest = _addMint2Tranche(jr, 1, 0, 1, 0, false);
-                issuer = new MockPhase1BIssuer(address(srLatest), address(jrLatest));
+                issuer = new MockPhase1BIssuer(address(reserveManager), address(srLatest), address(jrLatest));
                 controller.updateIssuer(address(issuer));
             }
 
@@ -1625,29 +1633,62 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 uint256 volatilityMultiplier,
                 bool isSenior
             ) private returns (MockReserveTranche tranche) {
-                tranche = new MockReserveTranche();
-                tranche.setData(
-                    IBondsManager.TrancheData({
-                        trancheSupply: trancheSupply,
-                        trancheClaim: trancheClaim,
-                        totalClaim: 0,
-                        volatilityMultiplier: volatilityMultiplier,
-                        underlyingOpenPrice: 0,
-                        isMature: false,
-                        secondsToMaturity: 0,
-                        trancheRatio: 0,
-                        valueRatio: 0,
-                        bondID: bytes32(0),
-                        isSenior: isSenior,
-                        tranche: address(tranche),
-                        counterpart: address(0),
-                        manager: address(0)
-                    })
+                bytes32 bondID = bytes32(nextMockBondId++);
+                (MockReserveTranche seniorTranche, MockReserveTranche juniorTranche) =
+                    _newReservePair(reserveManager, bondID);
+                tranche = isSenior ? seniorTranche : juniorTranche;
+                address counterpart = isSenior ? address(juniorTranche) : address(seniorTranche);
+                IBondsManager.TrancheData memory data = _canonicalData(
+                    tranche, counterpart, reserveManager, bondID, isSenior
                 );
+                data.trancheSupply = trancheSupply;
+                data.trancheClaim = trancheClaim;
+                data.volatilityMultiplier = volatilityMultiplier;
+                data.underlyingOpenPrice = 0;
+                data.secondsToMaturity = 0;
+                data.trancheRatio = 0;
+                data.valueRatio = 0;
+                tranche.setData(data);
                 vm.prank(address(controller));
                 perp.registerTranche(address(tranche));
                 tranche.mint(address(perp), perpBalance);
                 if (trancheSupply > perpBalance) tranche.mint(USER, trancheSupply - perpBalance);
+            }
+
+            function _newReservePair(MockReserveManager manager, bytes32 bondID)
+                private
+                returns (MockReserveTranche seniorTranche, MockReserveTranche juniorTranche)
+            {
+                seniorTranche = new MockReserveTranche();
+                juniorTranche = new MockReserveTranche();
+                manager.setPair(bondID, address(seniorTranche), address(juniorTranche));
+                seniorTranche.setData(_canonicalData(seniorTranche, address(juniorTranche), manager, bondID, true));
+                juniorTranche.setData(_canonicalData(juniorTranche, address(seniorTranche), manager, bondID, false));
+            }
+
+            function _canonicalData(
+                MockReserveTranche tranche,
+                address counterpart,
+                MockReserveManager manager,
+                bytes32 bondID,
+                bool isSenior
+            ) private pure returns (IBondsManager.TrancheData memory data) {
+                data = IBondsManager.TrancheData({
+                    trancheSupply: 0,
+                    trancheClaim: 0,
+                    totalClaim: 0,
+                    volatilityMultiplier: isSenior ? 0 : 2e18,
+                    underlyingOpenPrice: WAD,
+                    isMature: false,
+                    secondsToMaturity: 1,
+                    trancheRatio: 5e17,
+                    valueRatio: 5e17,
+                    bondID: bondID,
+                    isSenior: isSenior,
+                    tranche: address(tranche),
+                    counterpart: counterpart,
+                    manager: address(manager)
+                });
             }
 
             function _assertFlashRedeem2Gross(uint256 totalSupply, uint256 reserve, uint256 shares, bool srSide)
@@ -1679,8 +1720,13 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 returns (MockERC20 u, PerpToken s, PerpToken j, PerpController c, MockPhase1BFeePolicy f)
             {
                 u = new MockERC20("Underlying", "UND", 8);
-                s = new PerpToken("Senior Perp", "pSR", address(u), address(0xD00D), address(0), false, address(this));
-                j = new PerpToken("Junior Perp", "pJR", address(u), address(0xD00D), address(0), true, address(this));
+                reserveManager = new MockReserveManager();
+                s = new PerpToken(
+                    "Senior Perp", "pSR", address(u), address(reserveManager), address(0), false, address(this)
+                );
+                j = new PerpToken(
+                    "Junior Perp", "pJR", address(u), address(reserveManager), address(0), true, address(this)
+                );
                 PerpController implementation = new PerpController();
                 TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
                     address(implementation),

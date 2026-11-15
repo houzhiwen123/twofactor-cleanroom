@@ -249,6 +249,30 @@ contract PerpTokenReserveCleanupTest is Test {
         perp.recover();
     }
 
+    function testRejectsUnregisteredReserveOutflowAtomically() public {
+        (MockCleanupTranche senior,) = manager.createPair(bytes32(uint256(9)));
+        senior.mint(address(perp), 100);
+
+        vm.expectRevert(PerpToken.UnregisteredTranche.selector);
+        _transferOne(address(senior), 100);
+
+        assertEq(senior.balanceOf(address(perp)), 100);
+        assertEq(senior.balanceOf(RECIPIENT), 0);
+        assertEq(perp.trancheTokens().length, 0);
+    }
+
+    function testRejectsForeignTrancheBeforeRegistrationOrRecovery() public {
+        MockCleanupManager foreignManager = new MockCleanupManager(underlying);
+        (MockCleanupTranche foreignSenior,) = foreignManager.createPair(bytes32(uint256(10)));
+        foreignSenior.mint(address(perp), 100);
+
+        vm.expectRevert(PerpToken.InvalidTranche.selector);
+        _handleOne(address(foreignSenior), 100);
+
+        assertEq(foreignSenior.balanceOf(address(perp)), 100);
+        assertEq(perp.trancheTokens().length, 0);
+    }
+
     function _transferOne(address token, uint256 amount) private {
         PerpBalancer.TokenAmount[] memory trancheAmts = new PerpBalancer.TokenAmount[](1);
         trancheAmts[0] = PerpBalancer.TokenAmount(token, amount);

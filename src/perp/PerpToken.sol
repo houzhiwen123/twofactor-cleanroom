@@ -17,6 +17,10 @@ contract PerpToken is ERC20, Ownable2Step {
 
     error UnauthorizedCall();
     error ReserveOverflow();
+    error InvalidBondsManager();
+    error InvalidTranche();
+    error InvalidDepositResult();
+    error UnregisteredTranche();
 
     event ReserveSynced(address token, uint256 balance);
 
@@ -71,6 +75,7 @@ contract PerpToken is ERC20, Ownable2Step {
     }
 
     function _registerTranche(address tranche) private {
+        _assertCanonicalTranche(tranche);
         if (_trancheIndexPlusOne[tranche] != 0) return;
         if (_trancheTokens.length >= MAX_TRANCHES) revert ReserveOverflow();
         _trancheTokens.push(tranche);
@@ -92,6 +97,10 @@ contract PerpToken is ERC20, Ownable2Step {
         }
         for (uint256 i; i < amounts.trancheAmts.length; ++i) {
             PerpBalancer.TokenAmount calldata item = amounts.trancheAmts[i];
+            // Target traces include canonical zero-value transfers. They cannot move reserves, so
+            // preserve them while requiring registration for every positive outflow.
+            if (item.amount != 0 && _trancheIndexPlusOne[item.token] == 0) revert UnregisteredTranche();
+            _assertCanonicalTranche(item.token);
             IERC20(item.token).safeTransfer(to, item.amount);
             uint256 balance = IERC20(item.token).balanceOf(address(this));
             emit ReserveSynced(item.token, balance);
@@ -131,10 +140,32 @@ contract PerpToken is ERC20, Ownable2Step {
             }
         }
 
+        // Empty calls are target-observed no-ops apart from the final balance sync. A manager is
+        // only trusted once an asset-moving deposit is requested.
+        if (deposits.length != 0 && manager != bondsManager) revert InvalidBondsManager();
+
         for (uint256 i; i < deposits.length; ++i) {
             IPerpToken.BondDeposit calldata item = deposits[i];
+            (address expectedSenior, address expectedJunior) = IBondsManager(bondsManager).tranches(item.bondID);
+            _assertCanonicalPair(item.bondID, expectedSenior, expectedJunior);
+            _assertCanonicalTranche(expectedSenior);
+            _assertCanonicalTranche(expectedJunior);
+
+            uint256 underlyingBefore = IERC20(underlying).balanceOf(address(this));
+            uint256 seniorBefore = IERC20(expectedSenior).balanceOf(address(this));
+            uint256 juniorBefore = IERC20(expectedJunior).balanceOf(address(this));
             (IBondsManager.TokenAmount memory srTranche, IBondsManager.TokenAmount memory jrTranche) =
                 IBondsManager(manager).deposit(item.bondID, item.underlyingAmt);
+
+            uint256 underlyingAfter = IERC20(underlying).balanceOf(address(this));
+            uint256 seniorAfter = IERC20(expectedSenior).balanceOf(address(this));
+            uint256 juniorAfter = IERC20(expectedJunior).balanceOf(address(this));
+            if (
+                srTranche.token != expectedSenior || jrTranche.token != expectedJunior || seniorAfter < seniorBefore
+                    || juniorAfter < juniorBefore || underlyingAfter > underlyingBefore
+                    || seniorAfter - seniorBefore != srTranche.amount || juniorAfter - juniorBefore != jrTranche.amount
+                    || underlyingBefore - underlyingAfter != item.underlyingAmt
+            ) revert InvalidDepositResult();
 
             if (srTranche.amount != 0) _registerTranche(srTranche.token);
             if (jrTranche.amount != 0) _registerTranche(jrTranche.token);
@@ -206,12 +237,10 @@ contract PerpToken is ERC20, Ownable2Step {
     }
 
     function _recoverTranche(address tranche) private returns (bool recovered) {
-        address manager = ITranche(tranche).manager();
-        bytes32 bondID = ITranche(tranche).bondID();
-        (address senior, address junior) = IBondsManager(manager).tranches(bondID);
+        (bytes32 bondID, address senior, address junior) = _assertCanonicalTranche(tranche);
         uint256 seniorBalance = IERC20(senior).balanceOf(address(this));
         uint256 juniorBalance = IERC20(junior).balanceOf(address(this));
-        (uint256 underlyingReturned,,) = IBondsManager(manager).redeem(bondID, seniorBalance, juniorBalance);
+        (uint256 underlyingReturned,,) = IBondsManager(bondsManager).redeem(bondID, seniorBalance, juniorBalance);
 
         seniorBalance = IERC20(senior).balanceOf(address(this));
         juniorBalance = IERC20(junior).balanceOf(address(this));
@@ -223,6 +252,39 @@ contract PerpToken is ERC20, Ownable2Step {
         }
         if (seniorBalance == 0) _removeTranche(senior);
         if (juniorBalance == 0) _removeTranche(junior);
+    }
+
+    /// @dev Clean-room safety boundary. These checks are defense-in-depth and are not claimed as
+    /// target-observed reverts. They prevent an invalid planner output from turning a reserve token
+    /// into an arbitrary external manager call.
+    function _assertCanonicalTranche(address tranche)
+        private
+        view
+        returns (bytes32 bondID, address senior, address junior)
+    {
+        if (tranche.code.length == 0 || ITranche(tranche).manager() != bondsManager) revert InvalidTranche();
+        bondID = ITranche(tranche).bondID();
+        (senior, junior) = IBondsManager(bondsManager).tranches(bondID);
+        _assertCanonicalPair(bondID, senior, junior);
+
+        bool seniorSide;
+        if (tranche == senior) seniorSide = true;
+        else if (tranche != junior) revert InvalidTranche();
+        if (ITranche(tranche).isSenior() != seniorSide) revert InvalidTranche();
+
+        IBondsManager.TrancheData memory data = ITranche(tranche).data();
+        address counterpart = seniorSide ? junior : senior;
+        if (
+            data.manager != bondsManager || data.bondID != bondID || data.tranche != tranche
+                || data.counterpart != counterpart || data.isSenior != seniorSide
+        ) revert InvalidTranche();
+    }
+
+    function _assertCanonicalPair(bytes32 bondID, address senior, address junior) private view {
+        if (bondID == bytes32(0) || senior == address(0) || junior == address(0) || senior == junior) {
+            revert InvalidTranche();
+        }
+        if (senior.code.length == 0 || junior.code.length == 0) revert InvalidTranche();
     }
 
     function _removeTranche(address tranche) private {
