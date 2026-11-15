@@ -3,7 +3,9 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {console2} from "forge-std/console2.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {MockERC20} from "../../test/mocks/MockERC20.sol";
 import {MockPriceOracle} from "../../test/mocks/MockPriceOracle.sol";
 
@@ -20,12 +22,12 @@ interface ITargetUsdVaultDirectProbe {
         external
         view
         returns (bool active, bool isMintingPerp, uint256 budgetUsdVal, uint256 openedAtSec);
-    function updateHealthCheckParams(address usdOracle_, uint64 maxUsdDeviation, uint64 maxUnderlyingDeviation)
-        external;
-    function updateOpLimits(uint128 minOpUsdVal_, uint64 maxFlashMintFeePerc, uint64 maxFlashRedeemFeePerc)
-        external;
-    function updateSessionParams(uint32 freqSec, uint32 offsetSec, uint32 activeDelaySec, uint64 velocity)
-        external;
+    function sessionBudgetUsdVal() external view returns (uint128);
+    function sessionOpenedAtSec() external view returns (uint64);
+    function sessionIsMintingPerp() external view returns (bool);
+    function updateHealthCheckParams(address usdOracle_, uint64 maxUsdDeviation, uint64 maxUnderlyingDeviation) external;
+    function updateOpLimits(uint128 minOpUsdVal_, uint64 maxFlashMintFeePerc, uint64 maxFlashRedeemFeePerc) external;
+    function updateSessionParams(uint32 freqSec, uint32 offsetSec, uint32 activeDelaySec, uint64 velocity) external;
     function updateTargetDR(uint96 targetDR_, Range calldata range) external;
 }
 
@@ -67,9 +69,7 @@ contract DirectProbeDex {
         referencePriceValue = referencePrice_;
     }
 
-    function configure(Mode mode_, uint256 maxSellReturn_, uint256 maxBuyReturn_, uint256 tradeBuyReturn_)
-        external
-    {
+    function configure(Mode mode_, uint256 maxSellReturn_, uint256 maxBuyReturn_, uint256 tradeBuyReturn_) external {
         mode = mode_;
         maxSellReturn = maxSellReturn_;
         maxBuyReturn = maxBuyReturn_;
@@ -116,6 +116,8 @@ contract UsdVaultDirectUpkeepProbe is Test {
     uint256 private constant MINT_BLOCK = 53_526_143;
     uint256 private constant MINT_PRICE = 80_248_101_897_110_000_000_000;
     uint256 private constant REDEEM_PRICE = 77_368_295_716_660_000_000_000;
+    uint256 private constant MIN_BUY_BPS = 9_985;
+    uint256 private constant BPS = 10_000;
 
     struct Context {
         ITargetUsdVaultDirectProbe vault;
@@ -143,6 +145,17 @@ contract UsdVaultDirectUpkeepProbe is Test {
         _assertResult(context, partialSell, minBuy, 0, false, bytes4(keccak256("SlippageTooHigh()")));
     }
 
+    function testObserveDirectMintProportionalCeilAcrossRatios() public {
+        Context memory context = _deployMintContext();
+        (uint256 maxSell, uint256 minBuy) = _observeMaxFillable(context, false);
+
+        assertEq(minBuy, Math.mulDiv(maxSell, MIN_BUY_BPS * 1e20, MINT_PRICE * BPS));
+
+        _assertProportionalBoundary(context, maxSell, minBuy, maxSell / 3, false);
+        _assertProportionalBoundary(context, maxSell, minBuy, maxSell - 1, false);
+        _assertProportionalBoundary(context, maxSell, minBuy, 1, false);
+    }
+
     function testObserveDirectRedeemArgumentsAndPartialFillBoundary() public {
         Context memory context = _deployRedeemContext();
         (uint256 maxSell, uint256 minBuy) = _observeMaxFillable(context, false);
@@ -155,6 +168,45 @@ contract UsdVaultDirectUpkeepProbe is Test {
         _assertResult(context, partialSell, minBuy - 1, minBuy / 2, true, bytes4(0));
         _assertResult(context, partialSell, minBuy - 1, minBuy, true, bytes4(0));
         _assertResult(context, partialSell, minBuy, 0, false, bytes4(keccak256("SlippageTooHigh()")));
+    }
+
+    function testObserveDirectRedeemActualReturnProportionalBoundary() public {
+        Context memory context = _deployRedeemContext();
+        (uint256 maxSell, uint256 minBuy) = _observeMaxFillable(context, false);
+        assertEq(minBuy, Math.mulDiv(maxSell, REDEEM_PRICE * MIN_BUY_BPS, 1e20 * BPS));
+        uint256 actualUnderlying = 711_398_192;
+        uint256 threshold = Math.mulDiv(minBuy, actualUnderlying, maxSell, Math.Rounding.Ceil);
+        console2.log("redeem actual-return threshold", threshold);
+
+        _assertResult(context, maxSell / 2, 0, threshold - 1, false, bytes4(keccak256("SlippageTooHigh()")));
+        _assertResult(context, maxSell / 2, 0, threshold, true, bytes4(0));
+    }
+
+    function testObserveDirectRedeemQuotesBeforeControllerFailure() public {
+        Context memory context = _deployRedeemContext();
+        bytes4 controllerFailure = bytes4(keccak256("ControllerFailure()"));
+        vm.mockCallRevert(
+            CONTROLLER,
+            abi.encodeWithSelector(bytes4(keccak256("flashRedeem2(uint256,uint256,uint256)"))),
+            abi.encodeWithSelector(controllerFailure)
+        );
+        context.dex.configure(DirectProbeDex.Mode.RevertMaxFillable, 0, 0, 0);
+        vm.warp(context.timestamp);
+        (bool ok, bytes memory result) = address(context.vault).call(abi.encodeCall(context.vault.rebalance, ()));
+        assertFalse(ok);
+        assertEq(_selector(result), DirectProbeDex.ObservedMaxFillable.selector);
+    }
+
+    function testObserveDirectRedeemUsesQuotedSellForControllerInput() public {
+        Context memory context = _deployRedeemContext();
+        (uint256 maxSell, uint256 minBuy) = _observeMaxFillable(context, false);
+        uint256 quotedSell = maxSell / 2;
+        bytes4 flashRedeemSelector = bytes4(keccak256("flashRedeem2(uint256,uint256,uint256)"));
+
+        context.dex.configure(DirectProbeDex.Mode.Execute, quotedSell, 0, minBuy);
+        vm.expectCall(CONTROLLER, abi.encodeWithSelector(flashRedeemSelector, quotedSell, 0, 0));
+        vm.warp(context.timestamp);
+        context.vault.rebalance();
     }
 
     function testObserveUpkeepWithMintCapacityBeforeAtAndAfterDelay() public {
@@ -172,6 +224,24 @@ contract UsdVaultDirectUpkeepProbe is Test {
         _assertUpkeepResult(context, context.timestamp, false, DirectProbeDex.ObservedMaxFillable.selector);
     }
 
+    function testObserveUpkeepRedeemArgumentsAndPartialFillBoundary() public {
+        Context memory context = _deployRedeemContext();
+        (uint256 maxSell, uint256 minBuy) = _observeMaxFillable(context, true);
+        console2.log("upkeep maxSell", maxSell);
+        console2.log("upkeep minBuy", minBuy);
+        console2.log("upkeep vault underlying", context.underlying.balanceOf(address(context.vault)));
+        assertEq(maxSell, context.underlying.balanceOf(address(context.vault)));
+        assertEq(minBuy, Math.mulDiv(maxSell, REDEEM_PRICE * MIN_BUY_BPS, 1e20 * BPS, Math.Rounding.Ceil));
+
+        uint256 partialSell = maxSell / 3;
+        uint256 threshold = Math.mulDiv(minBuy, partialSell, maxSell, Math.Rounding.Ceil);
+        _assertUpkeepTradeReceives(context, partialSell, minBuy, partialSell);
+        _assertUpkeepResultWithTrade(
+            context, partialSell, 0, threshold - 1, false, bytes4(keccak256("SlippageTooHigh()"))
+        );
+        _assertUpkeepResultWithTrade(context, partialSell, 0, threshold, true, bytes4(0));
+    }
+
     function testObserveStateChangingUpkeepRedeemPath() public {
         Context memory context = _deployRedeemContext();
         (, uint256 minBuy) = _observeMaxFillable(context, false);
@@ -180,8 +250,13 @@ contract UsdVaultDirectUpkeepProbe is Test {
         context.dex.configure(DirectProbeDex.Mode.Execute, executableSell, minBuy, minBuy);
         vm.warp(context.timestamp);
         bytes32 beforeFingerprint = _fingerprint(context);
+        uint128 storedBudgetBefore = context.vault.sessionBudgetUsdVal();
+        uint64 storedOpenedAtBefore = context.vault.sessionOpenedAtSec();
+        bool storedDirectionBefore = context.vault.sessionIsMintingPerp();
         _logState(context, "before");
+        vm.recordLogs();
         (bool ok, bytes memory result) = address(context.vault).call(abi.encodeCall(context.vault.upkeep, ()));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
         console2.log("state-changing upkeep success", ok);
         console2.logBytes4(_selector(result));
         console2.logBytes32(beforeFingerprint);
@@ -190,6 +265,18 @@ contract UsdVaultDirectUpkeepProbe is Test {
         assertTrue(ok);
         assertEq(_selector(result), bytes4(0));
         assertTrue(_fingerprint(context) != beforeFingerprint);
+        assertEq(context.vault.sessionBudgetUsdVal(), storedBudgetBefore);
+        assertEq(context.vault.sessionOpenedAtSec(), storedOpenedAtBefore);
+        assertEq(context.vault.sessionIsMintingPerp(), storedDirectionBefore);
+        bytes32 rebalanceTopic = keccak256("Rebalance(uint256,uint256,uint256,bool)");
+        uint256 rebalanceEventCount;
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter == address(context.vault) && logs[i].topics.length > 0) {
+                console2.logBytes32(logs[i].topics[0]);
+                if (logs[i].topics[0] == rebalanceTopic) ++rebalanceEventCount;
+            }
+        }
+        console2.log("upkeep rebalance events", rebalanceEventCount);
         assertTrue(vm.revertToState(snapshotId));
     }
 
@@ -252,10 +339,7 @@ contract UsdVaultDirectUpkeepProbe is Test {
         vault.updateSessionParams(28_800, 21_600, 3_600, uint64(1e18 - 1));
         vault.updateTargetDR(
             1_027_500_000_000_000_000,
-            ITargetUsdVaultDirectProbe.Range({
-                lower: 1_022_000_000_000_000_000,
-                upper: 1_033_000_000_000_000_000
-            })
+            ITargetUsdVaultDirectProbe.Range({lower: 1_022_000_000_000_000_000, upper: 1_033_000_000_000_000_000})
         );
 
         usd.mint(address(this), 10_001);
@@ -287,12 +371,7 @@ contract UsdVaultDirectUpkeepProbe is Test {
         });
     }
 
-    function _mockControllerTokens(
-        MockERC20 perp,
-        MockERC20 underlying,
-        MockPriceOracle underlyingOracle,
-        bool minting
-    )
+    function _mockControllerTokens(MockERC20 perp, MockERC20 underlying, MockPriceOracle underlyingOracle, bool minting)
         private
     {
         (bool ok, bytes memory reserveData) = TARGET_PERP_SR.staticcall(abi.encodeWithSignature("reserveData()"));
@@ -309,13 +388,19 @@ contract UsdVaultDirectUpkeepProbe is Test {
             CONTROLLER.staticcall(abi.encodeWithSelector(ITargetControllerDirectProbe.systemReserveState.selector));
         assertTrue(stateOk);
         _patchSystemState(stateReturn, minting);
-        vm.mockCall(CONTROLLER, abi.encodeWithSelector(ITargetControllerDirectProbe.systemReserveState.selector), stateReturn);
+        vm.mockCall(
+            CONTROLLER, abi.encodeWithSelector(ITargetControllerDirectProbe.systemReserveState.selector), stateReturn
+        );
         vm.mockCall(
             CONTROLLER,
             abi.encodeWithSelector(ITargetControllerDirectProbe.systemDeviations.selector),
             abi.encode(minting ? 2e18 : 9e17, 1e18)
         );
-        vm.mockCall(CONTROLLER, abi.encodeWithSelector(ITargetControllerDirectProbe.targetSystemRatio.selector), abi.encode(2e18));
+        vm.mockCall(
+            CONTROLLER,
+            abi.encodeWithSelector(ITargetControllerDirectProbe.targetSystemRatio.selector),
+            abi.encode(2e18)
+        );
     }
 
     function _patchSystemState(bytes memory stateReturn, bool minting) private pure {
@@ -343,9 +428,8 @@ contract UsdVaultDirectUpkeepProbe is Test {
         uint256 snapshotId = vm.snapshotState();
         context.dex.configure(DirectProbeDex.Mode.RevertMaxFillable, 0, 0, 0);
         vm.warp(context.timestamp);
-        (bool ok, bytes memory result) = address(context.vault).call(
-            upkeep ? abi.encodeCall(context.vault.upkeep, ()) : abi.encodeCall(context.vault.rebalance, ())
-        );
+        (bool ok, bytes memory result) = address(context.vault)
+            .call(upkeep ? abi.encodeCall(context.vault.upkeep, ()) : abi.encodeCall(context.vault.rebalance, ()));
         assertFalse(ok);
         assertEq(_selector(result), DirectProbeDex.ObservedMaxFillable.selector);
         (address sellToken, address buyToken, uint256 observedMaxSell, uint256 observedMinBuy) =
@@ -369,6 +453,43 @@ contract UsdVaultDirectUpkeepProbe is Test {
         assertEq(buyToken, context.minting ? address(context.underlying) : address(context.usd));
         assertEq(observedSell, context.minting ? sellAmt : 711_398_192);
         assertTrue(vm.revertToState(snapshotId));
+    }
+
+    function _assertUpkeepTradeReceives(Context memory context, uint256 sellAmt, uint256 minBuy, uint256 expectedSell)
+        private
+    {
+        uint256 snapshotId = vm.snapshotState();
+        context.dex.configure(DirectProbeDex.Mode.RevertTrade, sellAmt, minBuy, 0);
+        vm.warp(context.timestamp);
+        (bool ok, bytes memory result) = address(context.vault).call(abi.encodeCall(context.vault.upkeep, ()));
+        assertFalse(ok);
+        assertEq(_selector(result), DirectProbeDex.ObservedTrade.selector);
+        (address sellToken, address buyToken, uint256 observedSell) =
+            abi.decode(_sliceAfterSelector(result), (address, address, uint256));
+        assertEq(sellToken, address(context.underlying));
+        assertEq(buyToken, address(context.usd));
+        assertEq(observedSell, expectedSell);
+        assertTrue(vm.revertToState(snapshotId));
+    }
+
+    function _assertProportionalBoundary(
+        Context memory context,
+        uint256 maxSell,
+        uint256 minBuy,
+        uint256 actualSell,
+        bool upkeep
+    ) private {
+        uint256 threshold = Math.mulDiv(minBuy, actualSell, maxSell, Math.Rounding.Ceil);
+        assertGt(threshold, 0);
+        if (upkeep) {
+            _assertUpkeepResultWithTrade(
+                context, actualSell, 0, threshold - 1, false, bytes4(keccak256("SlippageTooHigh()"))
+            );
+            _assertUpkeepResultWithTrade(context, actualSell, 0, threshold, true, bytes4(0));
+        } else {
+            _assertResult(context, actualSell, 0, threshold - 1, false, bytes4(keccak256("SlippageTooHigh()")));
+            _assertResult(context, actualSell, 0, threshold, true, bytes4(0));
+        }
     }
 
     function _assertResult(
@@ -408,6 +529,30 @@ contract UsdVaultDirectUpkeepProbe is Test {
         assertTrue(vm.revertToState(snapshotId));
     }
 
+    function _assertUpkeepResultWithTrade(
+        Context memory context,
+        uint256 sellAmt,
+        uint256 advertisedBuy,
+        uint256 tradeBuy,
+        bool expectedOk,
+        bytes4 expectedSelector
+    ) private {
+        uint256 snapshotId = vm.snapshotState();
+        context.dex.configure(DirectProbeDex.Mode.Execute, sellAmt, advertisedBuy, tradeBuy);
+        vm.warp(context.timestamp);
+        bytes32 beforeFingerprint = _fingerprint(context);
+        (bool ok, bytes memory result) = address(context.vault).call(abi.encodeCall(context.vault.upkeep, ()));
+        console2.log("upkeep trade buy", tradeBuy);
+        console2.log("upkeep trade success", ok);
+        console2.logBytes4(_selector(result));
+        assertEq(ok, expectedOk);
+        if (!expectedOk) {
+            assertEq(_selector(result), expectedSelector);
+            assertEq(_fingerprint(context), beforeFingerprint);
+        }
+        assertTrue(vm.revertToState(snapshotId));
+    }
+
     function _fingerprint(Context memory context) private view returns (bytes32) {
         (bool active, bool minting, uint256 budget, uint256 openedAt) = context.vault.sessionCapacity();
         return keccak256(
@@ -432,6 +577,8 @@ contract UsdVaultDirectUpkeepProbe is Test {
 
     function _sliceAfterSelector(bytes memory data) private pure returns (bytes memory sliced) {
         sliced = new bytes(data.length - 4);
-        for (uint256 i; i < sliced.length; ++i) sliced[i] = data[i + 4];
+        for (uint256 i; i < sliced.length; ++i) {
+            sliced[i] = data[i + 4];
+        }
     }
 }

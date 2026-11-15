@@ -1,5 +1,10 @@
 # USD Vault phase 5B: atomic rebalance execution
 
+> Compatibility update: the later target-implementation probes in
+> `USD_VAULT_DIRECT_REBALANCE_UPKEEP.md` supersede this phase's original assumptions about direct
+> partial-fill slippage, redeem call order and nonzero-capacity `upkeep()`. The implementation and
+> regressions now follow that newer evidence.
+
 ## Scope and evidence boundary
 
 This phase implements the clean-room USD Senior Vault execution layer on top of the phase-4
@@ -41,10 +46,10 @@ permissionless caller
                 +-- session debit + Rebalance event + cache reset
 ```
 
-`upkeep()` is permissionless and revalidates the same DEX/oracle/state boundary. The target evidence
-only observes a business-level `NoOp()` result and does not prove that upkeep internally performs an
-external settlement. The local implementation therefore ends in `NoOp()` after validation instead
-of inventing a state-changing upkeep branch.
+`upkeep()` is permissionless and revalidates the same DEX/oracle/state boundary. Later synthetic
+target-implementation probes established a redeem-direction branch that sells idle underlying for
+USD without calling Controller or committing the session. Mint-direction and balanced states keep
+their observed `NoOp()` behavior.
 
 ## Target-confirmed inventory vectors
 
@@ -80,7 +85,8 @@ account or broadcast a transaction.
 
 ## Local execution tests
 
-`test/UsdVaultRebalanceExecution.t.sol` contains eighteen local regressions:
+`test/UsdVaultRebalanceExecution.t.sol` contains twenty-two local regressions. In addition to the
+original inventory, delay, fee and dependency checks, the current suite fixes:
 
 1. exact natural mint Vault leg;
 2. exact natural redeem Vault leg;
@@ -90,7 +96,7 @@ account or broadcast a transaction.
 6. successful direct mint;
 7. successful direct redeem;
 8. permissionless balanced-state upkeep `NoOp`;
-9. nonzero-capacity upkeep does not invent external settlement;
+9. redeem-direction upkeep settles idle underlying without changing session state;
 10. underlying-oracle cache failure rollback;
 11. DEX trade failure after transfer rollback;
 12. Controller state-query failure rollback;
@@ -99,7 +105,11 @@ account or broadcast a transaction.
 15. USD peg upper/lower exact and one-unit-outside boundaries;
 16. underlying Oracle/reference upper/lower exact and one-unit-outside boundaries;
 17. flash mint fee exact and one-unit-over boundaries with full rollback;
-18. flash redeem fee exact and one-unit-over boundaries with full rollback.
+18. flash redeem fee exact and one-unit-over boundaries with full rollback;
+19. mint partial fills use the target's proportional upward-rounded minimum;
+20. one unit below that mint threshold fully rolls back;
+21. redeem quotes DEX capacity before invoking Controller;
+22. upkeep DEX failure bubbles and fully rolls back.
 
 All asset movement, Controller calls, session debit, event emission and cache reset occur in one EVM
 transaction. A failure in any later step reverts earlier transfers, token supply changes and session
@@ -117,9 +127,9 @@ state.
 | dependency marker errors bubble and all tested state rolls back | TARGET-CONFIRMED, synthetic fork | implemented and extended locally through reset failure |
 | USD peg and underlying-reference deviation guards | TARGET-CONFIRMED, synthetic fork | exact inclusive boundaries and error reasons |
 | mint/redeem flash-fee guards | TARGET-CONFIRMED, synthetic fork | exact inclusive `5e15` boundaries and atomic rollback |
-| direct DEX mint/redeem success | no natural successful direct transaction in phase 5A | LOCAL-CLEANROOM, bounded by phase-5A DEX interfaces |
+| direct DEX mint/redeem success and partial-fill rounding | synthetic target-implementation probes | implemented with exact 1-unit boundaries |
 | DEX unhealthy local error text | exact target selector/text not isolated | LOCAL-CLEANROOM: `OpUnavailable("dex unhealthy")` |
-| successful state-changing `upkeep()` branch | not observed | UNKNOWN; deliberately not guessed |
+| state-changing redeem-side `upkeep()` branch | synthetic target-implementation probe | implemented; no Controller call, session commit or `Rebalance` event |
 | external settlement surplus return | observed outside Vault | not implemented in Vault |
 | target initializer/admin/pause surface | deferred to phase 6 | not implemented in phase 5B |
 
@@ -131,7 +141,8 @@ state.
 - Four `uint64` guard limits are packed into appended slot `10`; slots `0`–`9` retain their order
   and offsets.
 - `PerpController` source and storage were not modified.
-- Runtime sizes after phase 5B: `PerpController` **22,475 bytes** and `UsdVault` **15,763 bytes**.
+- Current runtime sizes after the compatibility closure: `PerpController` **22,475 bytes** and
+  `UsdVault` **17,542 bytes**.
 
 ## Verification
 
@@ -147,10 +158,11 @@ git diff --check
 
 Results:
 
-- phase-5B focused local suite: **18 passed, 0 failed**;
-- full local suite: **169 passed, 0 failed** (the prior 151 remain green);
+- current focused local suite: **22 passed, 0 failed**;
+- current full local suite: **243 passed, 0 failed**;
 - phase-5A target fork suite: **6 passed, 0 failed**;
 - phase-5B synthetic target boundary probes: **3 passed, 0 failed**;
 - Controller frozen storage: unchanged;
 - USD Vault frozen prefix: unchanged;
+- direct/upkeep target-implementation probe: **10 passed, 0 failed**;
 - formatting and whitespace checks: passed.

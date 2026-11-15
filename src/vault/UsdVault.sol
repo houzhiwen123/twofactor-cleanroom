@@ -85,6 +85,8 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     uint256 private constant WAD = 1e18;
     uint256 private constant USD_UNIT = 1e6;
     uint256 private constant UNDERLYING_UNIT = 1e8;
+    uint256 private constant MIN_BUY_BPS = 9_985;
+    uint256 private constant BPS = 10_000;
     uint32 private constant DEFAULT_REBALANCE_FREQ_SEC = 28_800;
     uint32 private constant DEFAULT_REBALANCE_OFFSET_SEC = 21_600;
     uint64 private constant DEFAULT_MAX_DEPLOYMENT_VELOCITY_PERC = 330_000_000_000_000_000;
@@ -435,10 +437,26 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     }
 
     /// @notice Permissionless maintenance entry used by external automation.
-    /// @dev Target evidence proves health/state revalidation and NoOp, but not an internal DEX settlement path.
+    /// @dev In the target-implementation-observed redeem branch this settles idle underlying through the DEX without
+    ///      consuming session capacity or emitting the direct-rebalance event.
     function upkeep() external nonReentrant {
-        _loadExecutionContext(true);
-        revert NoOp();
+        ExecutionContext memory context = _loadExecutionContext(true);
+        if (context.plan.isMintingPerp) revert NoOp();
+
+        uint256 maxUnderlyingSell = _underlyingToken.balanceOf(address(this));
+        if (maxUnderlyingSell == 0) revert NoOp();
+        uint256 minUsdBuy =
+            Math.mulDiv(maxUnderlyingSell, context.referencePrice * MIN_BUY_BPS, 1e20 * BPS, Math.Rounding.Ceil);
+        (uint256 underlyingSell,) = IUsdVaultDexStrategy(_dexStrategy)
+            .maxFillable(address(_underlyingToken), address(_usdToken), maxUnderlyingSell, minUsdBuy);
+        if (underlyingSell == 0) revert NoOp();
+
+        _underlyingToken.forceApprove(_dexStrategy, underlyingSell);
+        uint256 usdBought =
+            IUsdVaultDexStrategy(_dexStrategy).trade(address(_underlyingToken), address(_usdToken), underlyingSell);
+        if (usdBought < _proportionalMinBuy(minUsdBuy, underlyingSell, maxUnderlyingSell)) {
+            revert SlippageTooHigh();
+        }
     }
 
     /// @notice Authorized inventory callback; external market settlement remains outside this Vault.
@@ -512,7 +530,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
 
     function _directMint(ExecutionContext memory context) private returns (uint256 consumedUsdVal) {
         uint256 maxUsdSell = Math.mulDiv(context.plan.maxRebalanceUnderlying, context.referencePrice, 1e20);
-        uint256 minUnderlyingBuy = Math.mulDiv(maxUsdSell, 1e20, context.referencePrice);
+        uint256 minUnderlyingBuy = Math.mulDiv(maxUsdSell, MIN_BUY_BPS * 1e20, context.referencePrice * BPS);
         (uint256 usdSell,) = IUsdVaultDexStrategy(_dexStrategy)
             .maxFillable(address(_usdToken), address(_underlyingToken), maxUsdSell, minUnderlyingBuy);
         if (usdSell == 0) revert NoOp();
@@ -520,7 +538,9 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         _usdToken.forceApprove(_dexStrategy, usdSell);
         uint256 underlyingBought =
             IUsdVaultDexStrategy(_dexStrategy).trade(address(_usdToken), address(_underlyingToken), usdSell);
-        if (underlyingBought < minUnderlyingBuy) revert SlippageTooHigh();
+        if (underlyingBought < _proportionalMinBuy(minUnderlyingBuy, usdSell, maxUsdSell)) {
+            revert SlippageTooHigh();
+        }
 
         _underlyingToken.forceApprove(_perpController, underlyingBought);
         (,, IUsdVaultController.FeePerc memory fee,) =
@@ -530,22 +550,33 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     }
 
     function _directRedeem(ExecutionContext memory context) private returns (uint256 consumedUsdVal) {
-        uint256 perpToRedeem = _perpForUnderlying(context.plan, context.plan.maxRebalanceUnderlying);
+        uint256 maxUnderlyingSell = context.plan.maxRebalanceUnderlying;
+        uint256 minUsdBuy = Math.mulDiv(maxUnderlyingSell, context.referencePrice * MIN_BUY_BPS, 1e20 * BPS);
+        (uint256 quotedUnderlyingSell,) = IUsdVaultDexStrategy(_dexStrategy)
+            .maxFillable(address(_underlyingToken), address(_usdToken), maxUnderlyingSell, minUsdBuy);
+        if (quotedUnderlyingSell == 0) revert NoOp();
+
+        uint256 perpToRedeem = _perpForUnderlying(context.plan, quotedUnderlyingSell);
         _perpSrToken.forceApprove(_perpController, perpToRedeem);
         (uint256 underlyingReceived, IUsdVaultController.FeePerc memory fee,) =
             IUsdVaultController(_perpController).flashRedeem2(perpToRedeem, 0, 0);
         _validateFlashFee(fee, _maxFlashRedeemFeePerc);
 
-        uint256 minUsdBuy = Math.mulDiv(underlyingReceived, context.referencePrice, 1e20);
-        (uint256 underlyingSell,) = IUsdVaultDexStrategy(_dexStrategy)
-            .maxFillable(address(_underlyingToken), address(_usdToken), underlyingReceived, minUsdBuy);
-        if (underlyingSell == 0) revert NoOp();
-
-        _underlyingToken.forceApprove(_dexStrategy, underlyingSell);
+        _underlyingToken.forceApprove(_dexStrategy, underlyingReceived);
         uint256 usdBought =
-            IUsdVaultDexStrategy(_dexStrategy).trade(address(_underlyingToken), address(_usdToken), underlyingSell);
-        if (usdBought < minUsdBuy) revert SlippageTooHigh();
+            IUsdVaultDexStrategy(_dexStrategy).trade(address(_underlyingToken), address(_usdToken), underlyingReceived);
+        if (usdBought < _proportionalMinBuy(minUsdBuy, underlyingReceived, maxUnderlyingSell)) {
+            revert SlippageTooHigh();
+        }
         consumedUsdVal = Math.mulDiv(underlyingReceived, context.plan.underlyingPrice, UNDERLYING_UNIT);
+    }
+
+    function _proportionalMinBuy(uint256 fullMinBuy, uint256 actualSell, uint256 maxSell)
+        private
+        pure
+        returns (uint256)
+    {
+        return Math.mulDiv(fullMinBuy, actualSell, maxSell, Math.Rounding.Ceil);
     }
 
     function _loadExecutionContext(bool requireHealthy) private returns (ExecutionContext memory context) {

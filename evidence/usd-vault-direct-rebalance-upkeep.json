@@ -7,7 +7,9 @@
     "redeem_transaction": "0xf49ebfa4f7833f8dec9ed901eb4edaddfaeed352e84362c6c687d52f17c7568e"
   },
   "probe": "evidence/probe-tests/UsdVaultDirectUpkeepProbe.t.sol",
-  "selector": {
+  "minimum_buy_bps": 9985,
+  "partial_minimum_rule": "ceil(fullMinBuy * actualSell / requestedMaxSell)",
+  "selectors": {
     "NoOp()": "0x00219cf1",
     "SlippageTooHigh()": "0x850c6f76",
     "ObservedMaxFillable()": "0xe453baa5"
@@ -16,36 +18,42 @@
     "mint": {
       "requested_max_sell": 1000000009580,
       "requested_min_buy": 1244266201,
-      "returned_sell": 500000004790,
-      "trade_buy_success": 622133101,
-      "trade_buy_zero": {"success": false, "error": "SlippageTooHigh()"},
-      "returned_buy_quote_one_wei_low_floor": {"trade_buy": 622133100, "success": false, "error": "SlippageTooHigh()"}
+      "full_minimum_rounding": "floor",
+      "half_fill": {"fail": 622133100, "success": 622133101},
+      "one_third_fill": {"fail": 414755400, "success": 414755401},
+      "one_unit_sell": {"fail": 0, "success": 1}
     },
     "redeem": {
       "requested_max_sell": 2001421796385,
       "requested_min_buy": 1546143235063888,
-      "returned_sell_for_quote_probe": 1000710898192,
-      "trade_buy_success": 773071617531945,
-      "trade_buy_zero": {"success": false, "error": "SlippageTooHigh()"},
-      "call_order_observed": ["maxFillable", "flashRedeem2", "trade"]
+      "full_minimum_rounding": "floor",
+      "quoted_sell_passed_to_controller": 1000710898192,
+      "actual_controller_underlying": 711398192,
+      "actual_return_threshold": {"fail": 549571061924, "success": 549571061925},
+      "call_order": ["maxFillable", "flashRedeem2", "trade"]
     }
   },
   "upkeep": {
-    "mint_direction_at_opened_at_minus_equal_plus_one": {"success": false, "error": "NoOp()"},
-    "redeem_quote_failure": {"success": false, "error": "ObservedMaxFillable()"},
-    "redeem_executable_synthetic": {
-      "success": true,
-      "usd_before": 1000000010001,
-      "usd_after": 1547143235073889,
-      "underlying_before": 2000000000000,
-      "underlying_after": 1000000000000,
-      "perp_before": 10000000000000,
-      "perp_after": 10000000000000,
-      "session_active_before_after": [false, false],
-      "session_direction_before_after": [false, false],
-      "session_opened_at": 1793743200
+    "mint_direction": {"success": false, "error": "NoOp()"},
+    "redeem": {
+      "requested_max_sell": 2000000000000,
+      "requested_min_buy": 1545044865461701,
+      "full_minimum_rounding": "ceil",
+      "one_third_threshold": {"fail": 515014955153385, "success": 515014955153386},
+      "controller_called": false,
+      "stored_session_changed": false,
+      "rebalance_event_count": 0
     }
   },
-  "test_result": {"passed": 5, "failed": 0, "skipped": 0},
-  "production_changes": false
+  "verification": {
+    "target_probe": {"passed": 10, "failed": 0, "skipped": 0},
+    "local_execution": {"passed": 22, "failed": 0, "skipped": 0},
+    "full_local": {"passed": 243, "failed": 0, "skipped": 0},
+    "usd_vault_runtime_bytes": 17542,
+    "controller_runtime_bytes": 22475,
+    "storage_layout": "PASS",
+    "format_and_diff": "PASS"
+  },
+  "production_changes": true,
+  "natural_production_reachability": "UNKNOWN"
 }

@@ -6,6 +6,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {UsdVault} from "../src/vault/UsdVault.sol";
 
@@ -75,6 +76,7 @@ contract Phase5BDex {
     uint256 public fillBuy;
     uint256 public tradeBuy;
     bool public failTrade;
+    bool public failMaxFillable;
     uint256 public tradeCalls;
 
     address public lastSellToken;
@@ -105,6 +107,10 @@ contract Phase5BDex {
         failTrade = failTrade_;
     }
 
+    function setFailMaxFillable(bool failMaxFillable_) external {
+        failMaxFillable = failMaxFillable_;
+    }
+
     function isHealthy() external view returns (bool) {
         return healthy;
     }
@@ -123,6 +129,7 @@ contract Phase5BDex {
         view
         returns (uint256 sellAmount, uint256 buyAmount)
     {
+        if (failMaxFillable) revert Phase5BDependencyFailure(8);
         sellAmount = fillSell == 0 || fillSell > maxSellAmount ? maxSellAmount : fillSell;
         buyAmount = fillBuy == 0 ? quote(sellToken, buyToken, sellAmount) : fillBuy;
     }
@@ -258,6 +265,8 @@ contract UsdVaultRebalanceExecutionTest is Test {
     uint256 private constant REDEEM_OPENED_AT = 1_793_743_200;
     uint256 private constant MINT_BUDGET = 33_016_963_790_403_425_541_687;
     uint256 private constant REDEEM_BUDGET = 33_016_915_546_003_499_111_958;
+    uint256 private constant MIN_BUY_BPS = 9_985;
+    uint256 private constant BPS = 10_000;
 
     address private constant INVENTORY = address(0x1A2);
     address private constant REDEEM_RESERVE = address(0xB0B);
@@ -365,6 +374,39 @@ contract UsdVaultRebalanceExecutionTest is Test {
         assertEq(env.underlyingOracle.resetCalls(), 1);
     }
 
+    function testDirectMintPartialFillUsesTargetProportionalCeilMinimum() public {
+        Env memory env = _deployMintVector();
+        (uint256 capacity,,,,) = env.vault.rebalanceCapacity();
+        uint256 maxUsdSell = capacity * MINT_PRICE / 1e20;
+        uint256 fullMinBuy = Math.mulDiv(maxUsdSell, MIN_BUY_BPS * 1e20, MINT_PRICE * BPS);
+        uint256 partialSell = maxUsdSell / 3;
+        uint256 partialMinBuy = Math.mulDiv(fullMinBuy, partialSell, maxUsdSell, Math.Rounding.Ceil);
+        env.dex.configureFill(partialSell, 0, partialMinBuy);
+        env.underlying.mint(address(env.dex), partialMinBuy);
+
+        vm.warp(MINT_OPENED_AT + 3_600);
+        env.vault.rebalance();
+        assertEq(env.dex.lastSellAmount(), partialSell);
+        assertEq(env.controller.lastMintUnderlying(), partialMinBuy);
+    }
+
+    function testDirectMintPartialFillOneBelowMinimumRollsBack() public {
+        Env memory env = _deployMintVector();
+        (uint256 capacity,,,,) = env.vault.rebalanceCapacity();
+        uint256 maxUsdSell = capacity * MINT_PRICE / 1e20;
+        uint256 fullMinBuy = Math.mulDiv(maxUsdSell, MIN_BUY_BPS * 1e20, MINT_PRICE * BPS);
+        uint256 partialSell = maxUsdSell / 3;
+        uint256 partialMinBuy = Math.mulDiv(fullMinBuy, partialSell, maxUsdSell, Math.Rounding.Ceil);
+        env.dex.configureFill(partialSell, 0, partialMinBuy - 1);
+        env.underlying.mint(address(env.dex), partialMinBuy - 1);
+
+        bytes32 beforeFingerprint = _fingerprint(env);
+        vm.warp(MINT_OPENED_AT + 3_600);
+        vm.expectRevert(UsdVault.SlippageTooHigh.selector);
+        env.vault.rebalance();
+        assertEq(_fingerprint(env), beforeFingerprint);
+    }
+
     function testDirectRedeemRebalanceExecutesAtomically() public {
         Env memory env = _deployRedeemVector();
         uint256 usdBuy = 960_289 * REDEEM_PRICE / 1e20;
@@ -383,6 +425,14 @@ contract UsdVaultRebalanceExecutionTest is Test {
         assertEq(env.underlyingOracle.resetCalls(), 1);
     }
 
+    function testDirectRedeemQuotesBeforeControllerExecution() public {
+        Env memory env = _deployRedeemVector();
+        env.dex.setFailMaxFillable(true);
+        env.controller.setFailure(3);
+        _expectAtomicFailure(env, 8, abi.encodeWithSelector(Phase5BDependencyFailure.selector, 8));
+        assertEq(env.controller.lastRedeemPerp(), 0);
+    }
+
     function testUpkeepIsPermissionlessAndBalancedStateReturnsNoOp() public {
         Env memory env = _deployMintVector();
         env.controller.setPerpSrState(9_574_802_087_802, 124_198_109, 0);
@@ -393,13 +443,47 @@ contract UsdVaultRebalanceExecutionTest is Test {
         env.vault.upkeep();
     }
 
-    function testUpkeepDoesNotGuessUnconfirmedExternalSettlement() public {
-        Env memory env = _deployMintVector();
-        bytes32 beforeFingerprint = _fingerprint(env);
+    function testUpkeepRedeemSettlesIdleUnderlyingWithoutSessionCommit() public {
+        Env memory env = _deployRedeemVector();
+        uint256 maxSell = env.underlying.balanceOf(address(env.vault));
+        uint256 fullMinBuy = Math.mulDiv(maxSell, REDEEM_PRICE * MIN_BUY_BPS, 1e20 * BPS, Math.Rounding.Ceil);
+        uint256 partialSell = maxSell / 2;
+        uint256 partialMinBuy = Math.mulDiv(fullMinBuy, partialSell, maxSell, Math.Rounding.Ceil);
+        env.dex.configureFill(partialSell, 0, partialMinBuy);
+        env.usd.mint(address(env.dex), partialMinBuy);
+        uint256 budgetBefore = env.vault.sessionBudgetUsdVal();
+        uint256 openedAtBefore = env.vault.sessionOpenedAtSec();
+
+        vm.recordLogs();
         vm.prank(RANDOM);
-        vm.expectRevert(UsdVault.NoOp.selector);
+        env.vault.upkeep();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(env.dex.lastSellAmount(), partialSell);
+        assertEq(env.underlying.balanceOf(address(env.vault)), maxSell - partialSell);
+        assertEq(env.vault.sessionBudgetUsdVal(), budgetBefore);
+        assertEq(env.vault.sessionOpenedAtSec(), openedAtBefore);
+        assertFalse(env.vault.sessionIsMintingPerp());
+        assertEq(env.controller.lastRedeemPerp(), 0);
+        assertEq(env.underlyingOracle.cacheCalls(), 1);
+        assertEq(env.underlyingOracle.resetCalls(), 0);
+        assertFalse(_hasRebalance(logs, address(env.vault)));
+    }
+
+    function testUpkeepRedeemDexFailureBubblesAndRollsBack() public {
+        Env memory env = _deployRedeemVector();
+        uint256 maxSell = env.underlying.balanceOf(address(env.vault));
+        uint256 fullMinBuy = Math.mulDiv(maxSell, REDEEM_PRICE * MIN_BUY_BPS, 1e20 * BPS, Math.Rounding.Ceil);
+        env.dex.configureFill(maxSell, 0, fullMinBuy);
+        env.dex.setFailTrade(true);
+        env.usd.mint(address(env.dex), fullMinBuy);
+        bytes32 beforeFingerprint = _fingerprint(env);
+
+        vm.prank(RANDOM);
+        vm.expectRevert(abi.encodeWithSelector(Phase5BDependencyFailure.selector, 4));
         env.vault.upkeep();
         assertEq(_fingerprint(env), beforeFingerprint);
+        assertEq(env.underlyingOracle.cacheCalls(), 0);
     }
 
     function testOracleCacheFailureBubblesAndRollsBack() public {
@@ -757,5 +841,14 @@ contract UsdVaultRebalanceExecutionTest is Test {
             }
         }
         revert("rebalance event not found");
+    }
+
+    function _hasRebalance(Vm.Log[] memory logs, address vault) private pure returns (bool) {
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].emitter == vault && logs[i].topics.length != 0 && logs[i].topics[0] == REBALANCE_TOPIC) {
+                return true;
+            }
+        }
+        return false;
     }
 }
