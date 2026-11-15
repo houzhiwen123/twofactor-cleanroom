@@ -26,6 +26,10 @@ interface IUsdVault is IERC20 {
     event Redeem(uint256 notesAmt, uint256 usdAmtOut, uint256 perpSrAmtOut);
     event Rebalance(uint256 drBefore, uint256 underlyingPrice, uint256 rebalanceUsdVal, bool isMintingPerp);
 
+    function MINIMUM_LIQUIDITY() external view returns (uint256);
+
+    function initDeposit(uint256 usdAmt) external returns (uint256 notesMinted);
+
     function getTVL() external view returns (uint256);
 
     function computeMintAmt(uint256 usdMax, uint256 perpSrMax)

@@ -23,6 +23,7 @@ import {UsdVault} from "../src/vault/UsdVault.sol";
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {MockPriceOracle} from "../test/mocks/MockPriceOracle.sol";
 import {MockUniswapV3Pool} from "../test/mocks/MockUniswapV3Pool.sol";
+import {MockUsdInventory} from "../test/mocks/MockUsdInventory.sol";
 
 /// @notice Secret-free local simulation of a complete clean-room Genesis deployment.
 /// @dev Run without --broadcast. It deploys only local mocks and never reads a key or RPC URL.
@@ -49,6 +50,7 @@ contract DeployGenesisLocal is Script {
         MockPriceOracle usdOracle;
         MockUniswapV3Pool pool;
         UniswapV3DexStrategy dexStrategy;
+        MockUsdInventory inventory;
         UnderlyingPerpVault jrVault;
         UnderlyingPerpVault srVault;
         UsdVault usdVault;
@@ -60,6 +62,10 @@ contract DeployGenesisLocal is Script {
     uint256 private constant MAX_JR_IDLE_TOP_UP = INITIAL_UNDERLYING + 1_000;
     uint256 private constant INITIAL_PRICE = 80_000e18;
     uint256 private constant UNDERLYING_VAULT_SEED = 1_000_000;
+    uint256 private constant USD_VAULT_SEED = 10_001;
+    uint256 private constant LOCAL_POOL_USD_LIQUIDITY = 20_000_000e6;
+    uint256 private constant LOCAL_POOL_UNDERLYING_LIQUIDITY = 100e8;
+    uint256 private constant LOCAL_INVENTORY_WORKING_USD = 500_000e6;
     uint96 private constant TARGET_DR = 1_053_564_994_000_000_000;
     uint96 private constant JR_EQ_DR_LOWER = TARGET_DR;
     uint96 private constant JR_EQ_DR_UPPER = 1_230_000_000_000_000_000;
@@ -193,6 +199,7 @@ contract DeployGenesisLocal is Script {
         d.usdOracle = new MockPriceOracle(1e18);
         d.pool = new MockUniswapV3Pool(address(d.usd), address(core.underlying));
         d.dexStrategy = new UniswapV3DexStrategy(address(d.usd), address(core.underlying), address(d.pool), 1);
+        d.inventory = new MockUsdInventory(address(d.usd), address(core.underlying), address(d.dexStrategy));
 
         UnderlyingPerpVault vaultImplementation = new UnderlyingPerpVault();
         d.jrVault = _deployUnderlyingVault(vaultImplementation, core, false);
@@ -215,23 +222,35 @@ contract DeployGenesisLocal is Script {
                             address(core.controller),
                             address(d.dexStrategy),
                             address(d.usdOracle),
-                            LOCAL_ADMIN
+                            address(d.inventory)
                         )
                     )
                 )
             )
         );
+        d.inventory.configureVault(address(d.usdVault));
 
         d.usdRouter = new SingleAssetRouter();
         d.underlyingRouter = new UnderlyingSingleAssetRouter();
+
+        d.usd.mint(LOCAL_ADMIN, USD_VAULT_SEED);
+        d.usd.approve(address(d.usdVault), USD_VAULT_SEED);
+        require(d.usdVault.initDeposit(USD_VAULT_SEED) == USD_VAULT_SEED * 1e12, "USD Vault seed failed");
+
+        d.usd.mint(address(d.pool), LOCAL_POOL_USD_LIQUIDITY);
+        core.underlying.mint(address(d.pool), LOCAL_POOL_UNDERLYING_LIQUIDITY);
+        d.usd.mint(address(d.inventory), LOCAL_INVENTORY_WORKING_USD);
+        d.pool.setExecutionEnabled(true);
 
         require(d.jrVault.perp() == address(core.perpJr), "JR Vault Perp mismatch");
         require(d.srVault.perp() == address(core.perpSr), "SR Vault Perp mismatch");
         require(d.jrVault.keeper() == LOCAL_ADMIN && d.srVault.keeper() == LOCAL_ADMIN, "keeper mismatch");
         require(d.usdVault.dexStrategy() == address(d.dexStrategy), "DEX mismatch");
         require(d.usdVault.usdOracle() == address(d.usdOracle), "USD oracle mismatch");
-        require(d.usdVault.isSwapper(LOCAL_ADMIN), "inventory role mismatch");
+        require(d.usdVault.isSwapper(address(d.inventory)), "inventory role mismatch");
         require(d.dexStrategy.isHealthy(), "local DEX unhealthy");
+        require(d.pool.executionEnabled(), "local DEX execution disabled");
+        require(d.usdVault.balanceOf(address(d.usdVault)) == d.usdVault.MINIMUM_LIQUIDITY(), "USD lock mismatch");
     }
 
     function _deployUnderlyingVault(UnderlyingPerpVault implementation, CoreDeployment memory core, bool senior)
@@ -290,8 +309,9 @@ contract DeployGenesisLocal is Script {
         console2.log("usdRouter", address(periphery.usdRouter));
         console2.log("underlyingRouter", address(periphery.underlyingRouter));
         console2.log("dexStrategy", address(periphery.dexStrategy));
-        console2.log("localDexExecutionEnabled", false);
-        console2.log("usdVaultActivationPending", true);
+        console2.log("inventory", address(periphery.inventory));
+        console2.log("localDexExecutionEnabled", periphery.pool.executionEnabled());
+        console2.log("usdVaultActivationPending", false);
         console2.log("lockedSharesPerSide", core.seeder.MIN_LOCKED_SHARES());
         console2.log("genesisSubDR", genesisSubDr);
         console2.log("genesisVmDR", genesisVmDr);

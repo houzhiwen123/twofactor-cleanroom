@@ -2,6 +2,11 @@
 
 Status: **LOCAL-CLEANROOM deployment candidate; not production-ready**
 
+> Historical status note: the activation limits recorded in this Phase-1 snapshot were closed later.
+> `USD_VAULT_GENESIS.md` fixes the target first-notes rule, and `LOCAL_DEX_LIFECYCLE.md` adds an
+> executable local-only pool/Inventory lifecycle. The original Phase-1 observations below are kept
+> as a baseline rather than rewritten as if those later results were already known.
+
 Repository baseline: `eb6fbb9`.
 
 ## Scope and safety

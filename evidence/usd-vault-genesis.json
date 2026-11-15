@@ -1,0 +1,41 @@
+{
+  "classification": {
+    "target": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION",
+    "local": "LOCAL_CLEANROOM"
+  },
+  "versionLock": {
+    "chainId": 8453,
+    "block": 53526143,
+    "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+    "implementationCodehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+    "underlying": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf"
+  },
+  "units": {
+    "usdDecimals": 6,
+    "noteDecimals": 18,
+    "notesPerUsdUnit": "1000000000000",
+    "minimumLockedNotes": "10000000000000000",
+    "minimumPositiveInputUsdUnits": "10001"
+  },
+  "vectors": [
+    {"usdInput":"0","return":"0","supply":"0","ownerNotes":"0","vaultNotes":"0","usdMoved":"0","logs":0},
+    {"usdInput":"1","return":"0","supply":"0","ownerNotes":"0","vaultNotes":"0","usdMoved":"0","logs":0},
+    {"usdInput":"9999","return":"0","supply":"0","ownerNotes":"0","vaultNotes":"0","usdMoved":"0","logs":0},
+    {"usdInput":"10000","return":"0","supply":"0","ownerNotes":"0","vaultNotes":"0","usdMoved":"0","logs":0},
+    {"usdInput":"10001","return":"10001000000000000","supply":"10001000000000000","ownerNotes":"1000000000000","vaultNotes":"10000000000000000","usdMoved":"10001","logs":5},
+    {"usdInput":"99999","return":"99999000000000000","supply":"99999000000000000","ownerNotes":"89999000000000000","vaultNotes":"10000000000000000","usdMoved":"99999","logs":5},
+    {"usdInput":"100000","return":"100000000000000000","supply":"100000000000000000","ownerNotes":"90000000000000000","vaultNotes":"10000000000000000","usdMoved":"100000","logs":5},
+    {"usdInput":"1000000","return":"1000000000000000000","supply":"1000000000000000000","ownerNotes":"990000000000000000","vaultNotes":"10000000000000000","usdMoved":"1000000","logs":5}
+  ],
+  "errors": {
+    "unauthorized": "0x118cdaa7",
+    "replay": "0x13056cf1"
+  },
+  "preDonation": {
+    "donatedUsdUnits": "1",
+    "initUsdUnits": "10001",
+    "supply": "10001000000000000",
+    "vaultUsdAfter": "10002"
+  }
+}

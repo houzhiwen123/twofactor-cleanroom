@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -71,7 +72,7 @@ interface IUsdVaultDexStrategy {
 
 /// @notice Clean-room implementation of the evidence-backed USD Vault core paths.
 /// @dev Phase 5B preserves the target-observed split between authorized inventory swaps and the direct DEX fallback.
-contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable, IUsdVault {
+contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, IUsdVault {
     using SafeERC20 for IERC20;
 
     error InvalidParamDefn();
@@ -79,6 +80,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     error OpUnavailable(string reason);
     error SlippageTooHigh();
     error UnauthorizedCall();
+    error VaultInitialized();
 
     uint256 private constant WAD = 1e18;
     uint256 private constant USD_UNIT = 1e6;
@@ -95,6 +97,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     uint64 private constant DEFAULT_MAX_UNDERLYING_DEVIATION_PERC = 50_000_000_000_000_000;
     uint64 private constant DEFAULT_MAX_FLASH_MINT_FEE_PERC = 5_000_000_000_000_000;
     uint64 private constant DEFAULT_MAX_FLASH_REDEEM_FEE_PERC = 5_000_000_000_000_000;
+    uint256 public constant override MINIMUM_LIQUIDITY = 1e16;
 
     IERC20 private _usdToken;
     IERC20 private _perpSrToken;
@@ -191,6 +194,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         ) revert InvalidParamDefn();
         __ERC20_init(name_, symbol_);
         __ReentrancyGuard_init();
+        __Ownable_init(msg.sender);
         _usdToken = IERC20(usdToken_);
         _perpSrToken = IERC20(perpSrToken_);
         _underlyingToken = IERC20(underlyingToken_);
@@ -602,6 +606,21 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         uint256 idleUnderlyingValue = Math.mulDiv(underlyingBalance(), underlyingPrice, UNDERLYING_UNIT);
         uint256 perpValue = Math.mulDiv(perpUnderlying, underlyingPrice, UNDERLYING_UNIT);
         return usdValue + idleUnderlyingValue + perpValue;
+    }
+
+    /// @notice Establishes the target-observed USD-only first-notes state.
+    /// @dev The one-dollar note price, locked minimum and no-op threshold are target-confirmed.
+    function initDeposit(uint256 usdAmt) external override onlyOwner nonReentrant returns (uint256 notesMinted) {
+        if (totalSupply() != 0) revert VaultInitialized();
+        notesMinted = Math.mulDiv(usdAmt, WAD, USD_UNIT);
+        if (notesMinted <= MINIMUM_LIQUIDITY) return 0;
+
+        _usdToken.safeTransferFrom(msg.sender, address(this), usdAmt);
+        _mint(address(this), MINIMUM_LIQUIDITY);
+        _mint(msg.sender, notesMinted - MINIMUM_LIQUIDITY);
+
+        emit Deposit(0, 0, MINIMUM_LIQUIDITY);
+        emit Deposit(usdAmt, 0, notesMinted - MINIMUM_LIQUIDITY);
     }
 
     function computeMintAmt(uint256 usdMax, uint256 perpSrMax)

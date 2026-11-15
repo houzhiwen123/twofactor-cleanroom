@@ -142,7 +142,14 @@ contract OperationalDeploymentTest is Test {
         assertEq(vault.usdOracle(), address(usdOracle));
         assertTrue(vault.isSwapper(NEW_KEEPER));
         assertTrue(dex.isHealthy());
-        assertEq(vault.totalSupply(), 0, "USD Vault activation remains evidence-blocked");
+        usd.mint(address(this), 10_001);
+        usd.approve(address(vault), 10_001);
+        assertEq(vault.initDeposit(10_000), 0, "target threshold must remain a no-op");
+        assertEq(vault.initDeposit(10_001), 10_001e12, "USD Vault Genesis mismatch");
+        assertEq(vault.balanceOf(address(vault)), vault.MINIMUM_LIQUIDITY());
+
+        vm.expectRevert(UsdVault.VaultInitialized.selector);
+        vault.initDeposit(10_001);
 
         vm.expectRevert(INVALID_INITIALIZATION);
         vault.initExecution(

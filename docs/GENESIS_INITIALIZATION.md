@@ -7,11 +7,11 @@ local mocks, a fixed local administrator (`0xA11CE`), no RPC URL, no wallet and 
 must be run without `--broadcast`. The script now continues beyond core Genesis to deploy the two
 UnderlyingPerpVaults, both Routers, a USD Vault dependency graph and the DEX Strategy.
 
-The USD Vault is deliberately left with zero notes and zero seed assets. Its first-notes issuance
-rule is not closed by current target evidence, so the local deployment marks it activation-pending
-instead of using a storage edit or a test harness mint. The local DEX pool exposes a healthy quote
-surface but intentionally rejects trade execution. These two limits are recorded in
-`config/local-cleanroom-deployment.json` and are not production-readiness claims.
+The USD Vault first-notes rule is now closed by a fresh-proxy target fork probe. The local deployment
+seeds it with `10,001` six-decimal USD units, mints `10,001e12` notes, locks `1e16` notes in the
+Vault and assigns the remaining `1e12` notes to the initializer. The local Uniswap V3 mock also
+supports explicitly enabled execution and is connected through a local-only Inventory settlement
+harness. These are regression and deployment fixtures, not production-liquidity claims.
 
 ## State machine
 
@@ -29,6 +29,10 @@ surface but intentionally rejects trade execution. These two limits are recorded
    locks the minimum shares and transfers the remainder to the configured receiver.
 8. The Controller owner restores the final keeper and the final keeper explicitly enables user
    operations.
+9. Initialize the USD Vault with its Controller, Oracle, DEX Strategy and dedicated local Inventory,
+   then call the owner-only one-use `initDeposit(10_001)` activation path.
+10. Seed and enable the local DEX pool, fund the Inventory's working balance and leave all external
+    settlement calls atomic across Inventory, Strategy, pool, USD Vault and Controller.
 
 The seed transaction is atomic. If minting, slippage, `valueCap`, reserve validation or the final
 pause fails, the Seeder's `used` flag, approvals, supplies, balances and pause state all roll back.
@@ -77,12 +81,20 @@ The upgradeable Controller, BondsManager, BondIssuer and FeePolicy are initializ
 constructors. A second initializer call reverts `InvalidInitialization()` and leaves configuration
 unchanged. `PerpToken` is constructor-initialized and has no initializer to replay.
 
+The target-observed USD Vault `initDeposit` is also one-use. Calls up to and including `10,000`
+six-decimal USD units are successful no-ops while supply is zero. A call with `10,001` transfers the
+USD, mints `1e16` permanently Vault-held notes plus `1e12` initializer notes, and emits the exact
+five-event sequence fixed in `test/UsdVaultGenesis.t.sol`. A later call reverts `VaultInitialized()`
+and leaves balances and supply unchanged. A non-owner reaches `OwnableUnauthorizedAccount(address)`.
+
 ## Local reproduction
 
 ```sh
 forge script script/DeployGenesisLocal.s.sol:DeployGenesisLocal --offline -vvv
 forge test --offline --match-path test/GenesisDeployment.t.sol -vv
 forge test --offline --match-path test/OperationalDeployment.t.sol -vv
+forge test --offline --match-path test/UsdVaultGenesis.t.sol -vv
+forge test --offline --match-path test/UsdVaultLocalDexLifecycle.t.sol -vv
 ```
 
 The script intentionally contains no `startBroadcast(privateKey)` call and no network endpoint. Do
@@ -124,6 +136,12 @@ The frozen local baseline logs are `evidence/local_genesis_baseline_105_tests.lo
 - the full local sequence `initialize -> first Bond/deposit -> rebalance -> partial redeem -> all
   remaining user-owned shares redeemed`, while locked shares remain untouched.
 
+`test/UsdVaultGenesis.t.sol` separately covers the target-observed USD first-notes threshold,
+locked-note amount, transfer/event order, authorization, replay rollback, pre-deposit donation and
+the first ordinary deposit/redeem. `test/UsdVaultLocalDexLifecycle.t.sol` covers executable
+`quote -> trade -> callback` settlement, both Inventory rebalance directions, session commits,
+user exit and a post-Vault DEX failure that rolls the entire cross-contract flow back.
+
 The post-baseline local boundary run is recorded in `evidence/LOCAL_GENESIS_BOUNDARY_110.md`.
 The multi-epoch lifecycle run is recorded in `evidence/LOCAL_STATEFUL_LIFECYCLE_112.md`.
 
@@ -145,6 +163,7 @@ remain below the repository's 22,500-byte guard.
 - Economic calibration of the fee curve after multi-epoch price moves. The local moderate path
   remains technically redeemable but charges about 74.52% on the final all-user-share basket exit.
 - Independent security audit results.
+- Production pool selection, liquidity calibration, Inventory financing and settlement incentives.
 
 These items must not be filled with assumptions. This local deployment is a regression fixture and
 design candidate, not a production-readiness claim.

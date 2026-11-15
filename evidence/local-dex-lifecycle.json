@@ -1,0 +1,55 @@
+{
+  "classification": "LOCAL_CLEANROOM_NOT_TARGET_POOL",
+  "topology": [
+    "MockUsdInventory",
+    "UniswapV3DexStrategy",
+    "MockUniswapV3Pool",
+    "UsdVault",
+    "LocalLifecycleController"
+  ],
+  "pool": {
+    "feePips": 500,
+    "initialSqrtPriceX96": "2800063142574549000000000000",
+    "liquidity": "2782022353822",
+    "executionDefault": false,
+    "explicitlyEnabledByLocalDeployment": true
+  },
+  "lifecycleVector": {
+    "genesisUsdUnits": "10001",
+    "userDepositUsdUnits": "1000000000000",
+    "mintUsdSpendUnits": "100000000000",
+    "mintUnderlyingBoughtUnits": "124683273",
+    "redeemUnderlyingSoldUnits": "124683273",
+    "redeemUsdBoughtUnits": "99900087826",
+    "roundTripPoolCostUsdUnits": "99912174",
+    "inventoryEndingUnderlyingUnits": "0",
+    "inventoryWorkingCapitalRestored": true,
+    "userOwnedNotesFullyRedeemed": true,
+    "minimumLockedNotesRemain": true
+  },
+  "rollback": {
+    "failure": "MockUniswapV3Pool.ExecutionDisabled()",
+    "failureOccursAfterVaultRedeemLeg": true,
+    "vaultRestored": true,
+    "controllerRestored": true,
+    "inventoryRestored": true,
+    "poolRestored": true,
+    "sessionRestored": true
+  },
+  "tests": {
+    "testFile": "test/UsdVaultLocalDexLifecycle.t.sol",
+    "passed": 3,
+    "failed": 0,
+    "fullSuitePassed": 239,
+    "fullSuiteFailed": 0
+  },
+  "gates": {
+    "controllerRuntimeBytes": 22475,
+    "usdVaultRuntimeBytes": 16865,
+    "strategyRuntimeBytes": 4530,
+    "storageLayoutsPassed": true,
+    "underlyingVaultAbiPassed": true,
+    "fmtPassed": true,
+    "diffCheckPassed": true
+  }
+}
