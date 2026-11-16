@@ -51,6 +51,23 @@ contract PairControllerMock {
         }
     }
 
+    function flashRedeem2(uint256 srIn, uint256 jrIn, uint256 minUnderlyingOut)
+        external
+        returns (
+            uint256 underlyingOut,
+            IPairControllerTest.FeePerc memory srFee,
+            IPairControllerTest.FeePerc memory jrFee
+        )
+    {
+        srFee = IPairControllerTest.FeePerc({totalFeePerc: 0, protocolFeePerc: 0});
+        jrFee = IPairControllerTest.FeePerc({totalFeePerc: 0, protocolFeePerc: 0});
+        if (srIn != 0) sr.transferFrom(msg.sender, address(this), srIn);
+        if (jrIn != 0) jr.transferFrom(msg.sender, address(this), jrIn);
+        underlyingOut = srIn + jrIn;
+        require(underlyingOut >= minUnderlyingOut, "min underlying");
+        if (underlyingOut != 0) underlying.mint(msg.sender, underlyingOut);
+    }
+
     function systemDeviations() external view returns (uint256, uint256) {
         return (subDR, vmDR);
     }
@@ -64,11 +81,15 @@ interface IPairControllerTest {
 }
 
 contract PairUsdVaultMock is ERC20 {
+    error MockUpkeepFailure();
+
     MockERC20 public immutable usdToken;
     MockERC20 public immutable underlyingToken;
     MockERC20 public immutable srToken;
     address public immutable controller;
     uint256 public immutable retainedUsd;
+    bool public upkeepShouldRevert;
+    uint256 public upkeepCalls;
 
     constructor(MockERC20 usd_, MockERC20 underlying_, MockERC20 sr_, address controller_, uint256 retainedUsd_)
         ERC20("Pair USD Notes", "pUSD")
@@ -103,6 +124,27 @@ contract PairUsdVaultMock is ERC20 {
         notesMinted = usdIn + srMax;
         _mint(msg.sender, notesMinted);
     }
+
+    function mintNotes(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function setUpkeepShouldRevert(bool value) external {
+        upkeepShouldRevert = value;
+    }
+
+    function upkeep() external {
+        if (upkeepShouldRevert) revert MockUpkeepFailure();
+        upkeepCalls++;
+    }
+
+    function redeem(uint256 notes) external returns (uint256 usdOut, uint256 srOut) {
+        _burn(msg.sender, notes);
+        usdOut = notes;
+        srOut = notes * 2;
+        if (usdOut != 0) usdToken.mint(msg.sender, usdOut);
+        if (srOut != 0) srToken.mint(msg.sender, srOut);
+    }
 }
 
 contract PairUnderlyingVaultMock is ERC20 {
@@ -133,6 +175,18 @@ contract PairUnderlyingVaultMock is ERC20 {
         if (jrMax != 0) jrToken.transferFrom(msg.sender, address(this), jrMax);
         notesMinted = underlyingMax + jrMax;
         _mint(msg.sender, notesMinted);
+    }
+
+    function mintNotes(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function redeem(uint256 notes) external returns (uint256 underlyingOut, uint256 jrOut) {
+        _burn(msg.sender, notes);
+        underlyingOut = notes;
+        jrOut = notes * 3;
+        if (underlyingOut != 0) underlyingToken.mint(msg.sender, underlyingOut);
+        if (jrOut != 0) jrToken.mint(msg.sender, jrOut);
     }
 }
 
@@ -191,18 +245,32 @@ contract PairStrategyMock is IDexStrategy {
         return 1e18;
     }
 
-    function quote(address, address, uint256 sellAmt) external view returns (uint256) {
-        return sellAmt * usdPerUnderlying;
+    function quote(address sellToken, address buyToken, uint256 sellAmt) external view returns (uint256) {
+        return _buyAmount(sellToken, buyToken, sellAmt);
     }
 
-    function maxFillable(address, address, uint256 maxSellAmt, uint256) external view returns (uint256, uint256) {
-        return (maxSellAmt, maxSellAmt * usdPerUnderlying);
+    function maxFillable(address sellToken, address buyToken, uint256 maxSellAmt, uint256)
+        external
+        view
+        returns (uint256, uint256)
+    {
+        return (maxSellAmt, _buyAmount(sellToken, buyToken, maxSellAmt));
     }
 
     function trade(address sellToken, address buyToken, uint256 sellAmt) external returns (uint256 buyAmt) {
         IERC20(sellToken).transferFrom(msg.sender, address(this), sellAmt);
-        buyAmt = sellAmt * usdPerUnderlying;
+        buyAmt = _buyAmount(sellToken, buyToken, sellAmt);
         MockERC20(buyToken).mint(msg.sender, buyAmt);
+    }
+
+    function _buyAmount(address sellToken, address buyToken, uint256 sellAmt) private view returns (uint256) {
+        if (sellToken == address(underlyingToken) && buyToken == address(usdToken)) {
+            return sellAmt * usdPerUnderlying;
+        }
+        if (sellToken == address(usdToken) && buyToken == address(underlyingToken)) {
+            return sellAmt / usdPerUnderlying;
+        }
+        revert("unsupported pair");
     }
 }
 
@@ -219,6 +287,7 @@ contract PairRouterTest is Test {
 
     address private constant USER = address(0xBEEF);
     bytes4 private constant TARGET_SELECTOR = 0x0176cb45;
+    bytes4 private constant TARGET_REDEEM_SELECTOR = 0xb2a72016;
     bytes4 private constant UNHEALTHY_SELECTOR = 0xc9f488c6;
 
     function setUp() public {
@@ -235,6 +304,12 @@ contract PairRouterTest is Test {
         usd.mint(address(strategy), 1_000_000_000);
         vm.prank(USER);
         underlying.approve(address(router), type(uint256).max);
+        usdVault.mintNotes(USER, 10_000);
+        jrVault.mintNotes(USER, 10_000);
+        vm.startPrank(USER);
+        usdVault.approve(address(router), type(uint256).max);
+        jrVault.approve(address(router), type(uint256).max);
+        vm.stopPrank();
     }
 
     function testHistoricalSelectorDepositReturnsSixValuesAndNoRouterDust() public {
@@ -318,6 +393,100 @@ contract PairRouterTest is Test {
         assertEq(underlying.balanceOf(USER), 60_000);
     }
 
+    function testHistoricalSelectorRedeemReturnsTwoValuesAndNoRouterDust() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        vm.prank(USER);
+        (bool ok, bytes memory result) =
+            address(router).call(abi.encodePacked(TARGET_REDEEM_SELECTOR, abi.encode(params)));
+        assertTrue(ok);
+        assertEq(result.length, 2 * 32);
+        (uint256 usdOut, uint256 underlyingOut) = abi.decode(result, (uint256, uint256));
+        assertEq(usdOut, 40_010);
+        assertEq(underlyingOut, 60);
+        _assertRouterHasNoDust();
+    }
+
+    function testRedeemInclusiveOutputAndDeviationBounds() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.minUsdOut = 40_010;
+        params.minUnderlyingOut = 60;
+        params.minSubDr = 1_040_088_606_506_973_317;
+        params.maxSubDr = params.minSubDr;
+        params.minVmDr = 1_002_894_667_332_216_205;
+        params.maxVmDr = params.minVmDr;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdOut, 40_010);
+        assertEq(underlyingOut, 60);
+    }
+
+    function testRedeemMinOutputPlusOneRollsBackAllAssets() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.minUsdOut = 40_011;
+        vm.prank(USER);
+        vm.expectRevert(IPairRouter.SlippageTooHigh.selector);
+        router.redeem(params);
+        assertEq(usdVault.balanceOf(USER), 10_000);
+        assertEq(jrVault.balanceOf(USER), 10_000);
+        _assertRouterHasNoDust();
+    }
+
+    function testRedeemTradeAmountPlusOneUsesTargetErrorAndRollsBack() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.underlyingToTrade = 101;
+        vm.prank(USER);
+        vm.expectRevert(IPairRouter.InvalidParamDefn.selector);
+        router.redeem(params);
+        assertEq(usdVault.balanceOf(USER), 10_000);
+        assertEq(jrVault.balanceOf(USER), 10_000);
+    }
+
+    function testRedeemRetainsUsdCapAndTradesOnlyExcess() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.usdNotes = 5_000;
+        params.underlyingNotes = 0;
+        params.underlyingToTrade = 0;
+        params.maxUsdRetained = 2_000;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdOut, 2_000);
+        assertEq(underlyingOut, 10_003);
+        _assertRouterHasNoDust();
+    }
+
+    function testRedeemExplicitUnderlyingTradeTakesPriorityOverUsdCap() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.maxUsdRetained = 0;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdOut, 40_010);
+        assertEq(underlyingOut, 60);
+    }
+
+    function testRedeemUpkeepFailureRollsBackBeforeNotesMove() public {
+        usdVault.setUpkeepShouldRevert(true);
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.runUpkeep = true;
+        vm.prank(USER);
+        vm.expectRevert(PairUsdVaultMock.MockUpkeepFailure.selector);
+        router.redeem(params);
+        assertEq(usdVault.balanceOf(USER), 10_000);
+        assertEq(jrVault.balanceOf(USER), 10_000);
+        assertEq(usdVault.upkeepCalls(), 0);
+    }
+
+    function testRedeemHealthFailurePrecedesUpkeepAndRollsBack() public {
+        strategy.setHealthy(false);
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.runUpkeep = true;
+        vm.prank(USER);
+        vm.expectRevert(UNHEALTHY_SELECTOR);
+        router.redeem(params);
+        assertEq(usdVault.upkeepCalls(), 0);
+        assertEq(usdVault.balanceOf(USER), 10_000);
+        assertEq(jrVault.balanceOf(USER), 10_000);
+    }
+
     function _params() private view returns (IPairRouter.DepositParams memory params) {
         params = IPairRouter.DepositParams({
             usdVault: address(usdVault),
@@ -337,5 +506,34 @@ contract PairRouterTest is Test {
             maxVmDr: type(uint256).max,
             healthCheck: true
         });
+    }
+
+    function _redeemParams() private view returns (IPairRouter.RedeemParams memory params) {
+        params = IPairRouter.RedeemParams({
+            usdVault: address(usdVault),
+            underlyingVault: address(jrVault),
+            strategy: address(strategy),
+            usdNotes: 10,
+            underlyingNotes: 20,
+            maxUsdRetained: type(uint256).max,
+            underlyingToTrade: 40,
+            runUpkeep: false,
+            minUsdOut: 0,
+            minUnderlyingOut: 0,
+            minSubDr: 0,
+            maxSubDr: type(uint256).max,
+            minVmDr: 0,
+            maxVmDr: type(uint256).max,
+            healthCheck: true
+        });
+    }
+
+    function _assertRouterHasNoDust() private view {
+        assertEq(underlying.balanceOf(address(router)), 0);
+        assertEq(usd.balanceOf(address(router)), 0);
+        assertEq(sr.balanceOf(address(router)), 0);
+        assertEq(jr.balanceOf(address(router)), 0);
+        assertEq(usdVault.balanceOf(address(router)), 0);
+        assertEq(jrVault.balanceOf(address(router)), 0);
     }
 }

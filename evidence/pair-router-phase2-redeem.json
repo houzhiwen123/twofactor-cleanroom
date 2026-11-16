@@ -1,0 +1,147 @@
+{
+  "phase": "PAIR_ROUTER_PHASE2_REDEEM",
+  "scope": "natural redeem replay, argument boundaries, and clean-room exact differential",
+  "safety": {
+    "public_base_read_only": true,
+    "local_fork_only": true,
+    "wallet_or_private_key": false,
+    "signed_or_broadcast_transaction": false,
+    "deal_or_store_on_target": false,
+    "target_source_or_frontend_read": false
+  },
+  "version_lock": {
+    "chain_id": "8453",
+    "transaction_hash": "0xcb92c779fd030f2524da58822354ddbc755818da877a0774baea1da70eaf6634",
+    "block_number": "57015384",
+    "transaction_index": "6",
+    "caller": "0x5d13C850F3E8eB925B8aB73155b8d8b610e16e5a",
+    "router": "0x97c521D21468022E205d8A57b2fcaeE33d6714d6",
+    "selector": "0xb2a72016",
+    "router_codehash": "0x487610478a620be27092ff42bf2dea6bfc08275af635abdc27245329f9801218",
+    "eip1967_implementation_slot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "router_deployment_kind": "direct",
+    "usd_vault": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+    "underlying_vault": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+    "strategy": "0xE0fC0566ADCD6b83149874619A1FAFdF3345144f",
+    "controller": "0x682F3a053B0260daD4EbEee3924B1618B330A200"
+  },
+  "bounded_scan": {
+    "from_block": "52900000",
+    "to_block": "58230811",
+    "result": "one natural redeem selected; search was bounded, not exhaustive"
+  },
+  "natural_vector": {
+    "evidence_grade": "TARGET-CONFIRMED",
+    "inputs": {
+      "usd_notes": "3115505797682734554",
+      "underlying_notes": "173340040757196",
+      "max_usd_retained": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "underlying_to_trade": "19771",
+      "run_upkeep": false,
+      "min_usd_out": "14164003",
+      "min_underlying_out": "0",
+      "min_sub_dr_hex": "0x0e7c3102e20526cb",
+      "max_sub_dr_hex": "0x0ea175af4b34cd22",
+      "min_vm_dr": "0",
+      "max_vm_dr": "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+      "health_check": true
+    },
+    "intermediate": {
+      "usd_vault_usd_out": "642319",
+      "usd_vault_perp_sr_out": "246764098",
+      "underlying_vault_cb_btc_out": "0",
+      "underlying_vault_perp_jr_out": "1459344075",
+      "controller_cb_btc_out": "19771",
+      "dex_usd_out": "13603488"
+    },
+    "outputs": {
+      "usd_out": "14245807",
+      "underlying_out": "0"
+    },
+    "deviations": {
+      "pre_sub_dr": "1049023021577290954",
+      "pre_vm_dr": "1001075227187767314",
+      "post_sub_dr": "1049008142808840695",
+      "post_vm_dr": "1001085976679671604"
+    },
+    "router_dust": {
+      "usd_notes": "0",
+      "underlying_notes": "0",
+      "usd": "0",
+      "underlying": "0",
+      "perp_sr": "0",
+      "perp_jr": "0"
+    }
+  },
+  "boundaries": [
+    {
+      "field": "underlying_to_trade",
+      "value": "19770",
+      "success": true,
+      "usd_out": "14245119",
+      "underlying_out": "1",
+      "evidence_grade": "SYNTHETIC-FORK"
+    },
+    {
+      "field": "underlying_to_trade",
+      "value": "19772",
+      "success": false,
+      "error": "InvalidParamDefn()",
+      "selector": "0xd126d255",
+      "evidence_grade": "SYNTHETIC-FORK"
+    },
+    {
+      "field": "min_usd_out",
+      "value": "14245808",
+      "success": false,
+      "error": "SlippageTooHigh()",
+      "selector": "0x850c6f76",
+      "evidence_grade": "SYNTHETIC-FORK"
+    },
+    {
+      "field": "run_upkeep",
+      "value": true,
+      "success": false,
+      "error": "NoOp()",
+      "selector": "0x00219cf1",
+      "evidence_grade": "SYNTHETIC-FORK"
+    }
+  ],
+  "clean_room_differential": {
+    "evidence_grade": "TARGET-DIFFERENTIAL",
+    "test": "testCleanRoomRouterMatchesNaturalTargetReplayExactly",
+    "exact_fields": [
+      "return_data",
+      "caller_usd_delta",
+      "caller_underlying_delta",
+      "usd_notes_burned",
+      "underlying_notes_burned",
+      "usd_notes_total_supply",
+      "underlying_notes_total_supply",
+      "post_sub_dr",
+      "post_vm_dr",
+      "router_dust"
+    ],
+    "tolerance": "0",
+    "result": "MATCH"
+  },
+  "verification": {
+    "target_probe_tests": "8/8",
+    "focused_local_tests": "14/14",
+    "full_local_tests": "278/278",
+    "pair_router_runtime_bytes": "6372",
+    "perp_controller_runtime_bytes": "22497",
+    "perp_controller_guard_bytes": "22500",
+    "frozen_storage_layout_checks": "PASS",
+    "format_diff_and_json_checks": "PASS"
+  },
+  "unknowns": [
+    "original Solidity signature behind selector 0xb2a72016",
+    "successful runUpkeep=true state transition",
+    "partial-fill Strategy behavior on redeem",
+    "all mismatched dependency validation rules",
+    "all zero-note combinations",
+    "compatibility outside the locked Router codehash"
+  ]
+}
+

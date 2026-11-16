@@ -24,7 +24,26 @@ interface IPairRouter {
         bool healthCheck;
     }
 
+    struct RedeemParams {
+        address usdVault;
+        address underlyingVault;
+        address strategy;
+        uint256 usdNotes;
+        uint256 underlyingNotes;
+        uint256 maxUsdRetained;
+        uint256 underlyingToTrade;
+        bool runUpkeep;
+        uint256 minUsdOut;
+        uint256 minUnderlyingOut;
+        uint256 minSubDr;
+        uint256 maxSubDr;
+        uint256 minVmDr;
+        uint256 maxVmDr;
+        bool healthCheck;
+    }
+
     error InvalidInput();
+    error InvalidParamDefn();
     error InvalidSelector();
     error PostStateOutOfBounds();
     error SlippageTooHigh();
@@ -39,4 +58,6 @@ interface IPairRouter {
             uint256 srRefund,
             uint256 jrRefund
         );
+
+    function redeem(RedeemParams calldata params) external returns (uint256 usdOut, uint256 underlyingOut);
 }

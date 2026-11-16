@@ -13,6 +13,8 @@ interface IPairUsdVault is IERC20 {
     function perpSr() external view returns (address);
     function perpController() external view returns (address);
     function deposit(uint256 usdMax, uint256 perpSrMax) external returns (uint256 notesMinted);
+    function redeem(uint256 notes) external returns (uint256 usdOut, uint256 perpSrOut);
+    function upkeep() external;
 }
 
 interface IPairUnderlyingVault is IERC20 {
@@ -20,6 +22,7 @@ interface IPairUnderlyingVault is IERC20 {
     function perp() external view returns (address);
     function perpController() external view returns (address);
     function deposit(uint256 underlyingMax, uint256 perpMax) external returns (uint256 notesMinted);
+    function redeem(uint256 notes) external returns (uint256 underlyingOut, uint256 perpOut);
 }
 
 interface IPairController {
@@ -32,17 +35,22 @@ interface IPairController {
         external
         returns (uint256 srOut, uint256 jrOut, FeePerc memory srFee, FeePerc memory jrFee);
 
+    function flashRedeem2(uint256 srIn, uint256 jrIn, uint256 minUnderlyingOut)
+        external
+        returns (uint256 underlyingOut, FeePerc memory srFee, FeePerc memory jrFee);
+
     function systemDeviations() external view returns (uint256 subDR, uint256 vmDR);
 }
 
 /// @notice Two-sided clean-room entry point for the USD/SR and underlying/JR vault pair.
-/// @dev The proven target path is intentionally limited to deposit. Redeem, zero-genesis and
-///      unsupported-pair behavior remain separate evidence work. The fallback accepts the locked
-///      target selector `0x0176cb45` because its public selector database has no signature entry.
+/// @dev Deposit and redeem preserve the locked target selectors through the compatibility
+///      fallback. Zero-genesis, partial-fill and unsupported-pair behavior remain separate
+///      evidence work; the typed entry points are clean-room convenience APIs.
 contract PairRouter is IPairRouter {
     using SafeERC20 for IERC20;
 
     bytes4 private constant TARGET_DEPOSIT_SELECTOR = 0x0176cb45;
+    bytes4 private constant TARGET_REDEEM_SELECTOR = 0xb2a72016;
     bytes4 private constant UNHEALTHY_SELECTOR = 0xc9f488c6;
 
     function deposit(DepositParams calldata params)
@@ -59,18 +67,30 @@ contract PairRouter is IPairRouter {
         return _deposit(params);
     }
 
+    function redeem(RedeemParams calldata params) external returns (uint256 usdOut, uint256 underlyingOut) {
+        return _redeem(params);
+    }
+
     fallback() external {
-        if (msg.sig != TARGET_DEPOSIT_SELECTOR) revert InvalidSelector();
-        DepositParams memory params = abi.decode(msg.data[4:], (DepositParams));
-        (
-            uint256 usdNotes,
-            uint256 underlyingNotes,
-            uint256 underlyingRefund,
-            uint256 usdRefund,
-            uint256 srRefund,
-            uint256 jrRefund
-        ) = _deposit(params);
-        bytes memory result = abi.encode(usdNotes, underlyingNotes, underlyingRefund, usdRefund, srRefund, jrRefund);
+        bytes memory result;
+        if (msg.sig == TARGET_DEPOSIT_SELECTOR) {
+            DepositParams memory params = abi.decode(msg.data[4:], (DepositParams));
+            (
+                uint256 usdNotes,
+                uint256 underlyingNotes,
+                uint256 underlyingRefund,
+                uint256 usdRefund,
+                uint256 srRefund,
+                uint256 jrRefund
+            ) = _deposit(params);
+            result = abi.encode(usdNotes, underlyingNotes, underlyingRefund, usdRefund, srRefund, jrRefund);
+        } else if (msg.sig == TARGET_REDEEM_SELECTOR) {
+            RedeemParams memory params = abi.decode(msg.data[4:], (RedeemParams));
+            (uint256 usdOut, uint256 underlyingOut) = _redeem(params);
+            result = abi.encode(usdOut, underlyingOut);
+        } else {
+            revert InvalidSelector();
+        }
         assembly ("memory-safe") {
             return(add(result, 0x20), mload(result))
         }
@@ -156,6 +176,67 @@ contract PairRouter is IPairRouter {
         usdRefund = _refundDelta(usdToken, usdBefore, recipient);
         srRefund = _refundDelta(srToken, srBefore, recipient);
         jrRefund = _refundDelta(jrToken, jrBefore, recipient);
+    }
+
+    function _redeem(RedeemParams memory params) private returns (uint256 usdOut, uint256 underlyingOut) {
+        if (params.usdVault == address(0) || params.underlyingVault == address(0) || params.strategy == address(0)) {
+            revert InvalidInput();
+        }
+
+        IPairUsdVault usdVault = IPairUsdVault(params.usdVault);
+        IPairUnderlyingVault underlyingVault = IPairUnderlyingVault(params.underlyingVault);
+        IDexStrategy strategy = IDexStrategy(params.strategy);
+        address controller = usdVault.perpController();
+        if (controller != underlyingVault.perpController()) revert InvalidParamDefn();
+
+        IERC20 underlyingToken = IERC20(underlyingVault.underlying());
+        IERC20 usdToken = IERC20(usdVault.usd());
+        IERC20 srToken = IERC20(usdVault.perpSr());
+        IERC20 jrToken = IERC20(underlyingVault.perp());
+
+        if (params.healthCheck && !strategy.isHealthy()) _revertSelector(UNHEALTHY_SELECTOR);
+        if (params.runUpkeep) usdVault.upkeep();
+
+        uint256 srOut;
+        uint256 jrOut;
+        if (params.usdNotes != 0) {
+            IERC20(params.usdVault).safeTransferFrom(msg.sender, address(this), params.usdNotes);
+            (usdOut, srOut) = usdVault.redeem(params.usdNotes);
+        }
+        if (params.underlyingNotes != 0) {
+            IERC20(params.underlyingVault).safeTransferFrom(msg.sender, address(this), params.underlyingNotes);
+            (underlyingOut, jrOut) = underlyingVault.redeem(params.underlyingNotes);
+        }
+
+        if (srOut != 0 || jrOut != 0) {
+            _approveIfNeeded(srToken, controller, srOut);
+            _approveIfNeeded(jrToken, controller, jrOut);
+            (uint256 redeemedUnderlying,,) = IPairController(controller).flashRedeem2(srOut, jrOut, 0);
+            underlyingOut += redeemedUnderlying;
+        }
+
+        if (params.underlyingToTrade != 0) {
+            if (params.underlyingToTrade > underlyingOut) revert InvalidParamDefn();
+            _approveIfNeeded(underlyingToken, params.strategy, params.underlyingToTrade);
+            uint256 tradedUsd = strategy.trade(address(underlyingToken), address(usdToken), params.underlyingToTrade);
+            underlyingOut -= params.underlyingToTrade;
+            usdOut += tradedUsd;
+        } else if (usdOut > params.maxUsdRetained) {
+            uint256 usdToTrade = usdOut - params.maxUsdRetained;
+            _approveIfNeeded(usdToken, params.strategy, usdToTrade);
+            uint256 tradedUnderlying = strategy.trade(address(usdToken), address(underlyingToken), usdToTrade);
+            usdOut = params.maxUsdRetained;
+            underlyingOut += tradedUnderlying;
+        }
+
+        if (usdOut < params.minUsdOut || underlyingOut < params.minUnderlyingOut) revert SlippageTooHigh();
+        (uint256 subDR, uint256 vmDR) = IPairController(controller).systemDeviations();
+        if (subDR < params.minSubDr || subDR > params.maxSubDr || vmDR < params.minVmDr || vmDR > params.maxVmDr) {
+            revert SlippageTooHigh();
+        }
+
+        if (usdOut != 0) usdToken.safeTransfer(msg.sender, usdOut);
+        if (underlyingOut != 0) underlyingToken.safeTransfer(msg.sender, underlyingOut);
     }
 
     function _approveIfNeeded(IERC20 token, address spender, uint256 amount) private {
