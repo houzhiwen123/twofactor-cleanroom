@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "chainId": 8453,
+  "readRpcUrls": [
+    "http://127.0.0.1:8545",
+    "http://127.0.0.1:9545"
+  ],
+  "submitRpcUrl": null,
+  "from": "0x00000000000000000000000000000000000A11cE",
+  "contracts": {
+    "controller": "0x0000000000000000000000000000000000000001",
+    "juniorVault": null,
+    "seniorVault": null,
+    "usdVault": null
+  },
+  "stateFile": ".keeper/state.json",
+  "live": false,
+  "pollIntervalSec": 15,
+  "confirmations": 1,
+  "gasMultiplierBps": 12000,
+  "maxGas": 3000000,
+  "rpcTimeoutSec": 10,
+  "readRpcAttempts": 3,
+  "retryBaseDelaySec": 0.25
+}

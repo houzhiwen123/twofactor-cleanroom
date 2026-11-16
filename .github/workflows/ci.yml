@@ -27,3 +27,5 @@ jobs:
         run: forge fmt --check
       - name: Run tests offline
         run: forge test --offline
+      - name: Run Keeper tests offline
+        run: python3 -m unittest discover -s keeper_tests -v

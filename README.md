@@ -36,6 +36,11 @@ forge build
 forge test
 ```
 
+The dependency-free off-chain Keeper is documented in [`keeper/README.md`](keeper/README.md). It
+simulates all public maintenance tasks at one fixed block, supports read-RPC failover, submits at
+most one task, and reconciles its receipt before rescanning. It is dry-run by default and never
+handles private keys.
+
 The test suite includes the supplied settlement, tranche value-ratio/VM, two-ceiling, FeePolicy
 (`computeOpFees` and rebalance), and Balancer plan vectors, plus fuzz properties and independent
 reference-model comparisons. Foundry's default fuzz run count is used.
