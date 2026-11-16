@@ -195,6 +195,8 @@ contract PairStrategyMock is IDexStrategy {
     MockERC20 public immutable underlyingToken;
     bool public healthy = true;
     uint256 public usdPerUnderlying = 1_000;
+    uint256 public fillNumerator = 1;
+    uint256 public fillDenominator = 1;
 
     constructor(MockERC20 usd_, MockERC20 underlying_) {
         usdToken = usd_;
@@ -203,6 +205,12 @@ contract PairStrategyMock is IDexStrategy {
 
     function setHealthy(bool value) external {
         healthy = value;
+    }
+
+    function setFill(uint256 numerator, uint256 denominator) external {
+        require(denominator != 0 && numerator <= denominator, "fill");
+        fillNumerator = numerator;
+        fillDenominator = denominator;
     }
 
     function usd() external view returns (address) {
@@ -258,8 +266,9 @@ contract PairStrategyMock is IDexStrategy {
     }
 
     function trade(address sellToken, address buyToken, uint256 sellAmt) external returns (uint256 buyAmt) {
-        IERC20(sellToken).transferFrom(msg.sender, address(this), sellAmt);
-        buyAmt = _buyAmount(sellToken, buyToken, sellAmt);
+        uint256 actualSell = sellAmt * fillNumerator / fillDenominator;
+        IERC20(sellToken).transferFrom(msg.sender, address(this), actualSell);
+        buyAmt = _buyAmount(sellToken, buyToken, actualSell);
         MockERC20(buyToken).mint(msg.sender, buyAmt);
     }
 
@@ -461,6 +470,41 @@ contract PairRouterTest is Test {
         (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
         assertEq(usdOut, 40_010);
         assertEq(underlyingOut, 60);
+    }
+
+    function testRedeemExplicitUnderlyingPartialFillReturnsUnspentUnderlying() public {
+        strategy.setFill(1, 2);
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdOut, 20_010);
+        assertEq(underlyingOut, 80);
+        _assertRouterHasNoDust();
+    }
+
+    function testRedeemReversePartialFillReturnsUnspentUsd() public {
+        strategy.setFill(1, 2);
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.usdNotes = 5_000;
+        params.underlyingNotes = 0;
+        params.underlyingToTrade = 0;
+        params.maxUsdRetained = 2_000;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdOut, 3_500);
+        assertEq(underlyingOut, 10_001);
+        _assertRouterHasNoDust();
+    }
+
+    function testRedeemSuccessfulUpkeepRunsBeforeNormalSettlement() public {
+        IPairRouter.RedeemParams memory params = _redeemParams();
+        params.runUpkeep = true;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(params);
+        assertEq(usdVault.upkeepCalls(), 1);
+        assertEq(usdOut, 40_010);
+        assertEq(underlyingOut, 60);
+        _assertRouterHasNoDust();
     }
 
     function testRedeemUpkeepFailureRollsBackBeforeNotesMove() public {

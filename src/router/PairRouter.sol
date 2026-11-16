@@ -44,8 +44,9 @@ interface IPairController {
 
 /// @notice Two-sided clean-room entry point for the USD/SR and underlying/JR vault pair.
 /// @dev Deposit and redeem preserve the locked target selectors through the compatibility
-///      fallback. Zero-genesis, partial-fill and unsupported-pair behavior remain separate
-///      evidence work; the typed entry points are clean-room convenience APIs.
+///      fallback. Redeem partial fills settle from actual Router balances. Zero-genesis and
+///      unsupported-pair behavior remain separate evidence work; the typed entry points are
+///      clean-room convenience APIs.
 contract PairRouter is IPairRouter {
     using SafeERC20 for IERC20;
 
@@ -228,6 +229,12 @@ contract PairRouter is IPairRouter {
             usdOut = params.maxUsdRetained;
             underlyingOut += tradedUnderlying;
         }
+
+        // The target settles the caller from the Router's actual post-trade balances. This is
+        // material when a Strategy spends less than the requested amount and returns the unused
+        // sell token: requested-amount bookkeeping would strand that refund on the Router.
+        usdOut = usdToken.balanceOf(address(this));
+        underlyingOut = underlyingToken.balanceOf(address(this));
 
         if (usdOut < params.minUsdOut || underlyingOut < params.minUnderlyingOut) revert SlippageTooHigh();
         (uint256 subDR, uint256 vmDR) = IPairController(controller).systemDeviations();

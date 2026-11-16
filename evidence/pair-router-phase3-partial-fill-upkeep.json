@@ -1,0 +1,86 @@
+{
+  "phase": "PAIR_ROUTER_PHASE3_PARTIAL_FILL_UPKEEP",
+  "evidence_grade": "SYNTHETIC-FORK / TARGET-IMPLEMENTATION-BEHAVIOR",
+  "version_lock": {
+    "chain_id": "8453",
+    "block_number": "57015384",
+    "target_router": "0x97c521D21468022E205d8A57b2fcaeE33d6714d6",
+    "selector": "0xb2a72016",
+    "codehash": "0x487610478a620be27092ff42bf2dea6bfc08275af635abdc27245329f9801218"
+  },
+  "safety": {
+    "public_base_read_only": true,
+    "local_recording_dependencies": true,
+    "deal_or_store_target_mutation": false,
+    "wallet_private_key_signature_or_broadcast": false,
+    "target_source_or_frontend_read": false
+  },
+  "underlying_to_usd_partial_fill": {
+    "pre_trade_usd": "20",
+    "pre_trade_underlying": "120",
+    "requested_sell": "100",
+    "actual_spent": "40",
+    "strategy_buy": "400",
+    "returned_usd": "420",
+    "returned_underlying": "80",
+    "router_dust": "0"
+  },
+  "usd_to_underlying_partial_fill": {
+    "pre_trade_usd": "20",
+    "pre_trade_underlying": "120",
+    "max_usd_retained": "5",
+    "requested_sell": "15",
+    "actual_spent": "6",
+    "strategy_buy": "9",
+    "returned_usd": "14",
+    "returned_underlying": "129",
+    "router_dust": "0"
+  },
+  "minimum_boundaries": {
+    "exact_usd": "420",
+    "exact_underlying": "80",
+    "exact_success": true,
+    "usd_plus_one_success": false,
+    "underlying_plus_one_success": false,
+    "failure": "SlippageTooHigh()",
+    "failure_selector": "0x850c6f76"
+  },
+  "successful_upkeep": {
+    "calls": "1",
+    "call_order": [
+      "usd_vault.upkeep",
+      "usd_vault.redeem",
+      "underlying_vault.redeem",
+      "controller.flashRedeem2",
+      "strategy.trade"
+    ],
+    "returned_usd": "420",
+    "returned_underlying": "20",
+    "natural_production_reachability": "UNKNOWN"
+  },
+  "clean_room_fix": {
+    "before": "requested sell bookkeeping stranded partial-fill refunds",
+    "after": "minimums, transfers and return values use actual post-operation Router balances",
+    "storage_changed": false,
+    "interface_changed": false,
+    "target_local_underlying_to_usd": "MATCH",
+    "target_local_usd_to_underlying": "MATCH",
+    "tolerance": "0"
+  },
+  "verification": {
+    "target_and_differential_probe": "6/6",
+    "focused_local_pair_router": "17/17",
+    "full_offline_suite": "281/281 across 31 suites",
+    "pair_router_runtime_bytes": "6613",
+    "perp_controller_runtime_bytes": "22497",
+    "perp_controller_guard_bytes": "22500",
+    "frozen_storage_and_abi_checks": "PASS",
+    "format_diff_and_json": "PASS"
+  },
+  "remaining_unknowns": [
+    "natural successful runUpkeep transaction reachability",
+    "all negative mismatched-dependency selectors",
+    "behavior outside the locked Router codehash",
+    "pre-existing unrelated token dust sweeping"
+  ]
+}
