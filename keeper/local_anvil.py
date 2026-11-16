@@ -15,7 +15,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .config import load_config
-from .engine import EIP1967_IMPLEMENTATION_SLOT, KeeperEngine
+from .attestation import observe_contract_identity
+from .engine import KeeperEngine
 from .observability import KeeperObserver
 from .rpc import HttpJsonRpcClient, RpcPool
 from .signer import ExternalSignerClient
@@ -136,14 +137,11 @@ def collect_attestations(rpc: HttpJsonRpcClient, addresses: dict[str, str]) -> d
     attestations: dict[str, dict[str, str]] = {}
     for config_key, deployment_key in key_map.items():
         proxy = addresses[deployment_key]
-        proof = rpc.request("eth_getProof", [proxy, [], block_tag])
-        storage_value = rpc.request("eth_getStorageAt", [proxy, EIP1967_IMPLEMENTATION_SLOT, block_tag])
-        implementation = "0x" + storage_value[-40:]
-        implementation_proof = rpc.request("eth_getProof", [implementation, [], block_tag])
+        observed = observe_contract_identity(rpc, proxy, block_tag)
         attestations[config_key] = {
-            "proxyCodeHash": proof["codeHash"],
-            "implementation": implementation,
-            "implementationCodeHash": implementation_proof["codeHash"],
+            "proxyCodeHash": observed.proxy_code_hash,
+            "implementation": observed.implementation,
+            "implementationCodeHash": observed.implementation_code_hash,
         }
     return attestations
 

@@ -37,8 +37,20 @@ operational file even though it cannot contain signing keys.
 
 ## Staged activation
 
-1. Generate the deployment manifest from the reviewed deployment pipeline. Never copy an address
-   or codehash from an unreviewed terminal transcript.
+1. Generate the deployment manifest at an explicit reviewed block. Never copy an address or
+   codehash from an unreviewed terminal transcript:
+
+   ```sh
+   python3 -m keeper.manifest \
+     --input .keeper/manifest-input.json \
+     --rpc-url "$REVIEWED_READ_RPC" \
+     --block "$REVIEWED_BLOCK" \
+     --output .keeper/deployment-manifest.json
+   ```
+
+   Confirm the chain ID and block hash through an independent provider. Review every proxy,
+   EIP-1967 implementation and codehash. The `configFragment` is advisory and must never be copied
+   into live configuration without deployment review.
 2. Start with `live: false`, `submissionMode: disabled`, and `submitRpcUrl: null`.
 3. Run one fixed-block dry cycle and inspect every `simulation` result:
 
@@ -115,6 +127,18 @@ stop until reconciled.
   change. Updated implementation attestations require deployment review, not an automatic refresh.
 
 ## Local staged drill
+
+Before the staged Anvil drill, run the deterministic 1000-cycle chaos gate:
+
+```sh
+python3 -m keeper.soak \
+  --cycles 1000 \
+  --seed 20261116 \
+  --output .keeper/soak-result.json
+```
+
+Require `passed: true` and review every invariant. This is a deterministic local failure-injection
+test, not evidence about public-chain reliability or the production managed signer.
 
 The repository's no-key rehearsal remains:
 

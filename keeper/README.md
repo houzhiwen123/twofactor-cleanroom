@@ -42,6 +42,23 @@ USD Vault `swap()` is deliberately excluded because it is an authorized inventor
 
 ## Run
 
+Generate a review-only deployment identity at one explicit historical block before writing a live
+configuration. The input accepts only deployment ID, chain ID and contract addresses; it rejects
+private-key fields and never changes the Keeper configuration:
+
+```sh
+cp keeper/manifest.input.example.json .keeper/manifest-input.json
+python3 -m keeper.manifest \
+  --input .keeper/manifest-input.json \
+  --rpc-url https://reviewed-read-rpc.example \
+  --block 54990962 \
+  --output .keeper/deployment-manifest.json
+```
+
+Review the block hash, proxy/implementation addresses and both codehashes independently before
+copying the emitted `configFragment`. The output is mode `0600`; generation never auto-accepts or
+auto-refreshes an attestation.
+
 Copy `keeper/config.example.json`, replace every non-null contract address with the deployment
 address, and keep `live` false while validating:
 
@@ -76,7 +93,21 @@ python3 -m unittest discover -s keeper_tests -v
 Tests are offline and cover fixed-block simulation, benign versus unknown reverts, read failover,
 double live opt-in, task priority, ambiguous-send locking, receipt reconciliation, and chain/code
 preflight, proxy/implementation attestations, signer transaction-shape enforcement, health,
-Prometheus metrics and alert boundaries.
+Prometheus metrics and alert boundaries. They also run a deterministic 300-cycle chaos regression.
+
+Run the longer deterministic soak before a release candidate:
+
+```sh
+python3 -m keeper.soak \
+  --cycles 1000 \
+  --seed 20261116 \
+  --output .keeper/soak-result.json
+```
+
+The soak is local-only. It injects read transport failures, pending and reverted receipts, process
+restarts, one ambiguous submission, and deployment-attestation drift. A passing result requires no
+concurrent or duplicate sends, complete receipt reconciliation, a persistent ambiguous lock and no
+simulation/send after identity drift.
 
 ## Local Anvil end to end
 

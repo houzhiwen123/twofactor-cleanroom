@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "deploymentId": "reviewed-deployment-name",
+  "chainId": 8453,
+  "contracts": {
+    "controller": "0x0000000000000000000000000000000000001001",
+    "juniorVault": "0x0000000000000000000000000000000000001002",
+    "seniorVault": "0x0000000000000000000000000000000000001003",
+    "usdVault": "0x0000000000000000000000000000000000001004"
+  }
+}
