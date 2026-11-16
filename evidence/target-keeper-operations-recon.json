@@ -1,0 +1,249 @@
+{
+  "schema": "twofactor-cleanroom.target-keeper-operations-recon.v1",
+  "generated_at": "2026-11-16",
+  "chain_id": 8453,
+  "scope": "Publicly observable maintenance entrypoints and natural Base execution patterns. This is a target-alignment specification, not an implementation of an off-chain keeper.",
+  "constraints": {
+    "public_base_read_only": true,
+    "local_fork_only_for_state_changes": true,
+    "wallet_or_private_key_used": false,
+    "transaction_broadcast": false,
+    "verified_source_or_frontend_bundle_used": false
+  },
+  "labels": {
+    "TARGET_CONFIRMED": "Natural public-chain state or exact transaction-prestate replay.",
+    "SYNTHETIC_FORK_TARGET_IMPLEMENTATION": "Target implementation exercised on a local fork with an explicitly constructed state.",
+    "DERIVED": "Computed from target-confirmed observations.",
+    "UNKNOWN": "Not established by public evidence.",
+    "BNB_DESIGN": "Future clean-room design choice, not target behavior."
+  },
+  "version_locks": {
+    "controller_round10": {
+      "block": 54990962,
+      "block_hash": "0x1dff8df5543b16d844a672968579d9d341675728a9a3f3203f1e05bee332bc67",
+      "proxy": "0x682F3a053B0260daD4EbEee3924B1618B330A200",
+      "implementation": "0x16e324bae2098317477129a5e71f770bff51f02a",
+      "implementation_codehash": "0xc18d3bcb6fb9e0f54b93f7d431901e13ee879a86502da786841e2f12d9606e31"
+    },
+    "underlying_perp_vaults": {
+      "block": 53526143,
+      "junior_proxy": "0xebEe489B84C1b3408838A87A691A4370aED139DB",
+      "senior_proxy": "0x805D7eE7F03dE39f2F30F3a7069c6d46642398cB",
+      "shared_implementation": "0xA1302bE3e96F1D057722AeDCCf4Cc6d58D6925ea",
+      "implementation_codehash": "0xf44934d03450e1a1ccec20b9f3d6031fb2176e2e90c4d1074a506b8f27285645"
+    },
+    "usd_vault": {
+      "proxy": "0xe356D1Ed9AD82cCc79E70F50aBCE08057e8d75F3",
+      "implementation": "0xF85EE52a320F2B8CF4E670cd40D8218519FDaACF",
+      "implementation_codehash": "0x8154d40af93b7d547f9f706103bf7c5a794e8f19c24e04710b4e72d463d780a4"
+    }
+  },
+  "jobs": [
+    {
+      "id": "controller_rebalance",
+      "contract": "PerpController",
+      "entrypoint": "rebalance()",
+      "selector": "0x7d7c2a1c",
+      "caller_model": "permissionless in the tested valid window; random EOA, owner, and a distinct configured keeper all succeeded from identical snapshots",
+      "trigger": "inside the configured rebalance window and at or after lastRebalanceTimestampSec + frequency",
+      "success_commit": "moves planned reserves, settles fees, and stores the aligned window start as lastRebalanceTimestampSec",
+      "idle_or_failure": [
+        {"condition": "outside half-open window", "error": "OutOfRebalanceWindow()", "selector": "0xb4675acc"},
+        {"condition": "cooldown minus one second", "error": "LastRebalanceTooRecent()", "selector": "0xa3b3f090"}
+      ],
+      "evidence_grade": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION"
+    },
+    {
+      "id": "controller_upkeep",
+      "contract": "PerpController",
+      "entrypoint": "upkeep()",
+      "selector": "0x2cf4704a",
+      "caller_model": "permissionless in tested work and no-work states",
+      "trigger": "mature tranche recovery and/or a due Bond issuance window",
+      "observed_internal_order": [
+        "oracle.cachePrice()",
+        "Perp SR recover()",
+        "Perp JR recover()",
+        "BondIssuer.issue()",
+        "register returned/current SR and JR tranches",
+        "oracle.resetCache() after successful work"
+      ],
+      "state_matrix": [
+        {"state": "neither maturity nor issuance due", "result": "revert", "error": "NoOp()", "selector": "0x00219cf1", "durable_change": false},
+        {"state": "issuance only", "result": "success", "durable_change": "latest Bond and both reserve arrays change; no underlying movement"},
+        {"state": "maturity only", "result": "success", "durable_change": "mature rows are removed and underlying returns to both Perps"},
+        {"state": "maturity and issuance", "result": "success", "durable_change": "settlement and registration are atomic"}
+      ],
+      "negative_observation": "No rollover planner, system rebalance planner, or rebalance() call appeared in the four pinned traces.",
+      "evidence_grade": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION"
+    },
+    {
+      "id": "controller_rollover",
+      "contract": "PerpController",
+      "entrypoint": "rollover()",
+      "selector": "0xb056b49a",
+      "caller_model": "permissionless in tested work and no-work states",
+      "trigger": "stale SR tranche state plus sufficient JR free liquidity for a non-empty plan",
+      "state_specific_boundaries": {
+        "full_at_or_above": "6423504",
+        "partial_range": "2000000..6423503",
+        "revert_at_or_below": "1999999",
+        "revert_error": "InsufficientRollover()",
+        "revert_selector": "0xbbb27b39"
+      },
+      "boundary_warning": "Amounts are regression vectors for the pinned state, not universal constants.",
+      "evidence_grade": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION"
+    },
+    {
+      "id": "underlying_perp_vault_rebalance",
+      "contract": "UnderlyingPerpVault (JR and SR deployments)",
+      "entrypoint": "rebalance()",
+      "selector": "0x7d7c2a1c",
+      "caller_model": "permissionless in a valid synthetic fork state; natural history includes both direct calls and batched calls",
+      "trigger": "subDR outside inclusive equilibrium range, direction-specific capacity at least minRebalanceVal, and the aligned timing bucket is newer than the stored timestamp",
+      "cadence_at_block_53526143": {
+        "junior_frequency_seconds": 28800,
+        "junior_offset_seconds": 0,
+        "senior_frequency_seconds": 28800,
+        "senior_offset_seconds": 6000
+      },
+      "idle_or_failure": {"error": "OpUnavailable(\"no capacity\")", "selector": "0xf0b62b3b"},
+      "evidence_grade": "TARGET_CONFIRMED plus SYNTHETIC_FORK_TARGET_IMPLEMENTATION for caller equality"
+    },
+    {
+      "id": "usd_vault_rebalance",
+      "contract": "USD Senior Vault",
+      "entrypoint": "rebalance()",
+      "selector": "0x7d7c2a1c",
+      "caller_model": "permissionless before business guards; random and owner both reached NoOp() at the same natural block",
+      "trigger": "active session with non-zero executable capacity, healthy dependencies, and timestamp at or after openedAt + 3600",
+      "success_path": "DEX and Controller execute atomically; session budget is debited by the emitted rebalanceUsdVal only after successful execution",
+      "natural_success_architecture": "authorized inventory calls swap() inside an external batch/settlement flow; this path is distinct from permissionless direct rebalance()",
+      "evidence_grade": "TARGET_CONFIRMED for two natural settlement transactions; SYNTHETIC_FORK_TARGET_IMPLEMENTATION for direct-delay and dependency-failure boundaries"
+    },
+    {
+      "id": "usd_vault_upkeep",
+      "contract": "USD Senior Vault",
+      "entrypoint": "upkeep()",
+      "selector": "0x2cf4704a",
+      "caller_model": "permissionless before business guards; a natural batch executor that was neither owner, keeper, nor swapper invoked it",
+      "natural_observation": "the two natural batch flows include upkeep health/state checks",
+      "state_changing_observation": "in a constructed redeem-direction state, upkeep sold idle underlying through the DEX without committing session budget, direction, timestamp, or a Rebalance event",
+      "natural_state_changing_reachability": "UNKNOWN",
+      "evidence_grade": "TARGET_CONFIRMED for natural call reachability; SYNTHETIC_FORK_TARGET_IMPLEMENTATION for state-changing redeem cleanup"
+    },
+    {
+      "id": "usd_vault_swap_inventory_leg",
+      "contract": "USD Senior Vault",
+      "entrypoint": "swap(tokenIn,tokenOut,tokenInAmt,tokenOutAmt)",
+      "caller_model": "authorized swapper/inventory only; random caller reverts UnauthorizedCall()",
+      "classification": "settlement actuator, not a public Keeper task",
+      "evidence_grade": "TARGET_CONFIRMED"
+    },
+    {
+      "id": "lazy_sr_flashmint_rollover",
+      "contract": "PerpController",
+      "entrypoint": "flashMint2()",
+      "caller_model": "user operation",
+      "classification": "lazy maintenance side effect, not an off-chain scheduled Keeper task",
+      "evidence_grade": "SYNTHETIC_FORK_TARGET_IMPLEMENTATION"
+    }
+  ],
+  "natural_history": {
+    "underlying_vault_scan_range": {"from_block": 51695016, "to_block": 53526143},
+    "successful_rebalance_events": 70,
+    "junior_events": 7,
+    "senior_events": 63,
+    "mint_events": 31,
+    "redeem_events": 39,
+    "batched_transactions": {
+      "count": 68,
+      "sender": "0xba887c8e396f24e0817be13839850de454ac7e45",
+      "destination": "0xca11bde05977b3631167028862be2a173976ca11",
+      "selector": "0x82ad56cb",
+      "decoded_entrypoint": "Multicall3.aggregate3((address,bool,bytes)[])"
+    },
+    "direct_transactions": {
+      "count": 2,
+      "sender": "0xd7daaa0648d72afd2470e5b68b3cf1c9fd88c92b",
+      "selector": "0x7d7c2a1c"
+    },
+    "interpretation": "A stable operator pattern is observable, but it is not an on-chain exclusive authorization rule."
+  },
+  "selected_vectors": [
+    {
+      "id": "underlying_sr_mint_batched",
+      "grade": "TARGET_CONFIRMED",
+      "transaction_hash": "0x07114c7e3baca7be676b961fe55548e688f830b0a6d99116cdc04c25b8c542ff",
+      "block": 51753826,
+      "transaction_index": 26,
+      "side": "senior",
+      "direction": "mint_perp",
+      "underlying_amount": "56584",
+      "top_level_selector": "0x82ad56cb",
+      "current_rerun": "PASS"
+    },
+    {
+      "id": "underlying_jr_mint_direct",
+      "grade": "TARGET_CONFIRMED",
+      "transaction_hash": "0x8eda4df97e08f8afc1d16ac0685f0d47527ebde30fbd4bbc8b5c177c97e778e0",
+      "block": 51777393,
+      "transaction_index": 141,
+      "side": "junior",
+      "direction": "mint_perp",
+      "underlying_amount": "856406",
+      "top_level_selector": "0x7d7c2a1c",
+      "current_rerun": "PASS"
+    },
+    {
+      "id": "underlying_sr_redeem_batched",
+      "grade": "TARGET_CONFIRMED",
+      "transaction_hash": "0x2c23758afef541c51d2e290e533ab77f9396bf99e3cb9c632e7eec5f6fccd5c0",
+      "block": 51879760,
+      "transaction_index": 71,
+      "side": "senior",
+      "direction": "redeem_perp",
+      "underlying_amount": "129350",
+      "top_level_selector": "0x82ad56cb",
+      "current_rerun": "PASS"
+    },
+    {
+      "id": "usd_vault_redeem_settlement",
+      "grade": "TARGET_CONFIRMED",
+      "transaction_hash": "0xf49ebfa4f7833f8dec9ed901eb4edaddfaeed352e84362c6c687d52f17c7568e",
+      "block": 53480534,
+      "transaction_index": 64,
+      "direction": "redeem_perp_and_sell_underlying",
+      "session_budget_delta": "-742959233254557147400",
+      "current_rerun": "PASS"
+    },
+    {
+      "id": "usd_vault_mint_settlement",
+      "grade": "TARGET_CONFIRMED",
+      "transaction_hash": "0x4adb0572701aa84dabb661ad72d31617cf80a441f5696f69825b8a4ee5b80276",
+      "block": 53491335,
+      "transaction_index": 117,
+      "direction": "buy_underlying_and_mint_perp",
+      "session_budget_delta": "-3390111185000000000000",
+      "current_rerun": "PASS"
+    }
+  ],
+  "unknowns": [
+    "Private off-chain polling interval, queue implementation, gas bidding, alerting, retry count, backoff, and failover provider.",
+    "Global priority when multiple public maintenance jobs are executable in the same block; individual contract-internal call order is known, cross-contract scheduler priority is not.",
+    "Whether production USD Vault ever reached the synthetic state-changing upkeep redeem-cleanup state.",
+    "Natural historical Controller upkeep/rollover transactions were not exhaustively scanned in this phase.",
+    "Economic policy for choosing between a direct call and a Multicall3 batch is not observable from contract state alone."
+  ],
+  "verification": {
+    "current_rerun": {
+      "underlying_perp_vault_phase2_selected": "5 passed, 0 failed",
+      "usd_vault_phase5a_selected": "3 passed, 0 failed"
+    },
+    "archived_probe_results": {
+      "round6_controller": "22 passed, 0 failed",
+      "round10_controller": "10 passed, 0 failed"
+    },
+    "not_counted_as_current_rerun": "Round 6 and Round 10 heavy probe compilation was stopped before execution after exceeding this phase's local compile-time cap; archived logs remain the cited evidence."
+  }
+}
