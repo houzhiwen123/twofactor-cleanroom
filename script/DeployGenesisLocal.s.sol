@@ -18,6 +18,7 @@ import {PerpBalancer} from "../src/policy/PerpBalancer.sol";
 import {RolloverPlanGuard} from "../src/policy/RolloverPlanGuard.sol";
 import {SingleAssetRouter} from "../src/router/SingleAssetRouter.sol";
 import {UnderlyingSingleAssetRouter} from "../src/router/UnderlyingSingleAssetRouter.sol";
+import {PairRouter} from "../src/router/PairRouter.sol";
 import {UniswapV3DexStrategy} from "../src/strategy/UniswapV3DexStrategy.sol";
 import {UnderlyingPerpVault} from "../src/vault/UnderlyingPerpVault.sol";
 import {UsdVault} from "../src/vault/UsdVault.sol";
@@ -59,6 +60,7 @@ contract DeployGenesisLocal is Script {
         UsdVault usdVault;
         SingleAssetRouter usdRouter;
         UnderlyingSingleAssetRouter underlyingRouter;
+        PairRouter pairRouter;
     }
 
     uint256 private constant INITIAL_UNDERLYING = 100_000_000;
@@ -236,6 +238,7 @@ contract DeployGenesisLocal is Script {
 
         d.usdRouter = new SingleAssetRouter();
         d.underlyingRouter = new UnderlyingSingleAssetRouter();
+        d.pairRouter = new PairRouter();
 
         d.usd.mint(LOCAL_ADMIN, USD_VAULT_SEED);
         d.usd.approve(address(d.usdVault), USD_VAULT_SEED);
@@ -314,6 +317,7 @@ contract DeployGenesisLocal is Script {
         console2.log("usdVault", address(periphery.usdVault));
         console2.log("usdRouter", address(periphery.usdRouter));
         console2.log("underlyingRouter", address(periphery.underlyingRouter));
+        console2.log("pairRouter", address(periphery.pairRouter));
         console2.log("dexStrategy", address(periphery.dexStrategy));
         console2.log("inventory", address(periphery.inventory));
         console2.log("localDexExecutionEnabled", periphery.pool.executionEnabled());

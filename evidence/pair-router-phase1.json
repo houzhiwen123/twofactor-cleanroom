@@ -1,0 +1,62 @@
+{
+  "phase": "PAIR_ROUTER_PHASE1",
+  "labels": {
+    "target_confirmed": [
+      "historical selector 0x0176cb45",
+      "static argument layout: 4 addresses, 11 uint256, 1 bool",
+      "six-word return layout",
+      "inclusive min outputs and DR bounds",
+      "atomic failure boundaries",
+      "zero recipient resolves to caller",
+      "healthCheck=false skips health call"
+    ],
+    "local_cleanroom": [
+      "src/router/PairRouter.sol",
+      "test/PairRouter.t.sol",
+      "deployment wiring in script/DeployGenesisLocal.s.sol"
+    ],
+    "unknown": [
+      "exact Solidity signature",
+      "target internal call order",
+      "redeem path",
+      "zero-genesis behavior",
+      "unsupported pair behavior",
+      "session and fee accounting outside the observed vector"
+    ]
+  },
+  "version": {
+    "chain_id": 8453,
+    "block": 52951098,
+    "transaction_index": 93,
+    "transaction": "0x9332e8818524e3e791f77877df8e1bfca3017483af3aaeaf017ca12c641456f7",
+    "router": "0x97c521D21468022E205d8A57b2fcaeE33d6714d6",
+    "selector": "0x0176cb45"
+  },
+  "historical_vector": {
+    "underlying_in": 60000,
+    "underlying_to_trade": 6,
+    "sr_underlying_in": 13194,
+    "jr_underlying_in": 46799,
+    "usd_notes_out": "10672407599351449815",
+    "jr_notes_out": "474271839185754",
+    "underlying_refund": 1,
+    "usd_refund": 388,
+    "sr_refund": 0,
+    "jr_refund": 0
+  },
+  "local_tests": {
+    "path": "test/PairRouter.t.sol",
+    "passed": 6,
+    "failed": 0
+  },
+  "local_measurements": {
+    "pair_router_runtime_bytes": 3893,
+    "controller_runtime_bytes": 22497,
+    "controller_storage_layout": "PASS",
+    "usd_vault_storage_layout": "PASS",
+    "underlying_perp_vault_storage_layout": "PASS",
+    "underlying_perp_vault_abi": "PASS",
+    "forge_fmt_check": "PASS",
+    "git_diff_check": "PASS"
+  }
+}
