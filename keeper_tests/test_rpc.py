@@ -16,6 +16,7 @@ class RpcTests(unittest.TestCase):
         self.assertEqual(pool.request("eth_blockNumber", []), "0x2a")
         self.assertEqual(len(failures), 1)
         self.assertNotIn("secret", safe_endpoint(first.endpoint))
+        self.assertNotIn("key", safe_endpoint(first.endpoint))
         self.assertNotIn("a=b", safe_endpoint(first.endpoint))
 
     def test_deterministic_revert_does_not_fail_over(self) -> None:

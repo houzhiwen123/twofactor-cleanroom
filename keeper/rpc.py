@@ -15,7 +15,9 @@ def safe_endpoint(url: str) -> str:
     host = parsed.hostname or ""
     if parsed.port:
         host = f"{host}:{parsed.port}"
-    return urllib.parse.urlunsplit((parsed.scheme, host, parsed.path, "", ""))
+    # Provider paths frequently embed API tokens.  Operational events only
+    # need the transport/host identity, never a credential-bearing path.
+    return urllib.parse.urlunsplit((parsed.scheme, host, "", "", ""))
 
 
 def extract_revert_data(value: Any) -> str | None:

@@ -57,7 +57,21 @@ class LocalAnvilIntegrationTest(unittest.TestCase):
     def test_complete_local_keeper_lifecycle(self) -> None:
         repo = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
-            result = LocalAnvilE2E(repo, Path(directory)).run()
+            output = Path(directory)
+            result = LocalAnvilE2E(repo, output).run()
+            deployment = json.loads((output / "deployment.json").read_text())
+            self.assertEqual(set(deployment["attestations"]), {"controller", "juniorVault", "seniorVault", "usdVault"})
+            health = json.loads((output / "keeper.live.health.json").read_text())
+            self.assertEqual(health["status"], "degraded")
+            self.assertFalse(health["pendingSubmission"])
+            self.assertEqual(health["lastHardErrorCount"], 1)
+            metrics = (output / "keeper.live.metrics.prom").read_text()
+            self.assertIn('event="submitted"} 4', metrics)
+            self.assertIn('event="receipt_confirmed"} 4', metrics)
+            events = [json.loads(line) for line in (output / "keeper-events.jsonl").read_text().splitlines()]
+            snapshots = [event for event in events if event.get("event") == "snapshot"]
+            self.assertTrue(any(len(event.get("verifiedAttestations", {})) == 4 for event in snapshots))
+            self.assertTrue((output / "keeper.live.alerts.jsonl").exists())
         self.assertEqual(result.dry_run_task, "controller_rebalance")
         self.assertTrue(result.idle_after_rebalance)
         self.assertGreaterEqual(result.rpc_failovers, 1)

@@ -15,8 +15,10 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .config import load_config
-from .engine import KeeperEngine
+from .engine import EIP1967_IMPLEMENTATION_SLOT, KeeperEngine
+from .observability import KeeperObserver
 from .rpc import HttpJsonRpcClient, RpcPool
+from .signer import ExternalSignerClient
 from .state import KeeperState
 
 
@@ -77,6 +79,9 @@ def write_keeper_config(
     addresses: dict[str, str | None],
     state_file: Path,
     live: bool,
+    deployment_id: str = "local-anvil-e2e",
+    submission_mode: str | None = None,
+    attestations: dict[str, dict[str, str]] | None = None,
 ) -> None:
     for url in rpc_urls:
         require_loopback_rpc(url)
@@ -95,9 +100,19 @@ def write_keeper_config(
             "chainId": CHAIN_ID,
             "readRpcUrls": rpc_urls,
             "submitRpcUrl": submit_rpc_url,
+            "submissionMode": submission_mode or ("local-unlocked" if submit_rpc_url else "disabled"),
             "from": LOCAL_ADMIN,
             "contracts": contracts,
+            "deployment": {"id": deployment_id, "attestations": attestations or {}},
             "stateFile": str(state_file),
+            "observability": {
+                "healthFile": str(path.parent / f"{path.stem}.health.json"),
+                "metricsFile": str(path.parent / f"{path.stem}.metrics.prom"),
+                "alertsFile": str(path.parent / f"{path.stem}.alerts.jsonl"),
+                "alertCooldownSec": 0,
+                "pendingWarningSec": 60,
+                "pendingCriticalSec": 300,
+            },
             "live": live,
             "pollIntervalSec": 0,
             "confirmations": 1,
@@ -108,6 +123,29 @@ def write_keeper_config(
             "retryBaseDelaySec": 0.01,
         },
     )
+
+
+def collect_attestations(rpc: HttpJsonRpcClient, addresses: dict[str, str]) -> dict[str, dict[str, str]]:
+    block_tag = rpc.request("eth_blockNumber", [])
+    key_map = {
+        "controller": "controller",
+        "juniorVault": "jrVault",
+        "seniorVault": "srVault",
+        "usdVault": "usdVault",
+    }
+    attestations: dict[str, dict[str, str]] = {}
+    for config_key, deployment_key in key_map.items():
+        proxy = addresses[deployment_key]
+        proof = rpc.request("eth_getProof", [proxy, [], block_tag])
+        storage_value = rpc.request("eth_getStorageAt", [proxy, EIP1967_IMPLEMENTATION_SLOT, block_tag])
+        implementation = "0x" + storage_value[-40:]
+        implementation_proof = rpc.request("eth_getProof", [implementation, [], block_tag])
+        attestations[config_key] = {
+            "proxyCodeHash": proof["codeHash"],
+            "implementation": implementation,
+            "implementationCodeHash": implementation_proof["codeHash"],
+        }
+    return attestations
 
 
 def _free_port() -> int:
@@ -172,6 +210,7 @@ class LocalAnvilE2E:
     @staticmethod
     def _engine(config_path: Path, events: list[dict[str, Any]], *, allow_broadcast: bool) -> KeeperEngine:
         config = load_config(config_path)
+        observer = KeeperObserver(config, stream=events.append)
         clients = [HttpJsonRpcClient(url, config.rpc_timeout_sec) for url in config.read_rpc_urls]
         pool = RpcPool(
             clients,
@@ -181,14 +220,18 @@ class LocalAnvilE2E:
             max_attempts=config.read_rpc_attempts,
             base_backoff_sec=config.retry_base_delay_sec,
         )
-        submitter = HttpJsonRpcClient(config.submit_rpc_url, config.rpc_timeout_sec) if config.submit_rpc_url else None
+        submitter = None
+        if config.submit_rpc_url:
+            transport = HttpJsonRpcClient(config.submit_rpc_url, config.rpc_timeout_sec)
+            submitter = ExternalSignerClient(transport, config.from_address, config.submission_mode)
+            observer.emit(submitter.preflight(config.chain_id).to_event(config.submission_mode))
         return KeeperEngine(
             config,
             pool,
             KeeperState(config.state_file),
             submit_rpc=submitter,
             allow_broadcast=allow_broadcast,
-            emit=events.append,
+            emit=observer.emit,
         )
 
     @staticmethod
@@ -276,12 +319,14 @@ class LocalAnvilE2E:
                 self._wait_for_rpc(rpc, process)
                 rpc.request("anvil_setBalance", [LOCAL_ADMIN, hex(10_000 * 10**18)])
                 deployment, _ = self._deploy(rpc_url)
+                attestations = collect_attestations(rpc, deployment)
                 manifest = {
                     "classification": "LOCAL-CLEANROOM/BNB-DESIGN",
                     "chainId": CHAIN_ID,
                     "rpcUrl": rpc_url,
                     "admin": LOCAL_ADMIN,
                     "contracts": deployment,
+                    "attestations": attestations,
                 }
                 _atomic_json(self.output_dir / "deployment.json", manifest)
 
@@ -302,6 +347,7 @@ class LocalAnvilE2E:
                     addresses=deployment,
                     state_file=dry_state_path,
                     live=False,
+                    attestations=attestations,
                 )
                 write_keeper_config(
                     live_config_path,
@@ -310,6 +356,7 @@ class LocalAnvilE2E:
                     addresses=deployment,
                     state_file=live_state_path,
                     live=True,
+                    attestations=attestations,
                 )
 
                 events: list[dict[str, Any]] = []
@@ -335,6 +382,7 @@ class LocalAnvilE2E:
                     },
                     state_file=controller_state_path,
                     live=False,
+                    attestations={"controller": attestations["controller"]},
                 )
                 controller_idle = self._engine(controller_only_path, events, allow_broadcast=False).run_cycle()
                 idle_after_rebalance = controller_idle["event"].get("executableTask") is None

@@ -6,6 +6,7 @@
     "http://127.0.0.1:9545"
   ],
   "submitRpcUrl": null,
+  "submissionMode": "disabled",
   "from": "0x00000000000000000000000000000000000A11cE",
   "contracts": {
     "controller": "0x0000000000000000000000000000000000000001",
@@ -13,7 +14,19 @@
     "seniorVault": null,
     "usdVault": null
   },
+  "deployment": {
+    "id": "local-dry-run",
+    "attestations": {}
+  },
   "stateFile": ".keeper/state.json",
+  "observability": {
+    "healthFile": ".keeper/health.json",
+    "metricsFile": ".keeper/metrics.prom",
+    "alertsFile": ".keeper/alerts.jsonl",
+    "alertCooldownSec": 300,
+    "pendingWarningSec": 300,
+    "pendingCriticalSec": 900
+  },
   "live": false,
   "pollIntervalSec": 15,
   "confirmations": 1,

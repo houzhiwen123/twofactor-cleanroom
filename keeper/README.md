@@ -1,4 +1,4 @@
-# Clean-room Keeper MVP
+# Clean-room Keeper
 
 This dependency-free Python service executes the conservative maintenance loop:
 
@@ -35,8 +35,10 @@ USD Vault `swap()` is deliberately excluded because it is an authorized inventor
 - A dropped/ambiguous send persists a lock requiring operator reconciliation.
 - At most one transaction may be outstanding; after confirmation the next cycle rescans fresh state.
 - Target bytecode must exist and the chain ID must match before simulation.
+- Live deployments pin proxy codehash, EIP-1967 implementation and implementation codehash.
+- The external signer adapter accepts only zero-value four-byte maintenance calls from the configured sender.
 - Each snapshot logs its block hash/time, sender balance, and target code sizes without secrets.
-- The state file is written atomically with mode `0600`.
+- State, health, metrics and alerts are written with mode `0600`.
 
 ## Run
 
@@ -48,14 +50,22 @@ python3 -m keeper --config keeper/config.local.json
 python3 -m keeper --config keeper/config.local.json --loop
 ```
 
-Only after configuring a dedicated managed-signing RPC:
+Validate a configured deployment and external signer without broadcasting:
+
+```sh
+chmod 600 keeper/config.preflight.json
+python3 -m keeper --config keeper/config.preflight.json --preflight-only
+```
+
+Only after configuring a dedicated HTTPS managed-signing RPC and reviewing
+[`OPERATIONS.md`](OPERATIONS.md):
 
 ```sh
 python3 -m keeper --config keeper/config.live.json --loop --allow-broadcast
 ```
 
 The process writes JSON Lines to stdout. Protect the config even though the Keeper rejects and
-never reads private-key fields.
+never reads private-key fields. Submission-enabled configs must have mode `0600`.
 
 ## Test
 
@@ -65,7 +75,8 @@ python3 -m unittest discover -s keeper_tests -v
 
 Tests are offline and cover fixed-block simulation, benign versus unknown reverts, read failover,
 double live opt-in, task priority, ambiguous-send locking, receipt reconciliation, and chain/code
-preflight.
+preflight, proxy/implementation attestations, signer transaction-shape enforcement, health,
+Prometheus metrics and alert boundaries.
 
 ## Local Anvil end to end
 

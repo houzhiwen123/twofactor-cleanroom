@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
+from keeper.config import ContractAttestation
 from keeper.engine import KeeperEngine
 from keeper.rpc import RpcResponseError, RpcTransportError
 from keeper.state import KeeperState
@@ -103,6 +105,52 @@ class EngineTests(unittest.TestCase):
             result = KeeperEngine(cfg, rpc, KeeperState(cfg.state_file), submit_rpc=submit).run_cycle()
             self.assertEqual(result["status"], "dry_run")
             self.assertEqual(submit.calls, [])
+
+    def test_fixed_block_proxy_and_implementation_attestation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            implementation = "0x0000000000000000000000000000000000002001"
+            proxy_hash = "0x" + "11" * 32
+            implementation_hash = "0x" + "22" * 32
+            cfg = replace(
+                config(Path(directory)),
+                deployment_id="pinned-local",
+                attestations={
+                    "controller": ContractAttestation(proxy_hash, implementation, implementation_hash)
+                },
+            )
+            responses = snapshot_responses(calls=[NO_OP, NO_ROLLOVER, OUTSIDE_WINDOW])
+            responses.update(
+                {
+                    "eth_getCode": ["0x6000", "0x6001"],
+                    "eth_getProof": [{"codeHash": proxy_hash}, {"codeHash": implementation_hash}],
+                    "eth_getStorageAt": "0x" + "00" * 12 + implementation[2:],
+                }
+            )
+            events = []
+            result = KeeperEngine(
+                cfg,
+                FakeRpc(responses),
+                KeeperState(cfg.state_file),
+                emit=events.append,
+            ).run_cycle()
+            self.assertEqual(result["status"], "dry_run")
+            snapshot = next(event for event in events if event["event"] == "snapshot")
+            self.assertEqual(snapshot["verifiedAttestations"]["controller"]["implementation"], implementation)
+
+            mismatched = replace(
+                cfg,
+                attestations={
+                    "controller": ContractAttestation("0x" + "ff" * 32, implementation, implementation_hash)
+                },
+            )
+            bad_responses = snapshot_responses(calls=[])
+            bad_responses.update({"eth_getProof": {"codeHash": proxy_hash}})
+            with self.assertRaisesRegex(RuntimeError, "proxy codehash mismatch"):
+                KeeperEngine(
+                    mismatched,
+                    FakeRpc(bad_responses),
+                    KeeperState(mismatched.state_file),
+                ).run_cycle()
 
 
 if __name__ == "__main__":

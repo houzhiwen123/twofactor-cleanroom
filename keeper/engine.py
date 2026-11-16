@@ -12,6 +12,7 @@ from .state import KeeperState
 
 
 TX_HASH_RE = re.compile(r"^0x[0-9a-fA-F]{64}$")
+EIP1967_IMPLEMENTATION_SLOT = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"
 
 
 def _hex_int(value: str) -> int:
@@ -63,6 +64,40 @@ class KeeperEngine:
             if not isinstance(code, str) or code in ("0x", "0x0"):
                 raise RuntimeError(f"maintenance target has no code at block {block_number}: {target}")
             code_sizes[target] = max((len(code) - 2) // 2, 0)
+        verified_attestations: dict[str, dict[str, str]] = {}
+        for key, attestation in sorted((self.config.attestations or {}).items()):
+            target = self.config.contracts.get(key)
+            if not target:
+                raise RuntimeError(f"deployment attestation has no active contract: {key}")
+            proof = self.read_rpc.request("eth_getProof", [target, [], block_tag])
+            proxy_hash = proof.get("codeHash") if isinstance(proof, dict) else None
+            if not isinstance(proxy_hash, str) or proxy_hash.lower() != attestation.proxy_code_hash:
+                raise RuntimeError(f"proxy codehash mismatch for {key}")
+            storage_value = self.read_rpc.request(
+                "eth_getStorageAt", [target, EIP1967_IMPLEMENTATION_SLOT, block_tag]
+            )
+            if not isinstance(storage_value, str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}", storage_value):
+                raise RuntimeError(f"invalid EIP-1967 implementation slot for {key}")
+            implementation = "0x" + storage_value[-40:]
+            if implementation.lower() != attestation.implementation.lower():
+                raise RuntimeError(f"implementation address mismatch for {key}")
+            implementation_code = self.read_rpc.request("eth_getCode", [implementation, block_tag])
+            if not isinstance(implementation_code, str) or implementation_code in ("0x", "0x0"):
+                raise RuntimeError(f"implementation has no code for {key}")
+            implementation_proof = self.read_rpc.request("eth_getProof", [implementation, [], block_tag])
+            implementation_hash = (
+                implementation_proof.get("codeHash") if isinstance(implementation_proof, dict) else None
+            )
+            if (
+                not isinstance(implementation_hash, str)
+                or implementation_hash.lower() != attestation.implementation_code_hash
+            ):
+                raise RuntimeError(f"implementation codehash mismatch for {key}")
+            verified_attestations[key] = {
+                "proxyCodeHash": proxy_hash.lower(),
+                "implementation": implementation.lower(),
+                "implementationCodeHash": implementation_hash.lower(),
+            }
         self._event(
             "snapshot",
             chainId=chain_id,
@@ -72,6 +107,8 @@ class KeeperEngine:
             blockTimestamp=_hex_int(block["timestamp"]) if block.get("timestamp") else None,
             senderBalanceWei=sender_balance,
             targetCodeBytes=code_sizes,
+            deploymentId=self.config.deployment_id,
+            verifiedAttestations=verified_attestations,
         )
         return block_number, block_tag
 
@@ -103,16 +140,25 @@ class KeeperEngine:
         target, record = next(iter(self.state.pending.items()))
         status = record.get("status")
         tx_hash = record.get("txHash")
+        submitted_at = int(record.get("submittedAt", int(self.clock())))
+        pending_age = max(0, int(self.clock()) - submitted_at)
         if status in ("submitting", "ambiguous") or not tx_hash:
             return self._event(
                 "submission_blocked",
                 target=target,
                 task=record.get("task"),
                 reason="ambiguous submission requires operator reconciliation",
+                pendingAgeSec=pending_age,
             )
         receipt = self.read_rpc.request("eth_getTransactionReceipt", [tx_hash])
         if receipt is None:
-            return self._event("receipt_pending", target=target, task=record.get("task"), txHash=tx_hash)
+            return self._event(
+                "receipt_pending",
+                target=target,
+                task=record.get("task"),
+                txHash=tx_hash,
+                pendingAgeSec=pending_age,
+            )
         current_block = _hex_int(self.read_rpc.request("eth_blockNumber", []))
         receipt_block = _hex_int(receipt["blockNumber"])
         confirmations = current_block - receipt_block + 1
@@ -123,6 +169,7 @@ class KeeperEngine:
                 task=record.get("task"),
                 txHash=tx_hash,
                 confirmations=confirmations,
+                pendingAgeSec=pending_age,
             )
         succeeded = _hex_int(receipt.get("status", "0x0")) == 1
         self.state.clear_pending(target)

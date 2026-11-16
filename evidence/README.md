@@ -1,6 +1,10 @@
-# Black-box evidence (clean-room)
+# Black-box and local clean-room evidence
 
-All data here came from local Base forks (chainId 8453, blocks 53494912 and 54990962), using public ABIs, read-only calls, and simulated transactions. No target source code or frontend bundle was read. No real transaction was broadcast.
+TARGET-CONFIRMED records came from local Base forks (chainId 8453, including blocks 53494912 and
+54990962), public ABIs, read-only calls and simulated transactions. Files explicitly labelled
+LOCAL-CLEANROOM/BNB-DESIGN instead exercise only this repository's own contracts and operating
+policy. No target source/frontend bundle was used for those conclusions and no real transaction
+was broadcast.
 
 | File | Contents |
 |---|---|
@@ -30,6 +34,7 @@ All data here came from local Base forks (chainId 8453, blocks 53494912 and 5499
 | TARGET_KEEPER_OPERATIONS_RECON.md, target-keeper-operations-recon.json | Consolidated target-aligned maintenance task/caller/timing/error matrix, five selected natural vectors, 70-event operator inventory, and explicit private-scheduler UNKNOWNs; evidence/specification only, no off-chain Keeper implementation |
 | KEEPER_MVP.md, ../keeper/, ../keeper_tests/ | BNB-DESIGN off-chain Keeper implementation and verification: fixed-block simulation, priority, bounded read retry/failover, non-retrying submission, receipt reconciliation, private state and 15 offline regressions |
 | KEEPER_LOCAL_ANVIL_E2E.md, ../keeper/local_anvil.py | LOCAL-CLEANROOM/BNB-DESIGN full local deployment and Keeper lifecycle: real generated addresses, dry-run discovery, RPC failover, four submitted/confirmed maintenance tasks, fresh-state rescans and no private-key input |
+| KEEPER_PRODUCTION_HARDENING.md, ../keeper/OPERATIONS.md | LOCAL-CLEANROOM/BNB-DESIGN deployment attestations, external-signer boundary, secret-free health/metrics/alerts, incident response and hardened local staged drill |
 | LOCAL_DEX_LIFECYCLE.md, local-dex-lifecycle.json, test/UsdVaultLocalDexLifecycle.t.sol | LOCAL-CLEANROOM executable pool and Inventory lifecycle: Strategy callback accounting, mint/redeem settlement, user exit, asset conservation and cross-contract rollback; not target-pool evidence |
 | phase1b_current_forge_test.log, phase1b_current_sizes.log, ../test/ControllerRollover.t.sol | Current 84-test regression count, runtime-size baseline, public rollover/upkeep atomicity tests, and planner-failure propagation |
 | local_genesis_baseline_105_*.log, local_genesis_baseline_105_sha256.txt | Local-only clean-room Genesis baseline: 105 offline tests, runtime sizes, frozen Controller storage layout and secret-free deployment simulation; no fork or target-system claim |
