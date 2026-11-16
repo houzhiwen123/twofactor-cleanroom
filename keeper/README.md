@@ -66,3 +66,26 @@ python3 -m unittest discover -s keeper_tests -v
 Tests are offline and cover fixed-block simulation, benign versus unknown reverts, read failover,
 double live opt-in, task priority, ambiguous-send locking, receipt reconciliation, and chain/code
 preflight.
+
+## Local Anvil end to end
+
+The local lifecycle runner starts an ephemeral Anvil with auto-impersonation, deploys only this
+repository's clean-room contracts through `DeployGenesisLocal`, parses the real deployment
+addresses, writes private generated configs under `.keeper/`, and drives the real Keeper through:
+
+`rebalance → receipt/rescan → idle cooldown → issue upkeep → stale-boundary upkeep → rollover`
+
+It rejects every non-loopback RPC and never reads a private key:
+
+```sh
+python3 -m keeper.local_anvil --repo-root . --output-dir .keeper/anvil-e2e
+```
+
+The output directory contains the deployment manifest, dry/live configs, structured events, Forge
+deployment log and result JSON. All are `LOCAL-CLEANROOM/BNB-DESIGN`, not target evidence.
+
+The same lifecycle is available as an opt-in integration test:
+
+```sh
+RUN_KEEPER_ANVIL_E2E=1 python3 -m unittest keeper_tests.test_local_anvil -v
+```

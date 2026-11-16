@@ -27,7 +27,8 @@ import {MockUniswapV3Pool} from "../test/mocks/MockUniswapV3Pool.sol";
 import {MockUsdInventory} from "../test/mocks/MockUsdInventory.sol";
 
 /// @notice Secret-free local simulation of a complete clean-room Genesis deployment.
-/// @dev Run without --broadcast. It deploys only local mocks and never reads a key or RPC URL.
+/// @dev Defaults to simulation. Broadcasting is permitted only to an ephemeral local Anvil with an unlocked,
+///      auto-impersonated LOCAL_ADMIN; this script never reads private signing material.
 contract DeployGenesisLocal is Script {
     using SafeERC20 for IERC20;
 
