@@ -306,6 +306,27 @@ contract SingleAssetRouterTest is Test {
         assertEq(usd.balanceOf(USER), 100e6);
     }
 
+    function testPreexistingDustCannotRemainTrappedAfterSuccessfulRoute() public {
+        uint256 usdDust = 7;
+        uint256 underlyingDust = 5;
+        uint256 perpDust = 3;
+        usd.mint(address(router), usdDust);
+        underlying.mint(address(router), underlyingDust);
+        perp.mint(address(router), perpDust);
+
+        uint256 userUnderlyingBefore = underlying.balanceOf(USER);
+        uint256 userPerpBefore = perp.balanceOf(USER);
+        vm.prank(USER);
+        uint256 notes = router.depositUsd(address(vault), address(strategy), 100e6, 0, 0, true);
+
+        assertGt(notes, 0);
+        assertEq(usd.balanceOf(address(router)), 0);
+        assertEq(underlying.balanceOf(address(router)), 0);
+        assertEq(perp.balanceOf(address(router)), 0);
+        assertEq(underlying.balanceOf(USER) - userUnderlyingBefore, underlyingDust);
+        assertEq(perp.balanceOf(USER) - userPerpBefore, perpDust);
+    }
+
     function testHealthFlagAndRedeemUpkeepFailure() public {
         strategy.setHealthy(false);
         vm.prank(USER);

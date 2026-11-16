@@ -107,6 +107,27 @@ contract FeePolicyTest is Test {
         assertEq(policy.perpJrAUMFeePerc(), 1e18 - 1);
     }
 
+    function testRejectsUnsafeEndpointExtrapolationBeforeItCanDisableFeeComputation() public {
+        FeePolicy.Curve memory safe = FeePolicy.Curve({
+            p1: FeePolicy.Point(0, 0),
+            p2: FeePolicy.Point(1e18, 0),
+            p3: FeePolicy.Point(1e18 + 1, 0),
+            p4: FeePolicy.Point(2e18, 0)
+        });
+        FeePolicy.Fees memory fees = FeePolicy.Fees({
+            subDRUp: safe, subDRDown: safe, vmDRUp: safe, vmDRDown: safe, basePerc: 0, flashBasePerc: 0
+        });
+
+        fees.subDRUp.p2.y = 1;
+        vm.expectRevert(FeePolicy.InvalidParamDefn.selector);
+        policy.updateFeeParams(fees, fees);
+
+        fees.subDRUp.p2.y = 0;
+        fees.vmDRDown.p3.y = 1;
+        vm.expectRevert(FeePolicy.InvalidParamDefn.selector);
+        policy.updateFeeParams(fees, fees);
+    }
+
     function _setRationalIncreasingCurve(uint256 origin) private {
         FeePolicy.Curve memory zero = FeePolicy.Curve({
             p1: FeePolicy.Point(0, 0),

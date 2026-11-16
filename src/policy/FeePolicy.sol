@@ -227,6 +227,9 @@ contract FeePolicy is Initializable, Ownable2StepUpgradeable {
         if (curve.p1.x > curve.p2.x || curve.p2.x > curve.p3.x || curve.p3.x > curve.p4.x) {
             revert InvalidParamDefn();
         }
+        // BNB-DESIGN / CLEANROOM SAFETY: p1-p2 is extrapolated to the left and p3-p4 to the right. A rising
+        // left edge or falling right edge can cross below zero and make fee computation revert system-wide.
+        if (curve.p1.y < curve.p2.y || curve.p3.y > curve.p4.y) revert InvalidParamDefn();
         if (curve.p1.y > WAD || curve.p2.y > WAD || curve.p3.y > WAD || curve.p4.y > WAD) {
             revert InvalidPerc();
         }

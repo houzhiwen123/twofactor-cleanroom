@@ -72,6 +72,20 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
         }
     }
 
+    contract MockPhase1BEmptyRolloverPlanner {
+        function computePerpSrRolloverPlan(
+            PerpBalancer.ReserveData memory,
+            PerpBalancer.ReserveData memory,
+            address,
+            uint32,
+            uint256
+        ) external pure returns (PerpBalancer.RolloverExecution memory execution) {
+            execution.stale.trancheAmts = new PerpBalancer.TokenAmount[](0);
+            execution.freshBondDepositAmts = new PerpBalancer.BondDepositParams[](0);
+            execution.freshSrTrAmts = new PerpBalancer.TokenAmount[](0);
+        }
+    }
+
     contract MockReserveManager {
         struct Pair {
             address senior;
@@ -513,6 +527,24 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                 assertEq(underlying.balanceOf(address(sr)), 0);
                 assertEq(underlying.balanceOf(address(jr)), 102_000);
                 assertEq(issuer.issueCalls(), 1);
+            }
+
+            function testUnsolicitedUnderlyingCannotTurnEmptyLazyRolloverIntoMintDoS() public {
+                _seed(1_000, 1_000, 100_000, 100_000);
+                MockPhase1BIssuer issuer = _configureMockIssuer();
+                controller.updatePerpBalancer(address(new MockPhase1BEmptyRolloverPlanner()));
+                controller.updateMinCleanupVal(1_500);
+
+                underlying.mint(address(sr), 1_000);
+                underlying.mint(USER, 1_000);
+                vm.startPrank(USER);
+                underlying.approve(address(controller), 1_000);
+                (uint256 srOut,,,) = controller.flashMint2(1_000, 0, 0, 0);
+                vm.stopPrank();
+
+                assertGt(srOut, 0, "user mint remains live");
+                assertEq(underlying.balanceOf(address(sr)), 3_000, "unsolicited value remains accounted as reserve");
+                assertEq(issuer.issueCalls(), 1, "normal issue hook still runs");
             }
 
             function testFlashMint2JuniorOnlyDoesNotIssue() public {

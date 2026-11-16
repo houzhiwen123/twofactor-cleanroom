@@ -199,6 +199,81 @@ contract UsdVaultLocalDexLifecycleTest is Test {
         assertEq(env.underlying.balanceOf(address(this)), actualBuy, "recipient receives output");
     }
 
+    function testPartialPoolFillRefundsUnusedInputAndPreservesPreexistingDust() external {
+        Env memory env = _deployActivatedEnvironment();
+        uint256 sellAmt = 10_000e6;
+        uint256 spentAmt = sellAmt / 2;
+        uint256 strategyDust = 777;
+        (uint256 expectedBuy,) = env.pool.previewSwap(true, spentAmt);
+
+        env.pool.setMaxInputPerSwap(spentAmt);
+        env.usd.mint(address(env.strategy), strategyDust);
+        env.usd.mint(address(this), sellAmt);
+        env.usd.approve(address(env.strategy), sellAmt);
+
+        uint256 callerUsdBefore = env.usd.balanceOf(address(this));
+        uint256 poolUsdBefore = env.usd.balanceOf(address(env.pool));
+        uint256 actualBuy = env.strategy.trade(address(env.usd), address(env.underlying), sellAmt);
+
+        assertEq(actualBuy, expectedBuy, "partial execution output");
+        assertEq(callerUsdBefore - env.usd.balanceOf(address(this)), spentAmt, "unused input refunded");
+        assertEq(env.usd.balanceOf(address(env.pool)) - poolUsdBefore, spentAmt, "pool receives actual input only");
+        assertEq(env.usd.balanceOf(address(env.strategy)), strategyDust, "preexisting strategy dust preserved");
+        assertEq(env.underlying.balanceOf(address(this)), actualBuy, "caller receives partial output");
+    }
+
+    function testOracleAnchoredFloorRejectsAdverseSpotAndPreservesVaultState() external {
+        Env memory env = _deployActivatedEnvironment();
+        address marketMaker = address(0xA77AC);
+        uint256 marketUnderlying = 20e8;
+        uint256 vaultUnderlying = 1e8;
+        uint256 oraclePrice = env.underlyingOracle.getValidPrice();
+
+        env.inventory.executeMint(MINT_USD_SPEND, MINT_USD_SPEND);
+        env.controller.setSystemDeviations(1e18, 1e18);
+        env.controller.setJrState(1_000_000_000, 100_000_000);
+        vm.warp(block.timestamp + env.vault.rebalanceFreqSec());
+        env.underlying.mint(address(env.vault), vaultUnderlying);
+        env.underlying.mint(marketMaker, marketUnderlying);
+
+        vm.startPrank(marketMaker);
+        env.underlying.approve(address(env.strategy), marketUnderlying);
+        env.strategy.trade(address(env.underlying), address(env.usd), marketUnderlying);
+        vm.stopPrank();
+
+        uint256 adverseSpotPrice = env.strategy.referencePrice(address(env.underlying), address(env.usd));
+        assertGe(adverseSpotPrice, oraclePrice * 95 / 100, "spot remains inside configured health band");
+        assertLt(adverseSpotPrice, oraclePrice * 9_985 / 10_000, "spot is below oracle-anchored settlement floor");
+        bytes32 beforeFingerprint = _fingerprint(env);
+
+        vm.expectRevert(UsdVault.NoOp.selector);
+        env.vault.upkeep();
+
+        assertEq(_fingerprint(env), beforeFingerprint, "rejected upkeep must leave all tracked state unchanged");
+        assertEq(env.underlying.balanceOf(address(env.vault)), vaultUnderlying, "Vault inventory remains protected");
+    }
+
+    function testRepeatedUpkeepCannotResellAfterOracleFloorStopsExecution() external {
+        Env memory env = _deployActivatedEnvironment();
+        uint256 vaultUnderlying = 1e8;
+
+        env.inventory.executeMint(MINT_USD_SPEND, MINT_USD_SPEND);
+        env.controller.setSystemDeviations(1e18, 1e18);
+        env.controller.setJrState(1_000_000_000, 100_000_000);
+        vm.warp(block.timestamp + env.vault.rebalanceFreqSec());
+        env.underlying.mint(address(env.vault), vaultUnderlying);
+
+        env.vault.upkeep();
+        uint256 remaining = env.underlying.balanceOf(address(env.vault));
+        assertLt(remaining, vaultUnderlying, "first upkeep executes a bounded settlement");
+        bytes32 beforeSecondCall = _fingerprint(env);
+
+        vm.expectRevert(UsdVault.NoOp.selector);
+        env.vault.upkeep();
+
+        assertEq(_fingerprint(env), beforeSecondCall, "repeated no-op upkeep leaves state unchanged");
+    }
+
     function testDexFailureAfterVaultRedeemRollsBackEntireSettlement() external {
         Env memory env = _deployActivatedEnvironment();
         uint256 expectedUnderlying = env.strategy.quote(address(env.usd), address(env.underlying), MINT_USD_SPEND);

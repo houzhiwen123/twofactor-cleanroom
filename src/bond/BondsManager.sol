@@ -187,10 +187,12 @@ contract BondsManager is Initializable, Ownable2StepUpgradeable, ReentrancyGuard
     {
         BondData storage b = _getBond(bondID);
         if (b.isMature || block.timestamp >= b.maturityDate) revert MatureBond();
-        IERC20(b.underlying).safeTransferFrom(msg.sender, address(this), underlyingAmt);
         uint256 totalTranche = Math.mulDiv(underlyingAmt, b.openPrice, WAD);
+        // BNB-DESIGN / CLEANROOM SAFETY: never accept underlying when rounding would mint no claim tokens.
+        if (totalTranche == 0) revert InvalidParamDefn();
         uint256 srMint = Math.mulDiv(totalTranche, b.srTrancheRatio, WAD);
         uint256 jrMint = totalTranche - srMint;
+        IERC20(b.underlying).safeTransferFrom(msg.sender, address(this), underlyingAmt);
         b.underlyingBal += underlyingAmt;
         ITranche(b.senior).mint(msg.sender, srMint);
         ITranche(b.junior).mint(msg.sender, jrMint);

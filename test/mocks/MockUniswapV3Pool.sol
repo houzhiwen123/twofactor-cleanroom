@@ -29,6 +29,7 @@ contract MockUniswapV3Pool {
     uint128 public liquidity = 2_782_022_353_822;
     bool public unlocked = true;
     bool public executionEnabled;
+    uint256 public maxInputPerSwap = type(uint256).max;
 
     constructor(address token0_, address token1_) {
         token0 = token0_;
@@ -49,6 +50,10 @@ contract MockUniswapV3Pool {
 
     function setLiquidity(uint128 liquidity_) external {
         liquidity = liquidity_;
+    }
+
+    function setMaxInputPerSwap(uint256 maxInputPerSwap_) external {
+        maxInputPerSwap = maxInputPerSwap_;
     }
 
     function previewSwap(bool zeroForOne, uint256 sellAmt)
@@ -83,14 +88,15 @@ contract MockUniswapV3Pool {
         if (!executionEnabled) revert ExecutionDisabled();
         if (!unlocked || recipient == address(0) || amountSpecified <= 0) revert InvalidSwap();
 
-        uint256 sellAmt = uint256(amountSpecified);
+        uint256 requestedSellAmt = uint256(amountSpecified);
+        uint256 sellAmt = Math.min(requestedSellAmt, maxInputPerSwap);
         (uint256 buyAmt, uint160 nextSqrtPriceX96) = previewSwap(zeroForOne, sellAmt);
         if (buyAmt > uint256(type(int256).max)) revert InvalidSwap();
 
         address sellToken = zeroForOne ? token0 : token1;
         address buyToken = zeroForOne ? token1 : token0;
-        amount0 = zeroForOne ? amountSpecified : -int256(buyAmt);
-        amount1 = zeroForOne ? -int256(buyAmt) : amountSpecified;
+        amount0 = zeroForOne ? int256(sellAmt) : -int256(buyAmt);
+        amount1 = zeroForOne ? -int256(buyAmt) : int256(sellAmt);
 
         uint256 sellBalanceBefore = IERC20(sellToken).balanceOf(address(this));
         IERC20(buyToken).safeTransfer(recipient, buyAmt);

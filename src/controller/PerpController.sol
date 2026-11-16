@@ -512,11 +512,11 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         IPerpToken(perpSr).recover();
         IPerpToken(perpJr).recover();
         if (issuer != address(0)) _issueAndRegister();
-        _executeRollover();
+        if (!_executeRollover()) revert InsufficientRollover();
         _resetOracleCache();
     }
 
-    function _executeRollover() private {
+    function _executeRollover() private returns (bool executed) {
         PerpBalancer.ReserveData memory srRd = IPerpToken(perpSr).reserveData();
         PerpBalancer.ReserveData memory jrRd = IPerpToken(perpJr).reserveData();
         uint256 jrReserveValue = _perpState(perpJr, jrRd).reserveValue;
@@ -526,7 +526,9 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
 
         PerpBalancer.RolloverExecution memory execution =
             PerpBalancer(balancer).computePerpSrRolloverPlan(srRd, jrRd, manager, minMaturitySec, reserved);
-        if (execution.underlyingValRolled < minCleanupVal) revert InsufficientRollover();
+        // BNB-DESIGN / CLEANROOM SAFETY: lazy maintenance must not make a user mint fail merely because unsolicited
+        // underlying pushed the raw balance above the trigger while the planner still has no executable rollover.
+        if (execution.underlyingValRolled < minCleanupVal) return false;
 
         IPerpToken(perpSr).transferReservesTo(perpJr, execution.stale);
         IPerpToken(perpJr).handleTransferReservesIn(execution.stale);
@@ -543,6 +545,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         for (uint256 i; i < execution.freshSrTrAmts.length; ++i) {
             IPerpToken(perpSr).logBalance(execution.freshSrTrAmts[i].token);
         }
+        return true;
     }
 
     function pullProtocolFees(address token, address to, uint256 amount) external {

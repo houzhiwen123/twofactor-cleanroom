@@ -55,6 +55,21 @@ contract BondsManagerTest is Test {
         assertEq(ITranche(bond.senior).decimals(), 8);
     }
 
+    function testDepositRejectsAmountThatWouldMintZeroTotalTrancheWithoutMovingUnderlying() public {
+        oracle.setPrice(1);
+        (bytes32 bondID,) =
+            manager.createBond(address(underlying), 500_000_000_000_000_000, uint64(block.timestamp + 100));
+        underlying.mint(address(this), 1);
+        underlying.approve(address(manager), 1);
+        uint256 userBefore = underlying.balanceOf(address(this));
+
+        vm.expectRevert(BondsManager.InvalidParamDefn.selector);
+        manager.deposit(bondID, 1);
+
+        assertEq(underlying.balanceOf(address(this)), userBefore);
+        assertEq(manager.bondClaim(bondID), 0);
+    }
+
     function testSettlementAndTwoCeilingVectors() public view {
         (uint256 senior, uint256 junior) = manager.computeSettlement(
             500_000_000_000_000_000, 77_232_982, 81_145_332_071_360_000_000_000, 75_056_153_820_660_000_000_000

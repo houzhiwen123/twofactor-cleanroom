@@ -156,8 +156,12 @@ contract UniswapV3DexStrategy is IDexStrategy {
                 zeroForOne ? MIN_SQRT_RATIO_PLUS_ONE : MAX_SQRT_RATIO_MINUS_ONE,
                 bytes("")
             );
+        int256 spentDelta = zeroForOne ? amount0 : amount1;
         int256 bought = zeroForOne ? -amount1 : -amount0;
-        if (bought < 0) revert UnexpectedAmount();
+        if (spentDelta < 0 || bought < 0) revert UnexpectedAmount();
+        uint256 spent = uint256(spentDelta);
+        if (spent > sellAmt) revert UnexpectedAmount();
+        if (spent < sellAmt) IERC20(sellToken).safeTransfer(msg.sender, sellAmt - spent);
         buyAmt = uint256(bought);
     }
 

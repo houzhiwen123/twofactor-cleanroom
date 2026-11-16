@@ -596,14 +596,17 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         if (underlyingPrice == 0) {
             revert OpUnavailable("underlying oracle");
         }
-        context.referencePrice =
+        uint256 dexReferencePrice =
             IUsdVaultDexStrategy(_dexStrategy).referencePrice(address(_underlyingToken), address(_usdToken));
-        if (context.referencePrice == 0) revert OpUnavailable("reference price");
+        if (dexReferencePrice == 0) revert OpUnavailable("reference price");
         uint256 lowerReferencePrice = Math.mulDiv(underlyingPrice, WAD - _maxUnderlyingDeviationPerc, WAD);
         uint256 upperReferencePrice = Math.mulDiv(underlyingPrice, WAD + _maxUnderlyingDeviationPerc, WAD);
-        if (context.referencePrice < lowerReferencePrice || context.referencePrice > upperReferencePrice) {
+        if (dexReferencePrice < lowerReferencePrice || dexReferencePrice > upperReferencePrice) {
             revert OpUnavailable("oracle divergence");
         }
+        // BNB-DESIGN / CLEANROOM SAFETY: DEX spot is only a health signal. Settlement floors use the independent
+        // oracle so an in-band spot move cannot weaken the Vault's minimum output protection.
+        context.referencePrice = underlyingPrice;
         context.plan = _validatedRebalancePlan();
     }
 
