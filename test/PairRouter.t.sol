@@ -28,6 +28,14 @@ contract PairControllerMock {
         vmDR = vmDr;
     }
 
+    function perpSr() external view returns (address) {
+        return address(sr);
+    }
+
+    function perpJr() external view returns (address) {
+        return address(jr);
+    }
+
     function flashMint2(uint256 srUnderlying, uint256 jrUnderlying, uint256, uint256)
         external
         returns (
@@ -151,11 +159,15 @@ contract PairUnderlyingVaultMock is ERC20 {
     MockERC20 public immutable underlyingToken;
     MockERC20 public immutable jrToken;
     address public immutable controller;
+    bool public immutable isPerpSrVault;
 
-    constructor(MockERC20 underlying_, MockERC20 jr_, address controller_) ERC20("Pair JR Notes", "pJR") {
+    constructor(MockERC20 underlying_, MockERC20 jr_, address controller_, bool isPerpSrVault_)
+        ERC20("Pair JR Notes", "pJR")
+    {
         underlyingToken = underlying_;
         jrToken = jr_;
         controller = controller_;
+        isPerpSrVault = isPerpSrVault_;
     }
 
     function underlying() external view returns (address) {
@@ -306,7 +318,7 @@ contract PairRouterTest is Test {
         jr = new MockERC20("JR", "JR", 8);
         controller = new PairControllerMock(underlying, sr, jr);
         usdVault = new PairUsdVaultMock(usd, underlying, sr, address(controller), 388);
-        jrVault = new PairUnderlyingVaultMock(underlying, jr, address(controller));
+        jrVault = new PairUnderlyingVaultMock(underlying, jr, address(controller), false);
         strategy = new PairStrategyMock(usd, underlying);
         router = new PairRouter();
         underlying.mint(USER, 60_000);
@@ -391,6 +403,67 @@ contract PairRouterTest is Test {
         vm.prank(USER);
         vm.expectRevert(UNHEALTHY_SELECTOR);
         router.deposit(_params());
+    }
+
+    function testZeroNotesAreNoOpAndZeroStrategyIsAllowedWhenHealthCheckIsDisabled() public {
+        IPairRouter.DepositParams memory depositParams = _zeroParams();
+        depositParams.strategy = address(0);
+        depositParams.healthCheck = false;
+        vm.prank(USER);
+        (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f) = router.deposit(depositParams);
+        assertEq(a | b | c | d | e | f, 0);
+
+        IPairRouter.RedeemParams memory redeemParams = _zeroRedeemParams();
+        redeemParams.strategy = address(0);
+        redeemParams.healthCheck = false;
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(redeemParams);
+        assertEq(usdOut | underlyingOut, 0);
+        assertEq(usdVault.balanceOf(USER), 10_000);
+        assertEq(jrVault.balanceOf(USER), 10_000);
+        _assertRouterHasNoDust();
+    }
+
+    function testDependencyValidationMatchesTargetMatrix() public {
+        PairControllerMock otherController = new PairControllerMock(underlying, sr, jr);
+        PairUnderlyingVaultMock controllerMismatch =
+            new PairUnderlyingVaultMock(underlying, jr, address(otherController), false);
+        _assertInvalidDependencies(address(usdVault), address(controllerMismatch));
+
+        PairUnderlyingVaultMock seniorVault = new PairUnderlyingVaultMock(underlying, jr, address(controller), true);
+        _assertInvalidDependencies(address(usdVault), address(seniorVault));
+
+        MockERC20 otherPerp = new MockERC20("Other perp", "OTHER", 8);
+        PairUnderlyingVaultMock jrMismatch =
+            new PairUnderlyingVaultMock(underlying, otherPerp, address(controller), false);
+        _assertInvalidDependencies(address(usdVault), address(jrMismatch));
+
+        PairUsdVaultMock srMismatch = new PairUsdVaultMock(usd, underlying, otherPerp, address(controller), 0);
+        _assertInvalidDependencies(address(srMismatch), address(jrVault));
+    }
+
+    function testUnvalidatedUnderlyingAndStrategyGettersDoNotRejectZeroNotes() public {
+        MockERC20 otherUnderlying = new MockERC20("Other underlying", "OTHER", 8);
+        PairUsdVaultMock mismatchedUsdGetter = new PairUsdVaultMock(usd, otherUnderlying, sr, address(controller), 0);
+        PairUnderlyingVaultMock mismatchedJrGetter =
+            new PairUnderlyingVaultMock(otherUnderlying, jr, address(controller), false);
+        PairStrategyMock mismatchedStrategy = new PairStrategyMock(usd, otherUnderlying);
+
+        IPairRouter.DepositParams memory depositParams = _zeroParams();
+        depositParams.usdVault = address(mismatchedUsdGetter);
+        depositParams.underlyingVault = address(mismatchedJrGetter);
+        depositParams.strategy = address(mismatchedStrategy);
+        vm.prank(USER);
+        (uint256 a, uint256 b, uint256 c, uint256 d, uint256 e, uint256 f) = router.deposit(depositParams);
+        assertEq(a | b | c | d | e | f, 0);
+
+        IPairRouter.RedeemParams memory redeemParams = _zeroRedeemParams();
+        redeemParams.usdVault = address(mismatchedUsdGetter);
+        redeemParams.underlyingVault = address(mismatchedJrGetter);
+        redeemParams.strategy = address(mismatchedStrategy);
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = router.redeem(redeemParams);
+        assertEq(usdOut | underlyingOut, 0);
     }
 
     function testInvalidAllocationRollsBack() public {
@@ -570,6 +643,37 @@ contract PairRouterTest is Test {
             maxVmDr: type(uint256).max,
             healthCheck: true
         });
+    }
+
+    function _zeroParams() private view returns (IPairRouter.DepositParams memory params) {
+        params = _params();
+        params.underlyingIn = 0;
+        params.underlyingToTrade = 0;
+        params.srUnderlyingIn = 0;
+        params.jrUnderlyingIn = 0;
+    }
+
+    function _zeroRedeemParams() private view returns (IPairRouter.RedeemParams memory params) {
+        params = _redeemParams();
+        params.usdNotes = 0;
+        params.underlyingNotes = 0;
+        params.underlyingToTrade = 0;
+    }
+
+    function _assertInvalidDependencies(address usdVaultAddress, address underlyingVaultAddress) private {
+        IPairRouter.DepositParams memory depositParams = _zeroParams();
+        depositParams.usdVault = usdVaultAddress;
+        depositParams.underlyingVault = underlyingVaultAddress;
+        vm.prank(USER);
+        vm.expectRevert(IPairRouter.InvalidParamDefn.selector);
+        router.deposit(depositParams);
+
+        IPairRouter.RedeemParams memory redeemParams = _zeroRedeemParams();
+        redeemParams.usdVault = usdVaultAddress;
+        redeemParams.underlyingVault = underlyingVaultAddress;
+        vm.prank(USER);
+        vm.expectRevert(IPairRouter.InvalidParamDefn.selector);
+        router.redeem(redeemParams);
     }
 
     function _assertRouterHasNoDust() private view {

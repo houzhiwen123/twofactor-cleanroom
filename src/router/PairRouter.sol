@@ -21,6 +21,7 @@ interface IPairUnderlyingVault is IERC20 {
     function underlying() external view returns (address);
     function perp() external view returns (address);
     function perpController() external view returns (address);
+    function isPerpSrVault() external view returns (bool);
     function deposit(uint256 underlyingMax, uint256 perpMax) external returns (uint256 notesMinted);
     function redeem(uint256 notes) external returns (uint256 underlyingOut, uint256 perpOut);
 }
@@ -39,14 +40,17 @@ interface IPairController {
         external
         returns (uint256 underlyingOut, FeePerc memory srFee, FeePerc memory jrFee);
 
+    function underlying() external view returns (address);
+    function perpSr() external view returns (address);
+    function perpJr() external view returns (address);
     function systemDeviations() external view returns (uint256 subDR, uint256 vmDR);
 }
 
 /// @notice Two-sided clean-room entry point for the USD/SR and underlying/JR vault pair.
 /// @dev Deposit and redeem preserve the locked target selectors through the compatibility
-///      fallback. Redeem partial fills settle from actual Router balances. Zero-genesis and
-///      unsupported-pair behavior remain separate evidence work; the typed entry points are
-///      clean-room convenience APIs.
+///      fallback. Redeem partial fills settle from actual Router balances. Pair dependencies
+///      are validated against the shared Controller before assets move; the typed entry points
+///      are clean-room convenience APIs.
 contract PairRouter is IPairRouter {
     using SafeERC20 for IERC20;
 
@@ -108,9 +112,6 @@ contract PairRouter is IPairRouter {
             uint256 jrRefund
         )
     {
-        if (params.usdVault == address(0) || params.underlyingVault == address(0) || params.strategy == address(0)) {
-            revert InvalidInput();
-        }
         if (params.underlyingToTrade + params.srUnderlyingIn + params.jrUnderlyingIn > params.underlyingIn) {
             revert InvalidInput();
         }
@@ -119,11 +120,16 @@ contract PairRouter is IPairRouter {
         IPairUsdVault usdVault = IPairUsdVault(params.usdVault);
         IPairUnderlyingVault underlyingVault = IPairUnderlyingVault(params.underlyingVault);
         IDexStrategy strategy = IDexStrategy(params.strategy);
-        IERC20 underlyingToken = IERC20(underlyingVault.underlying());
-        IERC20 usdToken = IERC20(usdVault.usd());
-        IERC20 srToken = IERC20(usdVault.perpSr());
-        IERC20 jrToken = IERC20(underlyingVault.perp());
         address controller = usdVault.perpController();
+        if (controller != underlyingVault.perpController() || underlyingVault.isPerpSrVault()) {
+            revert InvalidParamDefn();
+        }
+        IERC20 jrToken = IERC20(underlyingVault.perp());
+        if (address(jrToken) != IPairController(controller).perpJr()) revert InvalidParamDefn();
+        IERC20 srToken = IERC20(usdVault.perpSr());
+        if (address(srToken) != IPairController(controller).perpSr()) revert InvalidParamDefn();
+        IERC20 underlyingToken = IERC20(IPairController(controller).underlying());
+        IERC20 usdToken = IERC20(usdVault.usd());
 
         uint256 underlyingBefore = underlyingToken.balanceOf(address(this));
         uint256 usdBefore = usdToken.balanceOf(address(this));
@@ -180,20 +186,19 @@ contract PairRouter is IPairRouter {
     }
 
     function _redeem(RedeemParams memory params) private returns (uint256 usdOut, uint256 underlyingOut) {
-        if (params.usdVault == address(0) || params.underlyingVault == address(0) || params.strategy == address(0)) {
-            revert InvalidInput();
-        }
-
         IPairUsdVault usdVault = IPairUsdVault(params.usdVault);
         IPairUnderlyingVault underlyingVault = IPairUnderlyingVault(params.underlyingVault);
         IDexStrategy strategy = IDexStrategy(params.strategy);
         address controller = usdVault.perpController();
-        if (controller != underlyingVault.perpController()) revert InvalidParamDefn();
-
-        IERC20 underlyingToken = IERC20(underlyingVault.underlying());
-        IERC20 usdToken = IERC20(usdVault.usd());
-        IERC20 srToken = IERC20(usdVault.perpSr());
+        if (controller != underlyingVault.perpController() || underlyingVault.isPerpSrVault()) {
+            revert InvalidParamDefn();
+        }
         IERC20 jrToken = IERC20(underlyingVault.perp());
+        if (address(jrToken) != IPairController(controller).perpJr()) revert InvalidParamDefn();
+        IERC20 srToken = IERC20(usdVault.perpSr());
+        if (address(srToken) != IPairController(controller).perpSr()) revert InvalidParamDefn();
+        IERC20 underlyingToken = IERC20(IPairController(controller).underlying());
+        IERC20 usdToken = IERC20(usdVault.usd());
 
         if (params.healthCheck && !strategy.isHealthy()) _revertSelector(UNHEALTHY_SELECTOR);
         if (params.runUpkeep) usdVault.upkeep();

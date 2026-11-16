@@ -1,0 +1,63 @@
+{
+  "phase": "PAIR_ROUTER_PHASE4_VALIDATION_GENESIS",
+  "target_lock": {
+    "chain_id": 8453,
+    "block": 57015384,
+    "router": "0x97c521D21468022E205d8A57b2fcaeE33d6714d6",
+    "codehash": "0x487610478a620be27092ff42bf2dea6bfc08275af635abdc27245329f9801218",
+    "deposit_selector": "0x0176cb45",
+    "redeem_selector": "0xb2a72016"
+  },
+  "target_confirmed": {
+    "invalid_param_selector": "0xd126d255",
+    "required_dependencies": [
+      "shared_controller",
+      "underlying_vault_is_junior",
+      "underlying_vault_perp_equals_controller_perp_jr",
+      "usd_vault_perp_equals_controller_perp_sr"
+    ],
+    "not_rejected_in_zero_input_precheck": [
+      "underlying_vault_underlying_getter_mismatch",
+      "usd_vault_underlying_getter_mismatch",
+      "usd_token_change",
+      "strategy_token_getter_mismatch"
+    ],
+    "zero_deposit": {
+      "success": true,
+      "return_bytes": 192,
+      "all_words_zero": true,
+      "state_changing_dependency_calls": 0
+    },
+    "zero_redeem": {
+      "success": true,
+      "return_bytes": 64,
+      "all_words_zero": true,
+      "state_changing_dependency_calls": 0
+    },
+    "zero_strategy_when_health_check_false": true,
+    "probe_result": "4/4"
+  },
+  "local_cleanroom": {
+    "pair_router_focused_result": "20/20",
+    "zero_genesis_result": "4/4",
+    "full_local_deployment_result": "1/1",
+    "full_offline_suite": "289/289",
+    "pair_router_runtime_bytes": 7129,
+    "controller_runtime_bytes": 22497,
+    "positive_sr_before_usd_genesis": "division_panic_full_rollback",
+    "positive_jr_before_jr_genesis": "VaultNotInitialized_full_rollback",
+    "router_performs_genesis": false,
+    "full_deployment_path": [
+      "core_genesis",
+      "vault_genesis",
+      "jr_vault_rebalance",
+      "pair_deposit",
+      "pair_redeem",
+      "zero_router_dust"
+    ]
+  },
+  "unknown": [
+    "target-visible_positive_pre-genesis_error_policy",
+    "multi-epoch_rollover_inside_pair-router_lifecycle"
+  ]
+}
