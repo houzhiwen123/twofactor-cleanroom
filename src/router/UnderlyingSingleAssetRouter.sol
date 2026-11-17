@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IUnderlyingPerpVault} from "../interfaces/IUnderlyingPerpVault.sol";
 import {IUnderlyingSingleAssetRouter} from "../interfaces/IUnderlyingSingleAssetRouter.sol";
@@ -39,11 +40,12 @@ interface IUnderlyingSingleAssetController {
 /// @notice Converts a single underlying asset into or out of an UnderlyingPerpVault basket.
 /// @dev The deployed target Router is confirmed to select both Junior and Senior behavior from the
 ///      caller-supplied Vault's `isPerpSrVault` flag.
-contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter {
+contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     function depositUnderlying(address vault, uint256 underlyingAmtIn, uint256 minNotesOut, uint256 maxIters)
         external
+        nonReentrant
         returns (uint256 notesMinted)
     {
         IUnderlyingPerpVault vault_ = IUnderlyingPerpVault(vault);
@@ -67,6 +69,7 @@ contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter {
 
     function redeemUnderlying(address vault, uint256 notesAmtIn, uint256 minUnderlyingOut)
         external
+        nonReentrant
         returns (uint256 underlyingAmtOut)
     {
         IUnderlyingPerpVault vault_ = IUnderlyingPerpVault(vault);

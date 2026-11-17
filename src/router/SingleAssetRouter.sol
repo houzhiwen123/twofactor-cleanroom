@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IDexStrategy} from "../interfaces/IDexStrategy.sol";
 import {IPerpToken} from "../interfaces/IPerpToken.sol";
 import {ISingleAssetRouter} from "../interfaces/ISingleAssetRouter.sol";
@@ -45,7 +46,7 @@ interface ISingleAssetController {
 
 /// @notice Stateless single-asset entry point for the USD/Perp-SR Vault.
 /// @dev The two selectors, rounding order and optional health/upkeep flags follow target fork evidence.
-contract SingleAssetRouter is ISingleAssetRouter {
+contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error InvalidReserveState();
@@ -60,7 +61,7 @@ contract SingleAssetRouter is ISingleAssetRouter {
         uint256 minNotes,
         uint256 maxIters,
         bool healthCheck
-    ) external returns (uint256 notesOut) {
+    ) external nonReentrant returns (uint256 notesOut) {
         _checkHealth(strategy, healthCheck);
         if (usdMax == 0) return 0;
 
@@ -89,7 +90,7 @@ contract SingleAssetRouter is ISingleAssetRouter {
         uint256 minUsdOut,
         bool runUpkeep,
         bool healthCheck
-    ) external returns (uint256 usdOut) {
+    ) external nonReentrant returns (uint256 usdOut) {
         _checkHealth(strategy, healthCheck);
         ISingleAssetUsdVault vault_ = ISingleAssetUsdVault(vault);
         if (runUpkeep) vault_.upkeep();

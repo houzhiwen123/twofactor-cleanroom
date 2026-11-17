@@ -1,0 +1,64 @@
+{
+  "classification": "LOCAL-CLEANROOM",
+  "status": "PASS",
+  "production_contract_changes": true,
+  "baseline_commit": "7ea56112b8a1ff91f62600badcde9aadbdb11188",
+  "changed_contracts": [
+    "src/router/PairRouter.sol",
+    "src/router/SingleAssetRouter.sol",
+    "src/router/UnderlyingSingleAssetRouter.sol"
+  ],
+  "test_file": "test/RouterReentrancyHardening.t.sol",
+  "callback_matrix": [
+    {
+      "outer_route": "PairRouter.deposit",
+      "dependency": "local malicious strategy",
+      "nested_route": "PairRouter.redeem",
+      "expected_error": "ReentrancyGuardReentrantCall",
+      "result": "PASS"
+    },
+    {
+      "outer_route": "SingleAssetRouter.depositUsd",
+      "dependency": "local malicious strategy",
+      "nested_route": "SingleAssetRouter.redeemUsd",
+      "expected_error": "ReentrancyGuardReentrantCall",
+      "result": "PASS"
+    },
+    {
+      "outer_route": "UnderlyingSingleAssetRouter.depositUnderlying",
+      "dependency": "local malicious vault",
+      "nested_route": "UnderlyingSingleAssetRouter.redeemUnderlying",
+      "expected_error": "ReentrancyGuardReentrantCall",
+      "result": "PASS"
+    }
+  ],
+  "focused_suite": {
+    "passed": 3,
+    "failed": 0
+  },
+  "full_suite": {
+    "tests": 301,
+    "failed": 0
+  },
+  "release_gates": {
+    "pair_router_runtime_bytes": 7194,
+    "single_asset_router_runtime_bytes": 5837,
+    "underlying_single_asset_router_runtime_bytes": 4045,
+    "controller_runtime_bytes": 22497,
+    "controller_limit_bytes": 22500,
+    "controller_storage": "PASS",
+    "underlying_vault_storage": "PASS",
+    "usd_vault_storage": "PASS",
+    "underlying_vault_abi_entries": 83,
+    "underlying_vault_abi_sha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+    "forge_fmt_check": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "constraints": {
+    "public_rpc_used": false,
+    "wallet_or_private_key_used": false,
+    "target_storage_modified": false,
+    "deal_or_store_used": false,
+    "target_confirmed": false
+  }
+}

@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IDexStrategy} from "../interfaces/IDexStrategy.sol";
 import {IPairRouter} from "../interfaces/IPairRouter.sol";
@@ -51,7 +52,7 @@ interface IPairController {
 ///      fallback. Redeem partial fills settle from actual Router balances. Pair dependencies
 ///      are validated against the shared Controller before assets move; the typed entry points
 ///      are clean-room convenience APIs.
-contract PairRouter is IPairRouter {
+contract PairRouter is IPairRouter, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes4 private constant TARGET_DEPOSIT_SELECTOR = 0x0176cb45;
@@ -60,6 +61,7 @@ contract PairRouter is IPairRouter {
 
     function deposit(DepositParams calldata params)
         external
+        nonReentrant
         returns (
             uint256 usdNotes,
             uint256 underlyingNotes,
@@ -72,11 +74,15 @@ contract PairRouter is IPairRouter {
         return _deposit(params);
     }
 
-    function redeem(RedeemParams calldata params) external returns (uint256 usdOut, uint256 underlyingOut) {
+    function redeem(RedeemParams calldata params)
+        external
+        nonReentrant
+        returns (uint256 usdOut, uint256 underlyingOut)
+    {
         return _redeem(params);
     }
 
-    fallback() external {
+    fallback() external nonReentrant {
         bytes memory result;
         if (msg.sig == TARGET_DEPOSIT_SELECTOR) {
             DepositParams memory params = abi.decode(msg.data[4:], (DepositParams));
