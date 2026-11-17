@@ -81,6 +81,81 @@ contract FullProtocolDeploymentLifecycleTest is Test {
         _assertAssetAccounting(deploymentScript, core, periphery);
     }
 
+    function testPausedDownstreamLegAndControllerFailureRollBackFullPairExit() public {
+        DeployGenesisLocal deploymentScript = new DeployGenesisLocal();
+        (DeployGenesisLocal.CoreDeployment memory core, DeployGenesisLocal.PeripheryDeployment memory periphery) =
+            deploymentScript.run();
+
+        _rebalanceJuniorVault(core, periphery);
+        (uint256 usdNotes, uint256 jrNotes) = _pairDeposit(core, periphery);
+        vm.startPrank(USER);
+        periphery.usdVault.approve(address(periphery.pairRouter), type(uint256).max);
+        periphery.jrVault.approve(address(periphery.pairRouter), type(uint256).max);
+        vm.stopPrank();
+
+        vm.prank(LOCAL_ADMIN);
+        periphery.jrVault.pause();
+        bytes32 pausedVaultState = _securityFingerprint(core, periphery);
+        vm.prank(USER);
+        vm.expectRevert(bytes4(keccak256("EnforcedPause()")));
+        _pairRedeem(periphery, usdNotes, jrNotes);
+        assertEq(_securityFingerprint(core, periphery), pausedVaultState, "paused JR leg must roll back USD leg");
+
+        vm.prank(LOCAL_ADMIN);
+        periphery.jrVault.unpause();
+        vm.prank(LOCAL_ADMIN);
+        core.controller.pauseUserOps(true);
+        bytes32 pausedControllerState = _securityFingerprint(core, periphery);
+        vm.prank(USER);
+        vm.expectRevert(PerpController.UserOpsPaused.selector);
+        _pairRedeem(periphery, usdNotes, jrNotes);
+        assertEq(
+            _securityFingerprint(core, periphery),
+            pausedControllerState,
+            "Controller failure must roll back both Vault legs"
+        );
+
+        vm.prank(LOCAL_ADMIN);
+        core.controller.pauseUserOps(false);
+        vm.prank(USER);
+        (uint256 usdOut, uint256 underlyingOut) = _pairRedeem(periphery, usdNotes, jrNotes);
+        assertGt(usdOut, 0, "recovery USD output");
+        assertGt(underlyingOut, 0, "recovery underlying output");
+        _assertRouterDustFree(core, periphery);
+        _assertAssetAccounting(deploymentScript, core, periphery);
+    }
+
+    function testDisabledDexDepositIsAtomicAndRecoveryPreservesPartialFillRefund() public {
+        DeployGenesisLocal deploymentScript = new DeployGenesisLocal();
+        (DeployGenesisLocal.CoreDeployment memory core, DeployGenesisLocal.PeripheryDeployment memory periphery) =
+            deploymentScript.run();
+
+        _rebalanceJuniorVault(core, periphery);
+        uint256 tradeUnderlying = 10_000;
+        uint256 jrUnderlying = 50_000;
+        core.underlying.mint(USER, tradeUnderlying + jrUnderlying);
+        vm.prank(USER);
+        core.underlying.approve(address(periphery.pairRouter), type(uint256).max);
+
+        periphery.pool.setExecutionEnabled(false);
+        bytes32 disabledState = _securityFingerprint(core, periphery);
+        vm.prank(USER);
+        vm.expectRevert(bytes4(keccak256("ExecutionDisabled()")));
+        _pairDepositFromBalance(periphery, tradeUnderlying, jrUnderlying);
+        assertEq(_securityFingerprint(core, periphery), disabledState, "DEX failure must be atomic");
+
+        periphery.pool.setExecutionEnabled(true);
+        periphery.pool.setMaxInputPerSwap(tradeUnderlying / 2);
+        vm.prank(USER);
+        (uint256 usdNotes, uint256 jrNotes, uint256 underlyingRefund,,,) =
+            _pairDepositFromBalance(periphery, tradeUnderlying, jrUnderlying);
+        assertGt(usdNotes, 0, "partial fill USD notes");
+        assertGt(jrNotes, 0, "partial fill JR notes");
+        assertEq(underlyingRefund, tradeUnderlying / 2, "unfilled DEX input refunded");
+        _assertRouterDustFree(core, periphery);
+        _assertAssetAccounting(deploymentScript, core, periphery);
+    }
+
     function _assertDeploymentWiring(
         DeployGenesisLocal.CoreDeployment memory core,
         DeployGenesisLocal.PeripheryDeployment memory periphery
@@ -117,7 +192,19 @@ contract FullProtocolDeploymentLifecycleTest is Test {
 
         vm.startPrank(USER);
         core.underlying.approve(address(periphery.pairRouter), type(uint256).max);
-        (usdNotes, jrNotes,,,,) = periphery.pairRouter
+        (usdNotes, jrNotes,,,,) = _pairDepositFromBalance(periphery, tradeUnderlying, jrUnderlying);
+        vm.stopPrank();
+        assertGt(usdNotes, 0, "USD notes");
+        assertGt(jrNotes, 0, "JR notes");
+        _assertRouterDustFree(core, periphery);
+    }
+
+    function _pairDepositFromBalance(
+        DeployGenesisLocal.PeripheryDeployment memory periphery,
+        uint256 tradeUnderlying,
+        uint256 jrUnderlying
+    ) private returns (uint256, uint256, uint256, uint256, uint256, uint256) {
+        return periphery.pairRouter
             .deposit(
                 IPairRouter.DepositParams({
                     usdVault: address(periphery.usdVault),
@@ -138,10 +225,69 @@ contract FullProtocolDeploymentLifecycleTest is Test {
                     healthCheck: false
                 })
             );
-        vm.stopPrank();
-        assertGt(usdNotes, 0, "USD notes");
-        assertGt(jrNotes, 0, "JR notes");
-        _assertRouterDustFree(core, periphery);
+    }
+
+    function _pairRedeem(DeployGenesisLocal.PeripheryDeployment memory periphery, uint256 usdNotes, uint256 jrNotes)
+        private
+        returns (uint256 usdOut, uint256 underlyingOut)
+    {
+        return periphery.pairRouter
+            .redeem(
+                IPairRouter.RedeemParams({
+                    usdVault: address(periphery.usdVault),
+                    underlyingVault: address(periphery.jrVault),
+                    strategy: address(periphery.dexStrategy),
+                    usdNotes: usdNotes,
+                    underlyingNotes: jrNotes,
+                    maxUsdRetained: type(uint256).max,
+                    underlyingToTrade: 0,
+                    runUpkeep: false,
+                    minUsdOut: 1,
+                    minUnderlyingOut: 1,
+                    minSubDr: 0,
+                    maxSubDr: type(uint256).max,
+                    minVmDr: 0,
+                    maxVmDr: type(uint256).max,
+                    healthCheck: false
+                })
+            );
+    }
+
+    function _securityFingerprint(
+        DeployGenesisLocal.CoreDeployment memory core,
+        DeployGenesisLocal.PeripheryDeployment memory periphery
+    ) private view returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                core.underlying.totalSupply(),
+                periphery.usd.totalSupply(),
+                core.perpSr.totalSupply(),
+                core.perpJr.totalSupply(),
+                periphery.usdVault.totalSupply(),
+                periphery.jrVault.totalSupply(),
+                core.underlying.balanceOf(USER),
+                periphery.usd.balanceOf(USER),
+                periphery.usdVault.balanceOf(USER),
+                periphery.jrVault.balanceOf(USER),
+                core.underlying.balanceOf(address(periphery.pairRouter)),
+                periphery.usd.balanceOf(address(periphery.pairRouter)),
+                core.perpSr.balanceOf(address(periphery.pairRouter)),
+                core.perpJr.balanceOf(address(periphery.pairRouter)),
+                periphery.usdVault.balanceOf(address(periphery.pairRouter)),
+                periphery.jrVault.balanceOf(address(periphery.pairRouter)),
+                periphery.usd.balanceOf(address(periphery.usdVault)),
+                core.perpSr.balanceOf(address(periphery.usdVault)),
+                core.underlying.balanceOf(address(periphery.jrVault)),
+                core.perpJr.balanceOf(address(periphery.jrVault)),
+                core.underlying.balanceOf(address(periphery.pool)),
+                periphery.usd.balanceOf(address(periphery.pool)),
+                core.controller.collectedFeeBal(address(core.underlying)),
+                core.controller.collectedFeeBal(address(core.perpSr)),
+                core.controller.collectedFeeBal(address(core.perpJr)),
+                core.perpSr.reserves(),
+                core.perpJr.reserves()
+            )
+        );
     }
 
     function _rebalanceJuniorVault(

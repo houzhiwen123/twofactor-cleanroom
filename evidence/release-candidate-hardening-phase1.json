@@ -1,0 +1,46 @@
+{
+  "baseline": "923fba5d14251c591efbc0948e1ca242c8847d81",
+  "classification": "LOCAL-CLEANROOM/BNB-DESIGN",
+  "productionSourceChanged": false,
+  "focusedFullDeploymentTests": {
+    "failed": 0,
+    "passed": 3
+  },
+  "fullFoundrySuite": {
+    "failed": 0,
+    "passed": 293,
+    "skipped": 0
+  },
+  "deepInvariant": {
+    "callsPerProperty": 16384,
+    "depth": 64,
+    "failedProperties": 0,
+    "passedProperties": 6,
+    "runs": 256
+  },
+  "newCoverage": [
+    "USD Vault redemption rolls back when the downstream Junior Vault is paused",
+    "both Vault redemptions roll back when Controller flash redemption is paused",
+    "local DEX outage leaves the complete PairRouter deposit fingerprint unchanged",
+    "50 percent DEX partial fill refunds the unfilled input exactly"
+  ],
+  "runtimeBytes": {
+    "PerpController": 22497,
+    "controllerProjectCeiling": 22500
+  },
+  "gates": {
+    "controllerStorage": "PASS",
+    "forgeDiffCheck": "PASS",
+    "forgeFmtCheck": "PASS",
+    "forgeLintHighProduction": "NO_FINDINGS",
+    "underlyingVaultAbi": "PASS",
+    "underlyingVaultStorage": "PASS",
+    "usdVaultStorage": "PASS"
+  },
+  "remaining": [
+    "full-stack stateful handler including USD Vault, PairRouter, executable DEX and upkeep",
+    "malicious dependency and reentrancy threat-model matrix",
+    "version-locked Base-fork deployment and interface rehearsal",
+    "independent static analysis and professional audit"
+  ]
+}
