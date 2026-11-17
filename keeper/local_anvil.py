@@ -29,8 +29,35 @@ GENESIS_TIMESTAMP = 1_800_000_000
 NEXT_ISSUE_TIMESTAMP = 1_800_558_000
 FIRST_STALE_TIMESTAMP = 1_801_767_600
 ADDRESS_KEYS = ("controller", "jrVault", "srVault", "usdVault")
+FULL_ADDRESS_KEYS = (
+    "underlying",
+    "underlyingOracle",
+    "usd",
+    "usdOracle",
+    "manager",
+    "issuer",
+    "controller",
+    "feePolicy",
+    "canonicalBalancer",
+    "rolloverPlanGuard",
+    "genesisSeeder",
+    "perpSr",
+    "perpJr",
+    "firstBondSr",
+    "firstBondJr",
+    "jrVault",
+    "srVault",
+    "usdVault",
+    "usdRouter",
+    "underlyingRouter",
+    "pairRouter",
+    "dexPool",
+    "dexStrategy",
+    "inventory",
+)
+PROXY_KEYS = frozenset({"manager", "issuer", "controller", "feePolicy", "jrVault", "srVault", "usdVault"})
 ADDRESS_RE = re.compile(
-    rf"\b({'|'.join(ADDRESS_KEYS)})\s*:?[ \t]+(0x[0-9a-fA-F]{{40}})\b"
+    rf"\b({'|'.join(FULL_ADDRESS_KEYS)})\s*:?[ \t]+(0x[0-9a-fA-F]{{40}})\b"
 )
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -144,6 +171,100 @@ def collect_attestations(rpc: HttpJsonRpcClient, addresses: dict[str, str]) -> d
             "implementationCodeHash": observed.implementation_code_hash,
         }
     return attestations
+
+
+def collect_deployment_identities(rpc: HttpJsonRpcClient, addresses: dict[str, str]) -> dict[str, dict[str, Any]]:
+    missing = sorted(set(FULL_ADDRESS_KEYS) - set(addresses))
+    if missing:
+        raise ValueError("full deployment output is missing addresses: " + ", ".join(missing))
+    block_tag = rpc.request("eth_blockNumber", [])
+    identities: dict[str, dict[str, Any]] = {}
+    for key in FULL_ADDRESS_KEYS:
+        address = addresses[key]
+        code = rpc.request("eth_getCode", [address, block_tag])
+        if not isinstance(code, str) or code in ("0x", "0x0") or not re.fullmatch(r"0x[0-9a-fA-F]+", code):
+            raise RuntimeError(f"{key} has no runtime code")
+        proof = rpc.request("eth_getProof", [address, [], block_tag])
+        code_hash = proof.get("codeHash") if isinstance(proof, dict) else None
+        if not isinstance(code_hash, str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}", code_hash):
+            raise RuntimeError(f"{key} returned an invalid codehash")
+        identity: dict[str, Any] = {
+            "address": address.lower(),
+            "kind": "contract",
+            "runtimeCodeHash": code_hash.lower(),
+            "runtimeCodeBytes": max((len(code) - 2) // 2, 0),
+        }
+        if key in PROXY_KEYS:
+            observed = observe_contract_identity(rpc, address, block_tag, proxy_code=code, key=key)
+            identity.update(
+                {
+                    "kind": "proxy",
+                    "implementation": observed.implementation,
+                    "implementationCodeHash": observed.implementation_code_hash,
+                    "implementationCodeBytes": observed.implementation_code_bytes,
+                }
+            )
+        identities[key] = identity
+    return identities
+
+
+def build_deployment_manifest(
+    rpc: HttpJsonRpcClient,
+    rpc_url: str,
+    addresses: dict[str, str],
+    attestations: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    block_tag = rpc.request("eth_blockNumber", [])
+    block = rpc.request("eth_getBlockByNumber", [block_tag, False])
+    if not isinstance(block, dict) or block.get("number") != block_tag:
+        raise RuntimeError("deployment manifest block is inconsistent")
+    return {
+        "schemaVersion": 2,
+        "classification": "LOCAL-CLEANROOM/BNB-DESIGN",
+        "chainId": CHAIN_ID,
+        "rpcUrl": rpc_url,
+        "blockNumber": int(block_tag, 16),
+        "blockHash": str(block.get("hash", "")).lower(),
+        "blockTimestamp": int(str(block.get("timestamp", "0x0")), 16),
+        "roles": {"admin": LOCAL_ADMIN, "keeper": LOCAL_ADMIN},
+        "contracts": addresses,
+        "identities": collect_deployment_identities(rpc, addresses),
+        "wiring": {
+            "bondSystem": {
+                "underlying": addresses["underlying"],
+                "underlyingOracle": addresses["underlyingOracle"],
+                "manager": addresses["manager"],
+                "issuer": addresses["issuer"],
+                "firstBondSr": addresses["firstBondSr"],
+                "firstBondJr": addresses["firstBondJr"],
+            },
+            "controller": {
+                "underlying": addresses["underlying"],
+                "perpSr": addresses["perpSr"],
+                "perpJr": addresses["perpJr"],
+                "feePolicy": addresses["feePolicy"],
+                "planner": addresses["rolloverPlanGuard"],
+                "canonicalBalancer": addresses["canonicalBalancer"],
+                "issuer": addresses["issuer"],
+            },
+            "vaults": {
+                "usdVault": addresses["usdVault"],
+                "juniorVault": addresses["jrVault"],
+                "seniorVault": addresses["srVault"],
+                "usd": addresses["usd"],
+                "usdOracle": addresses["usdOracle"],
+                "dexStrategy": addresses["dexStrategy"],
+                "inventory": addresses["inventory"],
+            },
+            "routing": {
+                "usdRouter": addresses["usdRouter"],
+                "underlyingRouter": addresses["underlyingRouter"],
+                "pairRouter": addresses["pairRouter"],
+                "dexPool": addresses["dexPool"],
+            },
+        },
+        "attestations": attestations,
+    }
 
 
 def _free_port() -> int:
@@ -318,14 +439,7 @@ class LocalAnvilE2E:
                 rpc.request("anvil_setBalance", [LOCAL_ADMIN, hex(10_000 * 10**18)])
                 deployment, _ = self._deploy(rpc_url)
                 attestations = collect_attestations(rpc, deployment)
-                manifest = {
-                    "classification": "LOCAL-CLEANROOM/BNB-DESIGN",
-                    "chainId": CHAIN_ID,
-                    "rpcUrl": rpc_url,
-                    "admin": LOCAL_ADMIN,
-                    "contracts": deployment,
-                    "attestations": attestations,
-                }
+                manifest = build_deployment_manifest(rpc, rpc_url, deployment, attestations)
                 _atomic_json(self.output_dir / "deployment.json", manifest)
 
                 dry_config_path = self.output_dir / "keeper.dry.json"

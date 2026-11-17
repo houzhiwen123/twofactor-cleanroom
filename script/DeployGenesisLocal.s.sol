@@ -80,14 +80,14 @@ contract DeployGenesisLocal is Script {
     uint32 private constant SR_REBALANCE_OFFSET_SEC = 6_000;
     uint128 private constant MIN_REBALANCE_VAL = 100_000;
     uint64 private constant MAX_FLASH_FEE_PERC = 5_000_000_000_000_000;
-    address private constant LOCAL_ADMIN = address(0xA11CE);
+    address public constant LOCAL_ADMIN = address(0xA11CE);
 
-    function run() external {
+    function run() external returns (CoreDeployment memory core, PeripheryDeployment memory periphery) {
         vm.warp(1_800_000_000);
         vm.startBroadcast(LOCAL_ADMIN);
 
-        CoreDeployment memory core = _deployCore();
-        PeripheryDeployment memory periphery = _deployPeriphery(core);
+        core = _deployCore();
+        periphery = _deployPeriphery(core);
 
         vm.stopBroadcast();
 
@@ -302,12 +302,16 @@ contract DeployGenesisLocal is Script {
         (uint256 genesisSubDr, uint256 genesisVmDr) = core.controller.systemDeviations();
 
         console2.log("underlying", address(core.underlying));
+        console2.log("underlyingOracle", address(core.underlyingOracle));
         console2.log("usd", address(periphery.usd));
+        console2.log("usdOracle", address(periphery.usdOracle));
         console2.log("manager", address(core.manager));
         console2.log("issuer", address(core.issuer));
         console2.log("controller", address(core.controller));
+        console2.log("feePolicy", address(core.feePolicy));
         console2.log("canonicalBalancer", address(core.balancer));
         console2.log("rolloverPlanGuard", address(core.planGuard));
+        console2.log("genesisSeeder", address(core.seeder));
         console2.log("perpSr", address(core.perpSr));
         console2.log("perpJr", address(core.perpJr));
         console2.log("firstBondSr", core.firstBondSr);
@@ -318,6 +322,7 @@ contract DeployGenesisLocal is Script {
         console2.log("usdRouter", address(periphery.usdRouter));
         console2.log("underlyingRouter", address(periphery.underlyingRouter));
         console2.log("pairRouter", address(periphery.pairRouter));
+        console2.log("dexPool", address(periphery.pool));
         console2.log("dexStrategy", address(periphery.dexStrategy));
         console2.log("inventory", address(periphery.inventory));
         console2.log("localDexExecutionEnabled", periphery.pool.executionEnabled());

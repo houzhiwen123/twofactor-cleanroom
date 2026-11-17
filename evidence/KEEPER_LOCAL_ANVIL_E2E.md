@@ -24,7 +24,9 @@ addresses, runs the lifecycle below, writes structured evidence, and then termin
 
 ## Observed deployment
 
-The final reproducible run deployed these proxy addresses:
+The schema-v2 deployment manifest now records all 24 deployed components, their runtime codehashes
+and byte lengths, plus implementation identities for all seven transparent proxies. The four
+proxies directly attested by the Keeper are:
 
 | Component | Address |
 |---|---|
@@ -33,9 +35,10 @@ The final reproducible run deployed these proxy addresses:
 | Senior Underlying Vault | `0x5F57CB43D1506A17f3A1164da94aA11D8D04F503` |
 | USD Vault | `0x3720ca0F90CB03eBC7EfC61A0435cEE97eB52B92` |
 
-Keeper preflight observed deployed bytecode at all four addresses before simulation. The proxy
-runtime measured `787` bytes at each address; implementation runtime-size checks remain a separate
-repository gate.
+Keeper preflight observed deployed bytecode at all four task targets before simulation. The proxy
+runtime measured `787` bytes at each address. The full manifest additionally covers the tokens,
+oracles, Bond system, policy/planner/guard, Seeder, Perps, first tranches, all routers, local DEX,
+Strategy and Inventory; implementation runtime sizes remain protected by the repository gate.
 
 ## Lifecycle result
 
@@ -74,7 +77,8 @@ before `rebalance` after upkeep completed.
 
 The ignored `.keeper/anvil-e2e/` directory contains:
 
-- `deployment.json`: local addresses and chain metadata;
+- `deployment.json`: schema-v2 chain/block/role metadata, 24 component identities, seven proxy
+  implementation identities, wiring groups and Keeper attestations;
 - `keeper.dry.json`, `keeper.live.json`, `keeper.controller-only.json`: generated mode-`0600`
   configs;
 - `keeper-events.jsonl`: snapshots, every simulation, failover, submission and receipt;

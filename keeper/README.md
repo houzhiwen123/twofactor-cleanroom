@@ -123,8 +123,13 @@ It rejects every non-loopback RPC and never reads a private key:
 python3 -m keeper.local_anvil --repo-root . --output-dir .keeper/anvil-e2e
 ```
 
-The output directory contains the deployment manifest, dry/live configs, structured events, Forge
-deployment log and result JSON. All are `LOCAL-CLEANROOM/BNB-DESIGN`, not target evidence.
+The output directory contains the schema-v2 deployment manifest, dry/live configs, structured
+events, Forge deployment log and result JSON. The manifest covers all 24 deployed components,
+records runtime identities for every component and implementation identities for all seven
+transparent proxies, and groups the expected Bond, Controller, Vault and routing wiring. All output
+is `LOCAL-CLEANROOM/BNB-DESIGN`, not target evidence. See
+[`docs/LOCAL_FULL_PROTOCOL_DEPLOYMENT.md`](../docs/LOCAL_FULL_PROTOCOL_DEPLOYMENT.md) for the full
+deployment checklist and user lifecycle drill.
 
 The same lifecycle is available as an opt-in integration test:
 

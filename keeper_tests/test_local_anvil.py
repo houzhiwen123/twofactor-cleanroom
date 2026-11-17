@@ -6,7 +6,15 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from keeper.local_anvil import LocalAnvilE2E, parse_deployment_log, require_loopback_rpc, write_keeper_config
+from keeper.local_anvil import (
+    FULL_ADDRESS_KEYS,
+    PROXY_KEYS,
+    LocalAnvilE2E,
+    build_deployment_manifest,
+    parse_deployment_log,
+    require_loopback_rpc,
+    write_keeper_config,
+)
 
 from keeper_tests.helpers import CONTROLLER, JUNIOR, SENIOR, USD
 
@@ -51,6 +59,45 @@ class LocalAnvilUnitTests(unittest.TestCase):
                 f"controller {CONTROLLER}\njrVault {JUNIOR}\nsrVault {SENIOR}\n"
             )
 
+    def test_full_deployment_manifest_records_every_identity_and_wiring_group(self) -> None:
+        addresses = {
+            key: f"0x{index:040x}" for index, key in enumerate(FULL_ADDRESS_KEYS, start=1)
+        }
+        implementation = "0x000000000000000000000000000000000000f00d"
+
+        class ManifestRpc:
+            def request(self, method: str, params: list[object]) -> object:
+                if method == "eth_blockNumber":
+                    return "0x2a"
+                if method == "eth_getBlockByNumber":
+                    return {"number": "0x2a", "hash": "0x" + "ab" * 32, "timestamp": "0x64"}
+                if method == "eth_getCode":
+                    return "0x60006000"
+                if method == "eth_getProof":
+                    return {"codeHash": "0x" + "12" * 32}
+                if method == "eth_getStorageAt":
+                    return "0x" + "00" * 12 + implementation[2:]
+                raise AssertionError(f"unexpected RPC method {method} {params}")
+
+        attestations = {
+            "controller": {
+                "proxyCodeHash": "0x" + "12" * 32,
+                "implementation": implementation,
+                "implementationCodeHash": "0x" + "12" * 32,
+            }
+        }
+        manifest = build_deployment_manifest(
+            ManifestRpc(), "http://127.0.0.1:8545", addresses, attestations
+        )
+        self.assertEqual(manifest["schemaVersion"], 2)
+        self.assertEqual(set(manifest["contracts"]), set(FULL_ADDRESS_KEYS))
+        self.assertEqual(set(manifest["identities"]), set(FULL_ADDRESS_KEYS))
+        self.assertTrue(all(manifest["identities"][key]["kind"] == "proxy" for key in PROXY_KEYS))
+        self.assertEqual(
+            manifest["wiring"]["controller"]["canonicalBalancer"], addresses["canonicalBalancer"]
+        )
+        self.assertEqual(manifest["wiring"]["routing"]["pairRouter"], addresses["pairRouter"])
+
 
 @unittest.skipUnless(os.environ.get("RUN_KEEPER_ANVIL_E2E") == "1", "set RUN_KEEPER_ANVIL_E2E=1")
 class LocalAnvilIntegrationTest(unittest.TestCase):
@@ -61,6 +108,8 @@ class LocalAnvilIntegrationTest(unittest.TestCase):
             result = LocalAnvilE2E(repo, output).run()
             deployment = json.loads((output / "deployment.json").read_text())
             self.assertEqual(set(deployment["attestations"]), {"controller", "juniorVault", "seniorVault", "usdVault"})
+            self.assertEqual(set(deployment["identities"]), set(FULL_ADDRESS_KEYS))
+            self.assertEqual(deployment["schemaVersion"], 2)
             health = json.loads((output / "keeper.live.health.json").read_text())
             self.assertEqual(health["status"], "degraded")
             self.assertFalse(health["pendingSubmission"])

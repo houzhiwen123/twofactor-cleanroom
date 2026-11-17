@@ -41,6 +41,12 @@ simulates all public maintenance tasks at one fixed block, supports read-RPC fai
 most one task, and reconciles its receipt before rescanning. It is dry-run by default and never
 handles private keys.
 
+The complete clean-room stack can be deployed to an ephemeral loopback Anvil with one command. The
+command emits a machine-readable manifest for all 24 components and runs the local Keeper lifecycle;
+the matching Foundry drill covers PairRouter deposit, three price-varied Bond epochs, rollover,
+redemption and exact asset accounting. See
+[`docs/LOCAL_FULL_PROTOCOL_DEPLOYMENT.md`](docs/LOCAL_FULL_PROTOCOL_DEPLOYMENT.md).
+
 The test suite includes the supplied settlement, tranche value-ratio/VM, two-ceiling, FeePolicy
 (`computeOpFees` and rebalance), and Balancer plan vectors, plus fuzz properties and independent
 reference-model comparisons. Foundry's default fuzz run count is used.
