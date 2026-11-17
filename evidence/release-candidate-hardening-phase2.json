@@ -1,0 +1,48 @@
+{
+  "classification": "LOCAL-CLEANROOM",
+  "status": "PASS",
+  "production_contract_changes": false,
+  "baseline_commit": "f3f4d5ff73868b6a030e212b183981e49153586f",
+  "test_file": "test/FullProtocolStatefulInvariant.t.sol",
+  "handler_actions": 18,
+  "properties": 5,
+  "default_campaign": {
+    "runs_per_property": 64,
+    "depth": 32,
+    "calls_per_property": 2048,
+    "aggregate_calls": 10240,
+    "passed": 5,
+    "failed": 0
+  },
+  "deep_campaign": {
+    "runs_per_property": 256,
+    "depth": 64,
+    "calls_per_property": 16384,
+    "aggregate_calls": 81920,
+    "passed": 5,
+    "failed": 0
+  },
+  "full_suite": {
+    "test_contracts": 35,
+    "tests": 298,
+    "failed": 0
+  },
+  "release_gates": {
+    "controller_runtime_bytes": 22497,
+    "controller_limit_bytes": 22500,
+    "controller_storage": "PASS",
+    "underlying_vault_storage": "PASS",
+    "usd_vault_storage": "PASS",
+    "underlying_vault_abi_entries": 83,
+    "underlying_vault_abi_sha256": "c7eae5c0efe22100ea12ddf1c3148655548bdc8ba20c5bca30a02dba09362aea",
+    "forge_fmt_check": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "constraints": {
+    "public_rpc_used": false,
+    "wallet_or_private_key_used": false,
+    "target_storage_modified": false,
+    "deal_or_store_used": false,
+    "target_confirmed": false
+  }
+}
