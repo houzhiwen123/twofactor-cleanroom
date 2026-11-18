@@ -129,28 +129,6 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         FeePerc jrFeePerc;
     }
 
-    struct RedeemQuote {
-        PerpBalancer.ReserveData srRd;
-        PerpBalancer.ReserveData jrRd;
-        PerpBalancer.ReserveAmounts srAmounts;
-        PerpBalancer.ReserveAmounts jrAmounts;
-        uint256 srNet;
-        uint256 jrNet;
-        uint256 srFeePerp;
-        uint256 jrFeePerp;
-        FeePerc srFeePerc;
-        FeePerc jrFeePerc;
-    }
-
-    struct FlashRedeemQuote {
-        PerpBalancer.ReserveData srRd;
-        PerpBalancer.ReserveData jrRd;
-        uint256 srGross;
-        uint256 jrGross;
-        FeePerc srFeePerc;
-        FeePerc jrFeePerc;
-    }
-
     address public underlying;
     address public perpSr;
     address public perpJr;
@@ -233,7 +211,7 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
 
     function systemDeviations() public view returns (uint256 subDR_, uint256 vmDR_) {
         (SystemState memory state,,) = systemReserveState();
-        return _computeDRs(state, targetSystemRatio, targetPerpJrVM);
+        return computeDRs(state, targetSystemRatio, targetPerpJrVM);
     }
 
     function computeDRs(SystemState memory state, uint256 targetSystemRatio_, uint256 targetPerpJrVM_)
@@ -241,7 +219,10 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         pure
         returns (uint256 subDR_, uint256 vmDR_)
     {
-        return _computeDRs(state, targetSystemRatio_, targetPerpJrVM_);
+        if (state.perpSr.reserveValue == 0) return (type(uint120).max, 0);
+        if (state.perpJr.reserveValue == 0) return (0, 0);
+        subDR_ = Math.mulDiv(state.perpJr.reserveValue, WAD_SQUARED, state.perpSr.reserveValue * targetSystemRatio_);
+        vmDR_ = Math.mulDiv(state.perpJr.vm, WAD, targetPerpJrVM_);
     }
 
     function reservedPerpJrLiquidity() public view returns (uint256) {
@@ -388,28 +369,45 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         returns (uint256 underlyingAmt, FeePerc memory perpSrFeePerc, FeePerc memory perpJrFeePerc)
     {
         if (userOpsPaused) revert UserOpsPaused();
-        FlashRedeemQuote memory quote = _quoteFlashRedeem(perpSrAmtRedeemed, perpJrAmtRedeemed);
-        perpSrFeePerc = quote.srFeePerc;
-        perpJrFeePerc = quote.jrFeePerc;
+        SystemState memory preState;
+        PerpBalancer.ReserveData memory srRd;
+        PerpBalancer.ReserveData memory preJrRd;
+        (preState, srRd, preJrRd) = systemReserveState();
+        uint256 srGross = perpSrAmtRedeemed == 0
+            ? 0
+            : Math.mulDiv(perpSrAmtRedeemed, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
+        uint256 jrGross = perpJrAmtRedeemed == 0
+            ? 0
+            : Math.mulDiv(perpJrAmtRedeemed, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
+
+        _moveSrReservesToPerpJr(srRd, srGross);
+        IPerpToken(perpSr).burnFrom(msg.sender, perpSrAmtRedeemed);
+        IPerpToken(perpJr).burnFrom(msg.sender, perpJrAmtRedeemed);
+        _withdrawUnderlying(perpJr, srGross + jrGross);
+
+        SystemState memory postState;
+        PerpBalancer.ReserveData memory postJrRd;
+        (postState,, postJrRd) = systemReserveState();
+        (perpSrFeePerc, perpJrFeePerc) =
+            _computeFeePercs(preState, postState, true, perpSrAmtRedeemed != 0, perpJrAmtRedeemed != 0);
         if (
             (perpSrAmtRedeemed != 0 && perpSrFeePerc.totalFeePerc >= WAD)
                 || (perpJrAmtRedeemed != 0 && perpJrFeePerc.totalFeePerc >= WAD)
         ) revert OpDisabled();
-        if (quote.jrGross > availPerpJrLiquidity()) revert InsufficientLiquidity();
 
-        uint256 srFeeAmt = Math.mulDiv(quote.srGross, perpSrFeePerc.totalFeePerc, WAD);
-        uint256 jrFeeAmt = Math.mulDiv(quote.jrGross, perpJrFeePerc.totalFeePerc, WAD);
-        uint256 srNet = quote.srGross - srFeeAmt;
-        uint256 jrNet = quote.jrGross - jrFeeAmt;
+        uint256 srNet = srGross - Math.mulDiv(srGross, perpSrFeePerc.totalFeePerc, WAD);
+        uint256 jrNet = jrGross - Math.mulDiv(jrGross, perpJrFeePerc.totalFeePerc, WAD);
         underlyingAmt = srNet + jrNet;
         if (underlyingAmt < minUnderlyingAmtOut) revert SlippageExceededLimit();
 
-        _moveUnderlyingToPerpJr(quote.srGross);
-        IPerpToken(perpSr).burnFrom(msg.sender, perpSrAmtRedeemed);
-        IPerpToken(perpJr).burnFrom(msg.sender, perpJrAmtRedeemed);
-        _withdrawUnderlying(perpJr, quote.srGross + quote.jrGross);
-        _sendFlashRedeemOutput(quote.srGross, perpSrFeePerc, msg.sender);
-        _sendFlashRedeemOutput(quote.jrGross, perpJrFeePerc, msg.sender);
+        uint256 reserved = Math.mulDiv(postState.perpJr.reserveValue, perpJrReservedUnderlyingPerc, WAD);
+        if (reserved < perpJrReservedUnderlyingAmt) reserved = perpJrReservedUnderlyingAmt;
+        if (postJrRd.underlyingBal < preJrRd.underlyingBal && postJrRd.underlyingBal < reserved) {
+            revert InsufficientLiquidity();
+        }
+
+        _sendFlashRedeemOutput(srGross, perpSrFeePerc, msg.sender);
+        _sendFlashRedeemOutput(jrGross, perpJrFeePerc, msg.sender);
     }
 
     function mint2(
@@ -451,16 +449,14 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         )
     {
         if (userOpsPaused) revert UserOpsPaused();
-        RedeemQuote memory quote = _quoteRedeem2(perpSrAmtRedeemed, perpJrAmtRedeemed);
-        perpSrFeePerc = quote.srFeePerc;
-        perpJrFeePerc = quote.jrFeePerc;
+        PerpMath.BasketRedemptionQuote memory quote = _quoteRedeem2(perpSrAmtRedeemed, perpJrAmtRedeemed);
+        perpSrFeePerc = FeePerc(quote.srTotalFeePerc, quote.srProtocolFeePerc);
+        perpJrFeePerc = FeePerc(quote.jrTotalFeePerc, quote.jrProtocolFeePerc);
         returnedPerpSrReserveAmounts = quote.srAmounts;
         returnedPerpJrReserveAmounts = quote.jrAmounts;
-        if (_basketValue(quote.srRd, quote.srAmounts) + _basketValue(quote.jrRd, quote.jrAmounts) < minValOut) {
-            revert SlippageExceededLimit();
-        }
-        _retainPerpFee(perpSr, msg.sender, perpSrAmtRedeemed, quote.srNet, quote.srFeePerp, quote.srFeePerc);
-        _retainPerpFee(perpJr, msg.sender, perpJrAmtRedeemed, quote.jrNet, quote.jrFeePerp, quote.jrFeePerc);
+        if (quote.basketValue < minValOut) revert SlippageExceededLimit();
+        _retainPerpFee(perpSr, msg.sender, perpSrAmtRedeemed, quote.srNet, quote.srFeePerp, perpSrFeePerc);
+        _retainPerpFee(perpJr, msg.sender, perpJrAmtRedeemed, quote.jrNet, quote.jrFeePerp, perpJrFeePerc);
         IPerpToken(perpSr).transferReservesTo(msg.sender, quote.srAmounts);
         IPerpToken(perpJr).transferReservesTo(msg.sender, quote.jrAmounts);
     }
@@ -589,10 +585,9 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         IPerpToken(perp).transferReservesTo(address(this), PerpBalancer.ReserveAmounts(amount, none));
     }
 
-    function _moveUnderlyingToPerpJr(uint256 amount) private {
+    function _moveSrReservesToPerpJr(PerpBalancer.ReserveData memory srRd, uint256 amount) private {
         if (amount == 0) return;
-        PerpBalancer.TokenAmount[] memory none = new PerpBalancer.TokenAmount[](0);
-        PerpBalancer.ReserveAmounts memory amounts = PerpBalancer.ReserveAmounts(amount, none);
+        PerpBalancer.ReserveAmounts memory amounts = PerpBalancer(balancer).computeSystemRebalancePlan(srRd, amount);
         IPerpToken(perpSr).transferReservesTo(perpJr, amounts);
         IPerpToken(perpJr).handleTransferReservesIn(amounts);
     }
@@ -665,20 +660,21 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         bool srOp,
         bool jrOp
     ) private view returns (FeePerc memory srFee, FeePerc memory jrFee) {
-        (uint256 subPre, uint256 vmPre) = _computeDRs(preState, targetSystemRatio, targetPerpJrVM);
-        (uint256 subPost, uint256 vmPost) = _computeDRs(postState, targetSystemRatio, targetPerpJrVM);
-        IFeePolicyController.OpSystemChange memory change =
-            IFeePolicyController.OpSystemChange(subPre, subPost, vmPre, vmPost);
-        if (srOp) {
-            IFeePolicyController.OpFees memory sr =
-                IFeePolicyController(feePolicy).computeOpFees(IFeePolicyController.OpFeeInput(true, isFlashOp, change));
-            srFee = FeePerc(sr.totalFeePerc, sr.protocolFeePerc);
-        }
-        if (jrOp) {
-            IFeePolicyController.OpFees memory jr = IFeePolicyController(feePolicy)
-                .computeOpFees(IFeePolicyController.OpFeeInput(false, isFlashOp, change));
-            jrFee = FeePerc(jr.totalFeePerc, jr.protocolFeePerc);
-        }
+        (srFee.totalFeePerc, srFee.protocolFeePerc, jrFee.totalFeePerc, jrFee.protocolFeePerc) =
+            _math.computeFeePercs(
+                feePolicy,
+                preState.perpSr.reserveValue,
+                preState.perpJr.reserveValue,
+                preState.perpJr.vm,
+                postState.perpSr.reserveValue,
+                postState.perpJr.reserveValue,
+                postState.perpJr.vm,
+                targetSystemRatio,
+                targetPerpJrVM,
+                isFlashOp,
+                srOp,
+                jrOp
+            );
     }
 
     function _quoteUnderlyingMint(uint256 srInput, uint256 jrInput) private view returns (MintQuote memory quote) {
@@ -729,38 +725,28 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         }
     }
 
-    function _quoteRedeem2(uint256 srInput, uint256 jrInput) private view returns (RedeemQuote memory quote) {
+    function _quoteRedeem2(uint256 srInput, uint256 jrInput)
+        private
+        view
+        returns (PerpMath.BasketRedemptionQuote memory quote)
+    {
+        PerpBalancer.ReserveData memory srRd;
+        PerpBalancer.ReserveData memory jrRd;
         SystemState memory preState;
-        (preState, quote.srRd, quote.jrRd) = systemReserveState();
-        uint256 srGross =
-            srInput == 0 ? 0 : Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
-        uint256 jrGross =
-            jrInput == 0 ? 0 : Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
-        SystemState memory postState =
-            _postFlashRedeem(preState, quote.srRd, quote.jrRd, srInput, jrInput, srGross, jrGross, true);
-        (quote.srFeePerc, quote.jrFeePerc) = _computeFeePercs(preState, postState, false, true, true);
-        if (
-            (srInput != 0 && quote.srFeePerc.totalFeePerc >= WAD)
-                || (jrInput != 0 && quote.jrFeePerc.totalFeePerc >= WAD)
-        ) revert OpDisabled();
-        quote.srFeePerp = Math.mulDiv(srInput, quote.srFeePerc.totalFeePerc, WAD);
-        quote.jrFeePerp = Math.mulDiv(jrInput, quote.jrFeePerc.totalFeePerc, WAD);
-        quote.srNet = srInput - quote.srFeePerp;
-        quote.jrNet = jrInput - quote.jrFeePerp;
-        quote.srAmounts = _redeemBasket(quote.srRd, quote.srNet, preState.perpSr.totalSupply);
-        quote.jrAmounts = _redeemBasket(quote.jrRd, quote.jrNet, preState.perpJr.totalSupply);
+        (preState, srRd, jrRd) = systemReserveState();
+        return _math.quoteBasketRedemption(feePolicy, srRd, jrRd, srInput, jrInput, _redemptionState(preState));
     }
 
-    function _quoteFlashRedeem(uint256 srInput, uint256 jrInput) private view returns (FlashRedeemQuote memory quote) {
-        SystemState memory preState;
-        (preState, quote.srRd, quote.jrRd) = systemReserveState();
-        quote.srGross =
-            srInput == 0 ? 0 : Math.mulDiv(srInput, preState.perpSr.reserveValue, preState.perpSr.totalSupply);
-        quote.jrGross =
-            jrInput == 0 ? 0 : Math.mulDiv(jrInput, preState.perpJr.reserveValue, preState.perpJr.totalSupply);
-        SystemState memory postState =
-            _postFlashRedeem(preState, quote.srRd, quote.jrRd, srInput, jrInput, quote.srGross, quote.jrGross, false);
-        (quote.srFeePerc, quote.jrFeePerc) = _computeFeePercs(preState, postState, true, true, true);
+    function _redemptionState(SystemState memory state) private view returns (PerpMath.RedemptionState memory) {
+        return PerpMath.RedemptionState(
+            state.perpSr.totalSupply,
+            state.perpJr.totalSupply,
+            state.perpSr.reserveValue,
+            state.perpJr.reserveValue,
+            state.perpJr.vm,
+            targetSystemRatio,
+            targetPerpJrVM
+        );
     }
 
     function _recordMintFees(MintQuote memory quote, uint256 minSr, uint256 minJr)
@@ -789,17 +775,6 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         (state.reserveValue, state.vm) = _math.reserveState(rd);
     }
 
-    function _computeDRs(SystemState memory state, uint256 targetSystemRatio_, uint256 targetPerpJrVM_)
-        private
-        pure
-        returns (uint256 subDR_, uint256 vmDR_)
-    {
-        if (state.perpSr.reserveValue == 0) return (type(uint120).max, 0);
-        if (state.perpJr.reserveValue == 0) return (0, 0);
-        subDR_ = Math.mulDiv(state.perpJr.reserveValue, WAD_SQUARED, state.perpSr.reserveValue * targetSystemRatio_);
-        vmDR_ = Math.mulDiv(state.perpJr.vm, WAD, targetPerpJrVM_);
-    }
-
     function _postTrancheMint(
         SystemState memory pre,
         PerpBalancer.ReserveData memory srRd,
@@ -826,37 +801,6 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
             _math.stateAfterDeposit(pre.totalSupply, pre.reserveValue, rd, value, vm, shares);
     }
 
-    function _postFlashRedeem(
-        SystemState memory pre,
-        PerpBalancer.ReserveData memory srRd,
-        PerpBalancer.ReserveData memory jrRd,
-        uint256 srShares,
-        uint256 jrShares,
-        uint256 srValueOut,
-        uint256 jrValueOut,
-        bool proportionalBasket
-    ) private view returns (SystemState memory post) {
-        (post.perpSr.totalSupply, post.perpSr.reserveValue, post.perpSr.vm) =
-            _math.stateAfterWithdrawal(
-                pre.perpSr.totalSupply,
-                pre.perpSr.reserveValue,
-                pre.perpSr.vm,
-                srRd,
-                srShares,
-                srValueOut,
-                proportionalBasket
-            );
-        (post.perpJr.totalSupply, post.perpJr.reserveValue, post.perpJr.vm) = _math.stateAfterWithdrawal(
-            pre.perpJr.totalSupply,
-            pre.perpJr.reserveValue,
-            pre.perpJr.vm,
-            jrRd,
-            jrShares,
-            jrValueOut,
-            proportionalBasket
-        );
-    }
-
     function _checkValueCap(SystemState memory pre, SystemState memory post, uint256 srInput, uint256 jrInput)
         private
         view
@@ -877,22 +821,6 @@ contract PerpController is Initializable, Ownable2StepUpgradeable, ReentrancyGua
         if (input.amount == 0) return 0;
         IPerpTokenTrancheData.Data memory data = IPerpTokenTrancheData(input.token).data();
         return Math.mulDiv(input.amount, data.trancheClaim, data.trancheSupply);
-    }
-
-    function _redeemBasket(PerpBalancer.ReserveData memory rd, uint256 netShares, uint256 supply)
-        private
-        view
-        returns (PerpBalancer.ReserveAmounts memory amounts)
-    {
-        return _math.redeemBasket(rd, netShares, supply);
-    }
-
-    function _basketValue(PerpBalancer.ReserveData memory rd, PerpBalancer.ReserveAmounts memory amounts)
-        private
-        view
-        returns (uint256 value)
-    {
-        return _math.basketValue(rd, amounts);
     }
 }
 

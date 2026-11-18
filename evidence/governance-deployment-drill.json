@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-17",
+  "classification": [
+    "LOCAL-CLEANROOM",
+    "BNB-DESIGN"
+  ],
+  "public_chain_broadcast": false,
+  "wallet_or_private_key_used": false,
+  "focused_tests": {
+    "GovernanceDeploymentDrillTest": {
+      "passed": 5,
+      "failed": 0
+    },
+    "GovernanceTimelockTest": {
+      "passed": 3,
+      "failed": 0
+    },
+    "total": {
+      "passed": 8,
+      "failed": 0
+    }
+  },
+  "wiring": {
+    "timelock_owned_contracts": 9,
+    "timelock_owned_proxy_admins": 7,
+    "governance_safe_roles": [
+      "PROPOSER_ROLE",
+      "CANCELLER_ROLE"
+    ],
+    "executor_role_open": true,
+    "timelock_self_administered": true,
+    "separate_keeper": true
+  },
+  "timelock": {
+    "configured_delay_seconds": 172800,
+    "permanent_floor_seconds": 86400,
+    "single_lower_to_zero_rejected": true,
+    "batch_lower_to_zero_rejected": true,
+    "raise_to_three_days_succeeds": true,
+    "runtime_bytes": 5436
+  },
+  "emergency_authority": {
+    "safe_direct_pause_rejected": true,
+    "keeper_immediate_controller_pause": true,
+    "keeper_immediate_underlying_vault_pause": true,
+    "keeper_immediate_unpause": true
+  },
+  "release_gates": {
+    "forge_fmt_check": "pass",
+    "git_diff_check": "pass",
+    "runtime_sizes": "pass",
+    "controller_runtime_bytes": 22497,
+    "controller_storage_layout": "pass",
+    "usd_vault_storage_layout": "pass",
+    "underlying_vault_storage_layout": "pass",
+    "underlying_vault_abi_entries": 83
+  },
+  "remaining_public_deployment_blockers": [
+    "real Safe and Keeper address selection",
+    "funded non-production deployer",
+    "production ownership-wiring and broadcast script",
+    "chain and deterministic-address validation",
+    "post-deployment attestation",
+    "Keeper compromise and Timelock recovery runbook"
+  ]
+}

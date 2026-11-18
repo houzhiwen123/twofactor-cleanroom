@@ -82,6 +82,9 @@ interface ITargetControllerReplay {
             FeePerc memory perpSrFeePerc,
             FeePerc memory perpJrFeePerc
         );
+    function flashRedeem2(uint256 perpSrAmtRedeemed, uint256 perpJrAmtRedeemed, uint256 minUnderlyingAmtOut)
+        external
+        returns (uint256 underlyingAmt, FeePerc memory perpSrFeePerc, FeePerc memory perpJrFeePerc);
 }
 
 interface IUsdVaultReplay {
@@ -158,6 +161,7 @@ contract TargetRealHolderExitReplayTest is Test {
     bytes32 private constant DEX_STRATEGY_CODEHASH = 0x5179730df56d2d569376affd12ff8014ac2c7d9940dca3b78cb9dc22db5d5302;
     bytes32 private constant REDEEM_EVENT = keccak256("Redeem(uint256,uint256,uint256)");
     bytes32 private constant OP_FEES_EVENT = keccak256("OpFees(address,uint256,uint256)");
+    bytes32 private constant TRANSFER_EVENT = keccak256("Transfer(address,address,uint256)");
 
     struct SystemSnapshot {
         uint256 subDR;
@@ -219,6 +223,19 @@ contract TargetRealHolderExitReplayTest is Test {
         uint256 cleanroomProtocol,
         bool exactMatch
     );
+    event SrExitLiquiditySource(
+        uint256 srUnderlyingBefore,
+        uint256 srUnderlyingAfter,
+        uint256 jrUnderlyingBefore,
+        uint256 jrUnderlyingAfter,
+        uint256 controllerUnderlyingBefore,
+        uint256 controllerUnderlyingAfter,
+        uint256 srReserveValueBefore,
+        uint256 srReserveValueAfter,
+        uint256 jrReserveValueBefore,
+        uint256 jrReserveValueAfter
+    );
+    event SrReserveTransferredToJr(address indexed tranche, uint256 amountMoved);
     event ControllerEventResult(
         uint8 indexed side,
         bytes32 indexed eventTopic,
@@ -417,6 +434,122 @@ contract TargetRealHolderExitReplayTest is Test {
         bool unchanged = _routerFingerprint(SMART_ACCOUNT) == beforeFingerprint;
         assertTrue(unchanged, "router failure was not atomic");
         emit FailureBoundary(2, ROUTER_NOTES_IN, ROUTER_EXACT_USD_OUT + 1, selector, unchanged);
+    }
+
+    /// @notice Proves where the target obtains cbBTC for an SR-only flash redemption.
+    /// @dev Starts from the historical transaction prestate, redeems the natural holder's Vault
+    ///      notes into its natural Perp SR output, then invokes the Controller directly. No target
+    ///      balance or storage is manufactured.
+    function testRouterHistoricalSrExitLiquiditySource() public {
+        _selectStrictFork(SINGLE_ASSET_REDEEM_TX, SINGLE_ASSET_REDEEM_BLOCK);
+        ITargetControllerReplay controller = ITargetControllerReplay(CONTROLLER);
+
+        vm.prank(SMART_ACCOUNT);
+        (, uint256 perpSrOut) = IUsdVaultReplay(USD_VAULT).redeem(ROUTER_NOTES_IN);
+        assertEq(perpSrOut, ROUTER_VAULT_PERP_SR_OUT, "natural Vault Perp SR output");
+        vm.prank(SMART_ACCOUNT);
+        assertTrue(IERC20Replay(PERP_SR).approve(CONTROLLER, perpSrOut), "Controller approval");
+
+        (ITargetControllerReplay.SystemState memory preState, ITargetControllerReplay.ReserveData memory srBefore,) =
+            controller.systemReserveState();
+
+        uint256 srUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(PERP_SR);
+        uint256 jrUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(PERP_JR);
+        uint256 controllerUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(CONTROLLER);
+        uint256 userUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(SMART_ACCOUNT);
+        vm.recordLogs();
+        vm.prank(SMART_ACCOUNT);
+        (
+            uint256 underlyingOut,
+            ITargetControllerReplay.FeePerc memory srFee,
+            ITargetControllerReplay.FeePerc memory jrFee
+        ) = controller.flashRedeem2(perpSrOut, 0, 0);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        (ITargetControllerReplay.SystemState memory postState,,) = controller.systemReserveState();
+        uint256 srUnderlyingAfter = IERC20Replay(CBBTC).balanceOf(PERP_SR);
+        uint256 jrUnderlyingAfter = IERC20Replay(CBBTC).balanceOf(PERP_JR);
+        uint256 controllerUnderlyingAfter = IERC20Replay(CBBTC).balanceOf(CONTROLLER);
+
+        assertEq(srUnderlyingBefore, 0, "target SR starts with no idle cbBTC");
+        assertEq(srUnderlyingAfter, 0, "target SR does not fund exit with idle cbBTC");
+        assertEq(jrFee.totalFeePerc, 0, "inactive JR total fee return");
+        assertEq(jrFee.protocolFeePerc, 0, "inactive JR protocol fee return");
+        assertEq(
+            IERC20Replay(CBBTC).balanceOf(SMART_ACCOUNT) - userUnderlyingBefore,
+            underlyingOut,
+            "holder receives the JR-funded cbBTC"
+        );
+        assertEq(
+            controllerUnderlyingBefore, controllerUnderlyingAfter, "Controller only routes cbBTC during the atomic exit"
+        );
+
+        (uint256 cbbtcIntoJr, uint256 grossFromJr, uint256 paidToHolder, uint256 movedTrancheCount) =
+            _assertSrFlashLiquidityTrace(logs, srBefore, underlyingOut);
+        assertGt(movedTrancheCount, 0, "SR must compensate JR with reserve assets");
+        assertEq(
+            jrUnderlyingBefore + cbbtcIntoJr,
+            jrUnderlyingAfter + grossFromJr,
+            "JR cbBTC must reconcile recovery and payout"
+        );
+
+        emit log_named_uint("target SR idle cbBTC before", srUnderlyingBefore);
+        emit log_named_uint("target SR idle cbBTC after", srUnderlyingAfter);
+        emit log_named_uint("target JR idle cbBTC before", jrUnderlyingBefore);
+        emit log_named_uint("target JR idle cbBTC after", jrUnderlyingAfter);
+        emit log_named_uint("cbBTC entering JR during redemption call", cbbtcIntoJr);
+        emit log_named_uint("cbBTC transferred JR to Controller", grossFromJr);
+        emit log_named_uint("cbBTC transferred Controller to holder", paidToHolder);
+        emit log_named_uint("SR tranche transfers into JR", movedTrancheCount);
+        emit log_named_uint("active SR total fee WAD", srFee.totalFeePerc);
+        emit log_named_uint("inactive JR total fee WAD", jrFee.totalFeePerc);
+
+        emit SrExitLiquiditySource(
+            srUnderlyingBefore,
+            srUnderlyingAfter,
+            jrUnderlyingBefore,
+            jrUnderlyingAfter,
+            controllerUnderlyingBefore,
+            controllerUnderlyingAfter,
+            preState.perpSr.reserveValue,
+            postState.perpSr.reserveValue,
+            preState.perpJr.reserveValue,
+            postState.perpJr.reserveValue
+        );
+    }
+
+    function _assertSrFlashLiquidityTrace(
+        Vm.Log[] memory logs,
+        ITargetControllerReplay.ReserveData memory srBefore,
+        uint256 underlyingOut
+    ) private returns (uint256 cbbtcIntoJr, uint256 grossFromJr, uint256 paidToHolder, uint256 movedTrancheCount) {
+        for (uint256 i; i < logs.length; ++i) {
+            if (logs[i].topics.length != 3 || logs[i].topics[0] != TRANSFER_EVENT) continue;
+            address from = address(uint160(uint256(logs[i].topics[1])));
+            address to = address(uint160(uint256(logs[i].topics[2])));
+            uint256 amount = abi.decode(logs[i].data, (uint256));
+
+            if (logs[i].emitter == CBBTC && from == PERP_JR && to == CONTROLLER) {
+                grossFromJr += amount;
+            }
+            if (logs[i].emitter == CBBTC && to == PERP_JR && from != PERP_JR) {
+                cbbtcIntoJr += amount;
+            }
+            if (logs[i].emitter == CBBTC && from == CONTROLLER && to == SMART_ACCOUNT) {
+                paidToHolder += amount;
+            }
+            if (from != PERP_SR || to != PERP_JR) continue;
+            for (uint256 j; j < srBefore.trancheData.length; ++j) {
+                if (logs[i].emitter != srBefore.trancheData[j].data.tranche) continue;
+                ++movedTrancheCount;
+                emit SrReserveTransferredToJr(logs[i].emitter, amount);
+                break;
+            }
+        }
+
+        assertGt(grossFromJr, 0, "missing cbBTC transfer from JR to Controller");
+        assertGe(grossFromJr, underlyingOut, "JR gross transfer below holder output");
+        assertEq(paidToHolder, underlyingOut, "Controller-to-holder cbBTC trace mismatch");
     }
 
     function _runControllerSuccess() private {

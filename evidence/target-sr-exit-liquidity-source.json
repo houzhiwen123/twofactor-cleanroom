@@ -1,0 +1,50 @@
+{
+  "task": "TARGET_SR_EXIT_LIQUIDITY_SOURCE",
+  "classification": "TARGET-CONFIRMED_TRANSFER_PATH_WITH_LOCAL_CLEANROOM_IMPLEMENTATION",
+  "network": "Base",
+  "chain_id": 8453,
+  "historical_prestate": {
+    "transaction_hash": "0xaf7d86860fa149f0fdddb186f74753dc2b912294c7e4f4b1b8930934fe7144ab",
+    "block_number": 53243583,
+    "natural_balance_policy": true,
+    "deal_or_store_used": false
+  },
+  "target_observed_sequence": [
+    "Perp SR starts and ends with zero idle cbBTC",
+    "a tranche held by Perp SR transfers to Perp JR",
+    "cbBTC enters Perp JR during the same atomic call",
+    "Perp JR transfers the gross cbBTC requirement to Controller",
+    "Controller transfers the user output to the holder"
+  ],
+  "target_internal_mechanism": "UNKNOWN_FROM_THIS_TRANSFER_LOG_PROBE",
+  "observations": {
+    "sr_idle_cbbtc_before": 0,
+    "sr_idle_cbbtc_after": 0,
+    "jr_idle_cbbtc_before": 200584836,
+    "cbbtc_entering_jr_during_call": 9281,
+    "jr_to_controller_cbbtc": 4723,
+    "controller_to_holder_cbbtc": 4723,
+    "jr_idle_cbbtc_after": 200589394,
+    "sr_tranche_transfers_into_jr": 1,
+    "inactive_jr_total_fee_wad": 0,
+    "inactive_jr_protocol_fee_wad": 0,
+    "jr_accounting_reconciled": true
+  },
+  "cleanroom_correction": {
+    "removed_sr_idle_liquidity_fixture": true,
+    "uses_guarded_balancer_reserve_plan_local_design": true,
+    "fees_use_actual_post_transformation_state": true,
+    "post_operation_jr_liquidity_floor_local_design": true
+  },
+  "verification": {
+    "target_probe_passed": 1,
+    "controller_tests_passed": 42,
+    "genesis_tests_passed": 20,
+    "three_vault_lifecycle_passed": 1,
+    "full_offline_tests_passed": 307,
+    "full_offline_test_suites_passed": 38,
+    "controller_runtime_bytes": 21519,
+    "controller_runtime_limit_bytes": 22500,
+    "controller_storage_layout_entries_matched": "84/84"
+  }
+}

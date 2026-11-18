@@ -1,0 +1,39 @@
+{
+  "classification": {
+    "target_confirmed": [
+      "Public dependency getters and code presence at the pinned Base blocks",
+      "Oracle configuration and getValidPrice equivalence",
+      "DEX health/reference-price/quote/maxFillable equivalence"
+    ],
+    "local_cleanroom": [
+      "All new contract deployments exist only inside Foundry's temporary local fork",
+      "Fresh proxy initialization validates interface/configuration compatibility only"
+    ]
+  },
+  "chain_id": 8453,
+  "snapshots": {
+    "interface_block": 53526143,
+    "dex_block": 53243583
+  },
+  "command": "BASE_RPC_URL=https://mainnet.base.org FOUNDRY_TEST=evidence/probe-tests /Users/mac/.foundry/bin/forge test --offline --threads 1 --match-path evidence/probe-tests/BaseForkInterfaceRehearsal.t.sol -vv",
+  "result": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "safety": {
+    "broadcast": false,
+    "wallet_or_private_key": false,
+    "signing": false,
+    "target_impersonation": false,
+    "target_state_writes": false,
+    "target_token_transfers": false,
+    "target_swaps_or_upkeep": false,
+    "deal_or_store": false
+  },
+  "known_limitations": [
+    "Does not establish target initializer ABI parity",
+    "Does not execute a real-asset Genesis lifecycle",
+    "Does not replace testnet deployment, governance validation, monitoring, or independent audit"
+  ]
+}

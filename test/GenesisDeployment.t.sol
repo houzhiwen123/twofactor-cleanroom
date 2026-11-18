@@ -444,7 +444,9 @@ contract GenesisDeploymentTest is Test {
 
         _logExitBoundary(s, false, true, "SR basket", PerpController.OpDisabled.selector);
         _logExitBoundary(s, false, false, "JR basket", bytes4(0));
-        _logExitBoundary(s, true, true, "SR underlying", bytes4(0xe450d38c));
+        // TARGET-CONFIRMED mechanism: SR flash exits are funded through SR-reserve transfer into JR,
+        // not by an idle SR underlying balance. The terminal boundary is therefore the fee guard.
+        _logExitBoundary(s, true, true, "SR underlying", PerpController.OpDisabled.selector);
         _logExitBoundary(s, true, false, "JR underlying", PerpController.OpDisabled.selector);
     }
 

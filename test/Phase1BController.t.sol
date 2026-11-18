@@ -1567,8 +1567,10 @@ contract MockPhase1BFeePolicy is IFeePolicyController {
                     (uint256 underlyingOut, PerpController.FeePerc memory srFee, PerpController.FeePerc memory jrFee) =
                         controller.flashRedeem2(srInput ? 1_000_000 : 0, srInput ? 0 : 1_000_000, 0);
                     assertGt(underlyingOut, 0);
-                    assertEq(srFee.totalFeePerc, srInput ? 0 : WAD);
-                    assertEq(jrFee.totalFeePerc, srInput ? WAD : 0);
+                    // TARGET-CONFIRMED: flashRedeem2 computes and returns fees only for a side with
+                    // a non-zero gross redemption. The inactive side remains the zero-value struct.
+                    assertEq(srFee.totalFeePerc, 0);
+                    assertEq(jrFee.totalFeePerc, 0);
                 } else {
                     (
                         PerpBalancer.ReserveAmounts memory srOut,

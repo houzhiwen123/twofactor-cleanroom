@@ -16,6 +16,15 @@ contract ProtocolTimelock is TimelockController {
         if (minDelay < MIN_DELAY || governanceSafe == address(0)) revert InvalidGovernanceConfig();
     }
 
+    /// @dev Preserve the protocol floor for both single and batch self-calls to updateDelay().
+    function _execute(address target, uint256 value, bytes calldata data) internal override {
+        if (target == address(this) && data.length >= 4 && bytes4(data[:4]) == this.updateDelay.selector) {
+            uint256 newDelay = abi.decode(data[4:], (uint256));
+            if (newDelay < MIN_DELAY) revert InvalidGovernanceConfig();
+        }
+        super._execute(target, value, data);
+    }
+
     function _singleton(address account) private pure returns (address[] memory accounts) {
         accounts = new address[](1);
         accounts[0] = account;
