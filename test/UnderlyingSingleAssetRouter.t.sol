@@ -120,6 +120,20 @@ contract UnderlyingSingleAssetRouterTest is Test {
         assertEq(perpJr.balanceOf(address(router)), 0);
     }
 
+    function testPreexistingDustIsNotPaidToNextUnderlyingCaller() public {
+        UnderlyingPerpVault vault = _seedVault(false);
+        _fundAndApprove(vault);
+        underlying.mint(address(router), 7);
+        perpJr.mint(address(router), 3);
+
+        vm.prank(USER);
+        router.depositUnderlying(address(vault), USER_INPUT, 0, 0);
+
+        assertEq(underlying.balanceOf(USER), 1);
+        assertEq(underlying.balanceOf(address(router)), 7);
+        assertEq(perpJr.balanceOf(address(router)), 3);
+    }
+
     function testJuniorRedeemMatchesBasketPlusFlashAndMinOutIsAtomic() public {
         UnderlyingPerpVault vault = _seedVault(false);
         _fundAndApprove(vault);

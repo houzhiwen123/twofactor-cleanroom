@@ -15,7 +15,7 @@ This report is generated from the local clean-room Foundry regression after the 
 ## Findings from this tested state
 
 - Common pre-exit state: `subDR=847534510909630408` (0.847535x), `vmDR=1060773479096730879` (1.060773x).
-- Mode A (user-owned proportional): fee is 2.466878% at 1% and 3.209733% at 100%; the tested size effect is only 0.742855 percentage points. Because the smallest tested exit is already above 50%, this sweep does not prove a zero-size base fee, but it does show that the high fee is already present before a large exit.
+- Mode A (user-owned proportional): fee is 2.466878% at 1% and 3.209733% at 100%; the tested size effect is only 0.742855 percentage points. Because the smallest tested exit is 1%, this sweep does not prove a zero-size base fee; it only establishes the fee at and above that tested size.
 - Mode B (total-supply proportional): 95% and 99% revert with `0xe450d38c` (the caller does not own all total-supply shares, including retained/locked shares); 100% returns a fee signal at or above the Controller disable threshold and reverts with `0x07380a2e`. These are not liquidity failures.
 - Mode C SR-only: 0.000000% at 1% to 23.439141% at 100%; Mode C JR-only: 2.478783% to 3.701895%. These rows show how one-sided exits alter the corrected fee curve in this local state.
 - All 40 rows conserved the underlying balance (`True`); successful rows leave the fee as Controller-held Perp shares, while reverted rows leave state unchanged.

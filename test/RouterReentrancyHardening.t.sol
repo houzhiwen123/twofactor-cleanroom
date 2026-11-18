@@ -280,6 +280,13 @@ contract RouterReentrancyHardeningTest is Test {
     function testSingleAssetRouterRejectsStrategyCrossEntryAndRollsBackUserInput() public {
         ReentrantSingleAssetStrategy strategy =
             new ReentrantSingleAssetStrategy(periphery.usdRouter, address(periphery.usdVault));
+        // The fresh USD Vault contains only USD, so the hardened Router correctly skips a
+        // zero-valued DEX leg. Seed a real Perp reserve to exercise a nonzero strategy call.
+        address localAdmin = deploymentScript.LOCAL_ADMIN();
+        uint256 perpSeed = core.perpSr.balanceOf(localAdmin) / 100;
+        assertGt(perpSeed, 0);
+        vm.prank(localAdmin);
+        core.perpSr.transfer(address(periphery.usdVault), perpSeed);
         uint256 amount = 100e6;
         periphery.usd.mint(USER, amount);
         vm.prank(USER);

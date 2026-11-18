@@ -4,10 +4,12 @@ pragma solidity 0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {IBondsManager} from "../src/interfaces/IBondsManager.sol";
+import {IPerpToken} from "../src/interfaces/IPerpToken.sol";
 import {ITranche} from "../src/interfaces/ITranche.sol";
 import {BondsManager} from "../src/bond/BondsManager.sol";
 import {BondIssuer} from "../src/bond/BondIssuer.sol";
 import {Tranche} from "../src/bond/Tranche.sol";
+import {PerpToken} from "../src/perp/PerpToken.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockPriceOracle} from "./mocks/MockPriceOracle.sol";
 import {SettlementReference} from "./ref/SettlementReference.sol";
@@ -67,6 +69,37 @@ contract BondsManagerTest is Test {
         manager.deposit(bondID, 1);
 
         assertEq(underlying.balanceOf(address(this)), userBefore);
+        assertEq(manager.bondClaim(bondID), 0);
+    }
+
+    function testZeroDepositReturnsCanonicalTokensAndMovesNothing() public {
+        (bytes32 bondID, IBondsManager.BondData memory info) =
+            manager.createBond(address(underlying), 500_000_000_000_000_000, uint64(block.timestamp + 100));
+        uint256 userBefore = underlying.balanceOf(address(this));
+
+        (IBondsManager.TokenAmount memory sr, IBondsManager.TokenAmount memory jr) = manager.deposit(bondID, 0);
+
+        assertEq(sr.token, info.senior);
+        assertEq(sr.amount, 0);
+        assertEq(jr.token, info.junior);
+        assertEq(jr.amount, 0);
+        assertEq(underlying.balanceOf(address(this)), userBefore);
+        assertEq(manager.bondClaim(bondID), 0);
+    }
+
+    function testRealJuniorPerpAcceptsZeroRolloverRowWithoutRegisteringEmptyReserve() public {
+        (bytes32 bondID,) =
+            manager.createBond(address(underlying), 500_000_000_000_000_000, uint64(block.timestamp + 100));
+        PerpToken juniorPerp = new PerpToken(
+            "Junior Perp", "JR-P", address(underlying), address(manager), address(this), true, address(this)
+        );
+        IPerpToken.BondDeposit[] memory deposits = new IPerpToken.BondDeposit[](1);
+        deposits[0] = IPerpToken.BondDeposit({bondID: bondID, underlyingAmt: 0});
+
+        juniorPerp.bondDepositsForRollover(address(manager), deposits);
+
+        assertEq(juniorPerp.trancheTokens().length, 0);
+        assertEq(underlying.balanceOf(address(juniorPerp)), 0);
         assertEq(manager.bondClaim(bondID), 0);
     }
 

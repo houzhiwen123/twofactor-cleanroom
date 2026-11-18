@@ -51,20 +51,23 @@ contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter, Reentrancy
         IUnderlyingPerpVault vault_ = IUnderlyingPerpVault(vault);
         IERC20 underlyingToken = IERC20(vault_.underlying());
         IERC20 perpToken = IERC20(vault_.perp());
+        uint256 underlyingBefore = underlyingToken.balanceOf(address(this));
+        uint256 perpBefore = perpToken.balanceOf(address(this));
 
         if (underlyingAmtIn != 0) {
             underlyingToken.safeTransferFrom(msg.sender, address(this), underlyingAmtIn);
         }
 
         for (uint256 i;; ++i) {
-            uint256 notesThisPass = _depositPass(vault_, underlyingToken, perpToken);
+            uint256 notesThisPass = _depositPass(vault_, underlyingToken, perpToken, underlyingBefore);
             notesMinted += notesThisPass;
             if (notesThisPass == 0 || i == maxIters) break;
         }
 
         if (notesMinted < minNotesOut) revert SlippageTooHigh();
         if (notesMinted != 0) IERC20(vault).safeTransfer(msg.sender, notesMinted);
-        _refund(underlyingToken, perpToken, msg.sender);
+        _refundDelta(underlyingToken, underlyingBefore, msg.sender);
+        _refundDelta(perpToken, perpBefore, msg.sender);
     }
 
     function redeemUnderlying(address vault, uint256 notesAmtIn, uint256 minUnderlyingOut)
@@ -76,6 +79,8 @@ contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter, Reentrancy
         IERC20 underlyingToken = IERC20(vault_.underlying());
         IERC20 perpToken = IERC20(vault_.perp());
         address controller = vault_.perpController();
+        uint256 underlyingBefore = underlyingToken.balanceOf(address(this));
+        uint256 perpBefore = perpToken.balanceOf(address(this));
 
         if (notesAmtIn != 0) IERC20(vault).safeTransferFrom(msg.sender, address(this), notesAmtIn);
         (uint256 directUnderlying, uint256 perpOut) = vault_.redeem(notesAmtIn);
@@ -93,14 +98,16 @@ contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter, Reentrancy
         underlyingAmtOut = directUnderlying + flashUnderlying;
         if (underlyingAmtOut < minUnderlyingOut) revert SlippageTooHigh();
         if (underlyingAmtOut != 0) underlyingToken.safeTransfer(msg.sender, underlyingAmtOut);
-        _refund(underlyingToken, perpToken, msg.sender);
+        _refundDelta(underlyingToken, underlyingBefore, msg.sender);
+        _refundDelta(perpToken, perpBefore, msg.sender);
     }
 
-    function _depositPass(IUnderlyingPerpVault vault, IERC20 underlyingToken, IERC20 perpToken)
+    function _depositPass(IUnderlyingPerpVault vault, IERC20 underlyingToken, IERC20 perpToken, uint256 underlyingFloor)
         private
         returns (uint256 notesMinted)
     {
-        uint256 underlyingAvailable = underlyingToken.balanceOf(address(this));
+        uint256 underlyingBalance_ = underlyingToken.balanceOf(address(this));
+        uint256 underlyingAvailable = underlyingBalance_ > underlyingFloor ? underlyingBalance_ - underlyingFloor : 0;
         if (underlyingAvailable == 0) return 0;
 
         uint256 vaultUnderlying = vault.underlyingBalance();
@@ -141,10 +148,8 @@ contract UnderlyingSingleAssetRouter is IUnderlyingSingleAssetRouter, Reentrancy
         }
     }
 
-    function _refund(IERC20 underlyingToken, IERC20 perpToken, address recipient) private {
-        uint256 amount = underlyingToken.balanceOf(address(this));
-        if (amount != 0) underlyingToken.safeTransfer(recipient, amount);
-        amount = perpToken.balanceOf(address(this));
-        if (amount != 0) perpToken.safeTransfer(recipient, amount);
+    function _refundDelta(IERC20 token, uint256 beforeBalance, address recipient) private {
+        uint256 balance = token.balanceOf(address(this));
+        if (balance > beforeBalance) token.safeTransfer(recipient, balance - beforeBalance);
     }
 }

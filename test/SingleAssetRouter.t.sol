@@ -151,6 +151,7 @@ contract MockRouterStrategy is IDexStrategy {
     MockERC20 public immutable underlyingToken;
     bool public healthy = true;
     uint256 public price = 80_000e18;
+    uint256 public tradeCalls;
 
     constructor(MockERC20 usd_, MockERC20 underlying_) {
         usdToken = usd_;
@@ -223,6 +224,7 @@ contract MockRouterStrategy is IDexStrategy {
     }
 
     function trade(address sellToken, address buyToken, uint256 sellAmt) external returns (uint256 buyAmt) {
+        ++tradeCalls;
         IERC20(sellToken).transferFrom(msg.sender, address(this), sellAmt);
         buyAmt = quote(sellToken, buyToken, sellAmt);
         MockERC20(buyToken).mint(msg.sender, buyAmt);
@@ -301,12 +303,13 @@ contract SingleAssetRouterTest is Test {
         assertEq(usd.balanceOf(USER), 100e6);
 
         vm.prank(USER);
-        vm.expectRevert(MockRouterController.UnexpectedAmount.selector);
-        router.depositUsd(address(vault), address(strategy), 100e6, 0, 1, true);
-        assertEq(usd.balanceOf(USER), 100e6);
+        uint256 twoPassNotes = router.depositUsd(address(vault), address(strategy), 100e6, 0, 1, true);
+        assertEq(twoPassNotes, notes);
+        assertEq(usd.balanceOf(USER), 1);
+        assertEq(usd.balanceOf(address(router)), 0);
     }
 
-    function testPreexistingDustCannotRemainTrappedAfterSuccessfulRoute() public {
+    function testPreexistingDustIsNotPaidToNextCaller() public {
         uint256 usdDust = 7;
         uint256 underlyingDust = 5;
         uint256 perpDust = 3;
@@ -320,11 +323,24 @@ contract SingleAssetRouterTest is Test {
         uint256 notes = router.depositUsd(address(vault), address(strategy), 100e6, 0, 0, true);
 
         assertGt(notes, 0);
-        assertEq(usd.balanceOf(address(router)), 0);
-        assertEq(underlying.balanceOf(address(router)), 0);
-        assertEq(perp.balanceOf(address(router)), 0);
-        assertEq(underlying.balanceOf(USER) - userUnderlyingBefore, underlyingDust);
-        assertEq(perp.balanceOf(USER) - userPerpBefore, perpDust);
+        assertEq(usd.balanceOf(address(router)), usdDust);
+        assertEq(underlying.balanceOf(address(router)), underlyingDust);
+        assertEq(perp.balanceOf(address(router)), perpDust);
+        assertEq(underlying.balanceOf(USER), userUnderlyingBefore);
+        assertEq(perp.balanceOf(USER), userPerpBefore);
+    }
+
+    function testUsdOnlyVaultDepositSkipsZeroAmountTrade() public {
+        MockRouterVault usdOnlyVault = new MockRouterVault(usd, underlying, perp, address(controller));
+        usd.mint(address(usdOnlyVault), 1e6);
+
+        vm.prank(USER);
+        uint256 notes = router.depositUsd(address(usdOnlyVault), address(strategy), 100e6, 0, 0, true);
+
+        assertGt(notes, 0);
+        assertEq(strategy.tradeCalls(), 0);
+        assertEq(underlying.balanceOf(address(strategy)), 0);
+        assertEq(perp.balanceOf(address(usdOnlyVault)), 0);
     }
 
     function testHealthFlagAndRedeemUpkeepFailure() public {

@@ -69,18 +69,23 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
         IERC20 usdToken = IERC20(vault_.usd());
         IERC20 underlyingToken = IERC20(vault_.underlying());
         IERC20 perpToken = IERC20(vault_.perpSr());
+        uint256 usdBefore = usdToken.balanceOf(address(this));
+        uint256 underlyingBefore = underlyingToken.balanceOf(address(this));
+        uint256 perpBefore = perpToken.balanceOf(address(this));
 
         usdToken.safeTransferFrom(msg.sender, address(this), usdMax);
         _approveIfNeeded(usdToken, strategy, usdMax);
 
         for (uint256 i;; ++i) {
-            notesOut += _depositPass(vault_, IDexStrategy(strategy), usdToken, underlyingToken, perpToken);
+            notesOut += _depositPass(vault_, IDexStrategy(strategy), usdToken, underlyingToken, perpToken, usdBefore);
             if (i == maxIters) break;
         }
 
         if (notesOut < minNotes) revert SlippageTooHigh();
         IERC20(vault).safeTransfer(msg.sender, notesOut);
-        _refund(usdToken, underlyingToken, perpToken, msg.sender);
+        _refundDelta(usdToken, usdBefore, msg.sender);
+        _refundDelta(underlyingToken, underlyingBefore, msg.sender);
+        _refundDelta(perpToken, perpBefore, msg.sender);
     }
 
     function redeemUsd(
@@ -99,6 +104,9 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
         IERC20 underlyingToken = IERC20(vault_.underlying());
         IERC20 perpToken = IERC20(vault_.perpSr());
         address controller = vault_.perpController();
+        uint256 usdBefore = usdToken.balanceOf(address(this));
+        uint256 underlyingBefore = underlyingToken.balanceOf(address(this));
+        uint256 perpBefore = perpToken.balanceOf(address(this));
 
         IERC20(vault).safeTransferFrom(msg.sender, address(this), notesIn);
         (uint256 directUsd, uint256 perpOut) = vault_.redeem(notesIn);
@@ -118,7 +126,9 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
         usdOut = directUsd + swappedUsd;
         if (usdOut < minUsdOut) revert SlippageTooHigh();
         if (usdOut != 0) usdToken.safeTransfer(msg.sender, usdOut);
-        _refund(usdToken, underlyingToken, perpToken, msg.sender);
+        _refundDelta(usdToken, usdBefore, msg.sender);
+        _refundDelta(underlyingToken, underlyingBefore, msg.sender);
+        _refundDelta(perpToken, perpBefore, msg.sender);
     }
 
     function _depositPass(
@@ -126,9 +136,11 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
         IDexStrategy strategy,
         IERC20 usdToken,
         IERC20 underlyingToken,
-        IERC20 perpToken
+        IERC20 perpToken,
+        uint256 usdFloor
     ) private returns (uint256 notesOut) {
-        uint256 usdAvailable = usdToken.balanceOf(address(this));
+        uint256 usdBalance_ = usdToken.balanceOf(address(this));
+        uint256 usdAvailable = usdBalance_ > usdFloor ? usdBalance_ - usdFloor : 0;
         if (usdAvailable == 0) return 0;
 
         uint256 vaultUsd = vault.usdBalance();
@@ -150,11 +162,13 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
 
         uint256 usdForVault = Math.mulDiv(usdAvailable, vaultUsd, totalVaultUsd, Math.Rounding.Ceil);
         uint256 usdToSell = usdAvailable - usdForVault;
-        uint256 underlyingBought = strategy.trade(address(usdToken), address(underlyingToken), usdToSell);
-
-        address controller = vault.perpController();
-        _approveIfNeeded(underlyingToken, controller, underlyingBought);
-        (uint256 perpMinted,,,) = ISingleAssetController(controller).flashMint2(underlyingBought, 0, 0, 0);
+        uint256 perpMinted;
+        if (usdToSell != 0) {
+            uint256 underlyingBought = strategy.trade(address(usdToken), address(underlyingToken), usdToSell);
+            address controller = vault.perpController();
+            _approveIfNeeded(underlyingToken, controller, underlyingBought);
+            (perpMinted,,,) = ISingleAssetController(controller).flashMint2(underlyingBought, 0, 0, 0);
+        }
 
         _approveIfNeeded(usdToken, address(vault), usdForVault);
         _approveIfNeeded(perpToken, address(vault), perpMinted);
@@ -171,13 +185,9 @@ contract SingleAssetRouter is ISingleAssetRouter, ReentrancyGuard {
         }
     }
 
-    function _refund(IERC20 usdToken, IERC20 underlyingToken, IERC20 perpToken, address recipient) private {
-        uint256 amount = usdToken.balanceOf(address(this));
-        if (amount != 0) usdToken.safeTransfer(recipient, amount);
-        amount = underlyingToken.balanceOf(address(this));
-        if (amount != 0) underlyingToken.safeTransfer(recipient, amount);
-        amount = perpToken.balanceOf(address(this));
-        if (amount != 0) perpToken.safeTransfer(recipient, amount);
+    function _refundDelta(IERC20 token, uint256 beforeBalance, address recipient) private {
+        uint256 balance = token.balanceOf(address(this));
+        if (balance > beforeBalance) token.safeTransfer(recipient, balance - beforeBalance);
     }
 
     function _revertSelector(bytes4 selector) private pure {

@@ -541,8 +541,8 @@ contract GenesisDeploymentTest is Test {
         emit log_named_uint("full-exit remaining vmDR", finalVmDr);
     }
 
-    /// @dev LOCAL CLEANROOM / BNB-DESIGN regression only. The emitted pre-fix 73%–74% fee
-    /// values are a confirmed local FeePolicy compatibility bug, not TARGET expected behavior.
+    /// @dev LOCAL CLEANROOM / BNB-DESIGN regression only. FeePolicy arithmetic is target-matched,
+    /// but the synthetic multi-epoch Controller state is not TARGET-confirmed.
     function testGenesisExitFeeCurveAudit() public {
         LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
         _prepareModerateMultiEpochExitState(s);
@@ -570,6 +570,49 @@ contract GenesisDeploymentTest is Test {
         rollingHash = keccak256(abi.encode(rollingHash, _runExitMode(s, 3, context)));
 
         emit log_named_bytes32("EXIT_CURVE_HASH", rollingHash);
+    }
+
+    /// @dev LOCAL CLEANROOM / BNB-DESIGN economic regression. This compares both local exits from
+    /// the exact same multi-epoch state; it is not evidence that the TARGET charges these fees.
+    function testGenesisProportionalBasketAndFlashExitComparison() public {
+        LocalSystem memory s = _deployPausedSystem(INITIAL_UNDERLYING);
+        _prepareModerateMultiEpochExitState(s);
+        uint256 userSr = s.perpSr.balanceOf(RECEIVER);
+        uint256 userJr = s.perpJr.balanceOf(RECEIVER);
+
+        vm.startPrank(RECEIVER);
+        s.perpSr.approve(address(s.controller), type(uint256).max);
+        s.perpJr.approve(address(s.controller), type(uint256).max);
+        vm.stopPrank();
+
+        uint16[3] memory exitBps = [uint16(100), 1_000, 5_000];
+        uint256 baselineSnapshot = vm.snapshotState();
+        for (uint256 i; i < exitBps.length; ++i) {
+            uint256 srInput = Math.mulDiv(userSr, exitBps[i], 10_000);
+            uint256 jrInput = Math.mulDiv(userJr, exitBps[i], 10_000);
+            ExitQuote memory quote = _quoteExit(s, srInput, jrInput);
+
+            vm.prank(RECEIVER);
+            (PerpBalancer.ReserveAmounts memory srOut, PerpBalancer.ReserveAmounts memory jrOut,,) =
+                s.controller.redeem2(srInput, jrInput, 0);
+            uint256 basketOut = _returnedBasketValue(srOut) + _returnedBasketValue(jrOut);
+            uint256 basketEffectiveFee = Math.mulDiv(quote.theoreticalValue - basketOut, 1e18, quote.theoreticalValue);
+            assertTrue(vm.revertToState(baselineSnapshot));
+
+            vm.prank(RECEIVER);
+            (uint256 flashOut,,) = s.controller.flashRedeem2(srInput, jrInput, 0);
+            uint256 flashEffectiveFee = Math.mulDiv(quote.theoreticalValue - flashOut, 1e18, quote.theoreticalValue);
+            assertGt(flashEffectiveFee, basketEffectiveFee);
+            assertGt(flashEffectiveFee, 5e17);
+
+            emit log_named_uint("exit bps", exitBps[i]);
+            emit log_named_uint("theoretical underlying value", quote.theoreticalValue);
+            emit log_named_uint("basket received value", basketOut);
+            emit log_named_uint("basket effective fee WAD", basketEffectiveFee);
+            emit log_named_uint("flash underlying received", flashOut);
+            emit log_named_uint("flash effective fee WAD", flashEffectiveFee);
+            assertTrue(vm.revertToState(baselineSnapshot));
+        }
     }
 
     function _runExitMode(LocalSystem memory s, uint8 mode, ExitCurveContext memory context)

@@ -92,6 +92,9 @@ interface IUsdVault is IERC20 {
 
     function isSwapper(address account) external view returns (bool);
 
+    /// @dev BNB-DESIGN safety surface: lets governance revoke or rotate Inventory authorization.
+    function updateSwapper(address account, bool authorized) external;
+
     function maxUsdDeviationPerc() external view returns (uint64);
 
     function maxUnderlyingDeviationPerc() external view returns (uint64);

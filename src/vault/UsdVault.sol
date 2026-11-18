@@ -82,6 +82,8 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     error UnauthorizedCall();
     error VaultInitialized();
 
+    event SwapperUpdated(address indexed account, bool authorized);
+
     uint256 private constant WAD = 1e18;
     uint256 private constant USD_UNIT = 1e6;
     uint256 private constant UNDERLYING_UNIT = 1e8;
@@ -303,6 +305,13 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         return _isSwapper[account];
     }
 
+    /// @notice BNB-DESIGN safety control for rotating or revoking inventory actors.
+    function updateSwapper(address account, bool authorized) external onlyOwner {
+        if (account == address(0)) revert InvalidParamDefn();
+        _isSwapper[account] = authorized;
+        emit SwapperUpdated(account, authorized);
+    }
+
     function maxUsdDeviationPerc() external view returns (uint64) {
         return _maxUsdDeviationPerc;
     }
@@ -480,6 +489,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         if (underlyingIn == 0 || underlyingIn > context.plan.maxRebalanceUnderlying) {
             revert OpUnavailable("capacity");
         }
+        _validateInventoryPrice(context.plan.underlyingPrice, underlyingIn, usdOut, true);
         uint256 consumedUsdVal = usdOut * (WAD / USD_UNIT);
         _validateActualRebalance(context.plan, consumedUsdVal);
 
@@ -497,6 +507,7 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         if (underlyingOut == 0 || underlyingOut > context.plan.maxRebalanceUnderlying) {
             revert OpUnavailable("capacity");
         }
+        _validateInventoryPrice(context.plan.underlyingPrice, underlyingOut, usdIn, false);
         uint256 perpToRedeem = _perpForUnderlying(context.plan, context.plan.maxRebalanceUnderlying);
 
         _usdToken.safeTransferFrom(msg.sender, address(this), usdIn);
@@ -619,6 +630,21 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
         if (consumedUsdVal < _minOpUsdVal) revert OpUnavailable("min size");
     }
 
+    function _validateInventoryPrice(uint256 underlyingPrice, uint256 underlyingAmt, uint256 usdAmt, bool vaultBuys)
+        private
+        view
+    {
+        uint256 oracleUsdVal = Math.mulDiv(underlyingAmt, underlyingPrice, UNDERLYING_UNIT);
+        uint256 actualUsdVal = usdAmt * (WAD / USD_UNIT);
+        if (vaultBuys) {
+            uint256 maxUsdVal = Math.mulDiv(oracleUsdVal, WAD + _maxUnderlyingDeviationPerc, WAD);
+            if (actualUsdVal > maxUsdVal) revert SlippageTooHigh();
+        } else {
+            uint256 minUsdVal = Math.mulDiv(oracleUsdVal, WAD - _maxUnderlyingDeviationPerc, WAD);
+            if (actualUsdVal < minUsdVal) revert SlippageTooHigh();
+        }
+    }
+
     function _perpForUnderlying(RebalancePlan memory plan, uint256 underlyingAmt) private pure returns (uint256) {
         if (plan.perpSrTotalSupply == 0 || plan.perpSrReserveValue == 0) revert NoOp();
         return Math.mulDiv(underlyingAmt, plan.perpSrTotalSupply, plan.perpSrReserveValue, Math.Rounding.Ceil);
@@ -697,6 +723,10 @@ contract UsdVault is Initializable, ERC20Upgradeable, ReentrancyGuardUpgradeable
     }
 
     function computeRedemptionAmts(uint256 notesAmt) public view returns (uint256 usdAmtOut, uint256 perpSrAmtOut) {
+        // BNB-DESIGN: the target two-asset redeem ABI cannot distribute idle
+        // underlying. Require permissionless upkeep to settle it first rather
+        // than silently transferring its value to the remaining note holders.
+        if (underlyingBalance() != 0) revert OpUnavailable("idle underlying");
         uint256 notesSupply = totalSupply();
         usdAmtOut = Math.mulDiv(notesAmt, usdBalance(), notesSupply);
         perpSrAmtOut = Math.mulDiv(notesAmt, perpSrBalance(), notesSupply);

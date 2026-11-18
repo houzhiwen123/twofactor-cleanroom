@@ -294,6 +294,18 @@ contract UsdVaultLocalDexLifecycleTest is Test {
         assertEq(_fingerprint(env), beforeFingerprint, "Vault, Controller, pool and session must roll back");
     }
 
+    function testRedeemCannotSilentlyLeaveIdleUnderlyingForRemainingHolders() external {
+        Env memory env = _deployActivatedEnvironment();
+        env.underlying.mint(address(env.vault), 1);
+        bytes32 beforeFingerprint = _fingerprint(env);
+
+        vm.prank(USER);
+        vm.expectRevert(abi.encodeWithSelector(UsdVault.OpUnavailable.selector, "idle underlying"));
+        env.vault.redeem(env.userNotes / 2);
+
+        assertEq(_fingerprint(env), beforeFingerprint);
+    }
+
     function _deployActivatedEnvironment() private returns (Env memory env) {
         vm.warp(1_800_000_000);
         env.usd = new MockERC20("USD Coin", "USDC", 6);

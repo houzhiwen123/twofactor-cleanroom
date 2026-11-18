@@ -327,6 +327,54 @@ contract UsdVaultRebalanceExecutionTest is Test {
         assertEq(_fingerprint(env), beforeFingerprint);
     }
 
+    function testInventoryMintRejectsOracleDeviatingPriceAtomically() public {
+        Env memory env = _deployMintVector();
+        bytes32 beforeFingerprint = _fingerprint(env);
+
+        vm.prank(INVENTORY);
+        vm.expectRevert(UsdVault.SlippageTooHigh.selector);
+        env.vault.swap(address(env.underlying), address(env.usd), 4_316_589, 33_901_111_850);
+
+        assertEq(_fingerprint(env), beforeFingerprint);
+    }
+
+    function testInventoryRedeemRejectsOracleDeviatingPriceAtomically() public {
+        Env memory env = _deployRedeemVector();
+        bytes32 beforeFingerprint = _fingerprint(env);
+
+        vm.prank(INVENTORY);
+        vm.expectRevert(UsdVault.SlippageTooHigh.selector);
+        env.vault.swap(address(env.usd), address(env.underlying), 73_185_156, 955_487);
+
+        assertEq(_fingerprint(env), beforeFingerprint);
+    }
+
+    function testOwnerCanRevokeAndRotateInventorySwapper() public {
+        Env memory env = _deployMintVector();
+        env.vault.updateSwapper(INVENTORY, false);
+        assertFalse(env.vault.isSwapper(INVENTORY));
+
+        vm.prank(INVENTORY);
+        vm.expectRevert(UsdVault.UnauthorizedCall.selector);
+        env.vault.swap(address(env.underlying), address(env.usd), 4_316_589, 3_390_111_185);
+
+        env.vault.updateSwapper(RANDOM, true);
+        assertTrue(env.vault.isSwapper(RANDOM));
+    }
+
+    function testSwapperRotationRejectsUnauthorizedAndZeroAddress() public {
+        Env memory env = _deployMintVector();
+
+        vm.prank(RANDOM);
+        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", RANDOM));
+        env.vault.updateSwapper(RANDOM, true);
+        assertFalse(env.vault.isSwapper(RANDOM));
+
+        vm.expectRevert(UsdVault.InvalidParamDefn.selector);
+        env.vault.updateSwapper(address(0), true);
+        assertFalse(env.vault.isSwapper(address(0)));
+    }
+
     function testDirectRebalanceDelayBoundary3599And3600() public {
         Env memory env = _deployMintVector();
         env.dex.configureFill(1_000, 1, 1);

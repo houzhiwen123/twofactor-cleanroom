@@ -187,6 +187,11 @@ contract BondsManager is Initializable, Ownable2StepUpgradeable, ReentrancyGuard
     {
         BondData storage b = _getBond(bondID);
         if (b.isMature || block.timestamp >= b.maturityDate) revert MatureBond();
+        // TARGET-CONFIRMED: rollover may include a zero-valued row. Preserve the
+        // canonical tranche identities without moving assets or minting claims.
+        if (underlyingAmt == 0) {
+            return (TokenAmount(b.senior, 0), TokenAmount(b.junior, 0));
+        }
         uint256 totalTranche = Math.mulDiv(underlyingAmt, b.openPrice, WAD);
         // BNB-DESIGN / CLEANROOM SAFETY: never accept underlying when rounding would mint no claim tokens.
         if (totalTranche == 0) revert InvalidParamDefn();
