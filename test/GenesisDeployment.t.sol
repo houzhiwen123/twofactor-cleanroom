@@ -599,8 +599,11 @@ contract GenesisDeploymentTest is Test {
             uint256 basketEffectiveFee = Math.mulDiv(quote.theoreticalValue - basketOut, 1e18, quote.theoreticalValue);
             assertTrue(vm.revertToState(baselineSnapshot));
 
+            (uint256 flashPreSubDr, uint256 flashPreVmDr) = s.controller.systemDeviations();
             vm.prank(RECEIVER);
-            (uint256 flashOut,,) = s.controller.flashRedeem2(srInput, jrInput, 0);
+            (uint256 flashOut, PerpController.FeePerc memory flashSrFee, PerpController.FeePerc memory flashJrFee) =
+                s.controller.flashRedeem2(srInput, jrInput, 0);
+            (uint256 flashPostSubDr, uint256 flashPostVmDr) = s.controller.systemDeviations();
             uint256 flashEffectiveFee = Math.mulDiv(quote.theoreticalValue - flashOut, 1e18, quote.theoreticalValue);
             assertGt(flashEffectiveFee, basketEffectiveFee);
             assertGt(flashEffectiveFee, 5e17);
@@ -611,6 +614,12 @@ contract GenesisDeploymentTest is Test {
             emit log_named_uint("basket effective fee WAD", basketEffectiveFee);
             emit log_named_uint("flash underlying received", flashOut);
             emit log_named_uint("flash effective fee WAD", flashEffectiveFee);
+            emit log_named_uint("flash SR total fee WAD", flashSrFee.totalFeePerc);
+            emit log_named_uint("flash JR total fee WAD", flashJrFee.totalFeePerc);
+            emit log_named_uint("flash pre subDR", flashPreSubDr);
+            emit log_named_uint("flash post subDR", flashPostSubDr);
+            emit log_named_uint("flash pre vmDR", flashPreVmDr);
+            emit log_named_uint("flash post vmDR", flashPostVmDr);
             assertTrue(vm.revertToState(baselineSnapshot));
         }
     }

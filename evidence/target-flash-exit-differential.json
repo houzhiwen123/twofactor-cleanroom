@@ -1,0 +1,70 @@
+{
+  "task": "TARGET_FLASH_EXIT_DIFFERENTIAL",
+  "baseline_commit": "8eb174c3afab93e3b2da67a161b35495b163f2d6",
+  "scope": {
+    "network": "Base",
+    "chain_id": 8453,
+    "strict_prestate_transaction": "0xaf7d86860fa149f0fdddb186f74753dc2b912294c7e4f4b1b8930934fe7144ab",
+    "block_number": 53243583,
+    "transaction_index": 77,
+    "target_mutation": "none",
+    "balance_policy": "natural historical balances only; no deal/store"
+  },
+  "versions": {
+    "controller_proxy": "0x682f3a053b0260dad4ebeee3924b1618b330a200",
+    "controller_implementation": "0x16e324bae2098317477129a5e71f770bff51f02a",
+    "fee_policy_proxy": "0x1e3dbdc2adf4d5fdd1efdfb9ff05e4154d0c00e8",
+    "fee_policy_implementation": "0x9cefc3cf756c6b2a7568b0539c956f1dd5691900"
+  },
+  "vectors": [
+    {
+      "name": "natural_sr_flash_exit",
+      "classification": "TARGET-CONFIRMED output; SYNTHETIC FORK using natural balance",
+      "perp_sr_input": "375200394",
+      "underlying_out": "4723",
+      "pre_sub_dr": "1037908621221648993",
+      "post_sub_dr": "1037957360646473772",
+      "pre_vm_dr": "1003771134818793536",
+      "post_vm_dr": "1003759218472700709",
+      "target_sr_total_fee_wad": "0",
+      "target_sr_protocol_fee_wad": "0",
+      "cleanroom_fee_policy_sr_total_fee_wad": "0",
+      "cleanroom_fee_policy_sr_protocol_fee_wad": "0",
+      "inactive_jr_total_fee_wad": "0"
+    },
+    {
+      "name": "natural_sr_basket_control",
+      "classification": "SYNTHETIC FORK using natural balance",
+      "perp_sr_input": "375200394",
+      "underlying_out": "0",
+      "tranche_entry_count": 3,
+      "pre_sub_dr": "1037908621221648993",
+      "post_sub_dr": "1037957391606699294",
+      "pre_vm_dr": "1003771134818793536",
+      "post_vm_dr": "1003771134818793536",
+      "target_sr_total_fee_wad": "0",
+      "target_sr_protocol_fee_wad": "0",
+      "cleanroom_fee_policy_sr_total_fee_wad": "0",
+      "cleanroom_fee_policy_sr_protocol_fee_wad": "0",
+      "inactive_jr_total_fee_wad": "0"
+    },
+    {
+      "name": "local_high_vm_fee_policy_input",
+      "classification": "TARGET-CONFIRMED FeePolicy semantics on SYNTHETIC input; LOCAL CLEANROOM state",
+      "pre_sub_dr": "847534510909630408",
+      "post_sub_dr": "847234148514625054",
+      "pre_vm_dr": "1060773479096730879",
+      "post_vm_dr": "1060883654856989096",
+      "target_sr_flash_total_fee_wad": "738808066073795619",
+      "cleanroom_sr_flash_total_fee_wad": "738808066073795619",
+      "exact_match": true
+    }
+  ],
+  "conclusion": {
+    "target_natural_flash_fee_is_70_percent_plus": false,
+    "local_fee_policy_arithmetic_mismatch": false,
+    "target_high_vm_controller_lifecycle_match": "UNKNOWN",
+    "production_contracts_changed": false
+  },
+  "probe": "evidence/probe-tests/TargetRealHolderExitReplay.t.sol"
+}

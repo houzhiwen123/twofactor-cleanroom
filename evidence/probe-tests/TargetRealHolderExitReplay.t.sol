@@ -134,6 +134,13 @@ contract TargetRealHolderExitReplayTest is Test {
     uint256 private constant ROUTER_VAULT_PERP_SR_OUT = 375_200_394;
     uint256 private constant ROUTER_DEX_USD_OUT = 3_778_900;
 
+    // LOCAL-CLEANROOM diagnostic state from GenesisDeployment.t.sol's multi-epoch lifecycle.
+    // These values are intentionally not presented as a target Controller state.
+    uint256 private constant LOCAL_HIGH_FEE_PRE_SUB_DR = 847_534_510_909_630_408;
+    uint256 private constant LOCAL_HIGH_FEE_POST_SUB_DR = 847_234_148_514_625_054;
+    uint256 private constant LOCAL_HIGH_FEE_PRE_VM_DR = 1_060_773_479_096_730_879;
+    uint256 private constant LOCAL_HIGH_FEE_POST_VM_DR = 1_060_883_654_856_989_096;
+
     bytes4 private constant SLIPPAGE_EXCEEDED_LIMIT = 0xbc3944e7;
     bytes4 private constant REDEEM_USD_SELECTOR = 0xbc944eae;
     bytes32 private constant EIP1967_IMPLEMENTATION_SLOT =
@@ -234,6 +241,20 @@ contract TargetRealHolderExitReplayTest is Test {
         uint256 srReserveValueAfter,
         uint256 jrReserveValueBefore,
         uint256 jrReserveValueAfter
+    );
+    event SrExitFeeCompatibility(
+        bool isFlash,
+        uint256 preSubDR,
+        uint256 postSubDR,
+        uint256 preVmDR,
+        uint256 postVmDR,
+        uint256 returnedSrTotal,
+        uint256 returnedSrProtocol,
+        uint256 targetSrTotal,
+        uint256 targetSrProtocol,
+        uint256 cleanroomSrTotal,
+        uint256 cleanroomSrProtocol,
+        bool exactMatch
     );
     event SrReserveTransferredToJr(address indexed tranche, uint256 amountMoved);
     event ControllerEventResult(
@@ -442,6 +463,12 @@ contract TargetRealHolderExitReplayTest is Test {
     ///      balance or storage is manufactured.
     function testRouterHistoricalSrExitLiquiditySource() public {
         _selectStrictFork(SINGLE_ASSET_REDEEM_TX, SINGLE_ASSET_REDEEM_BLOCK);
+        _assertAndEmitVersion(
+            3, 0, CONTROLLER, CONTROLLER_IMPLEMENTATION, CONTROLLER_PROXY_CODEHASH, CONTROLLER_IMPLEMENTATION_CODEHASH
+        );
+        _assertAndEmitVersion(
+            3, 1, FEE_POLICY, FEE_POLICY_IMPLEMENTATION, FEE_POLICY_PROXY_CODEHASH, FEE_POLICY_IMPLEMENTATION_CODEHASH
+        );
         ITargetControllerReplay controller = ITargetControllerReplay(CONTROLLER);
 
         vm.prank(SMART_ACCOUNT);
@@ -450,8 +477,10 @@ contract TargetRealHolderExitReplayTest is Test {
         vm.prank(SMART_ACCOUNT);
         assertTrue(IERC20Replay(PERP_SR).approve(CONTROLLER, perpSrOut), "Controller approval");
 
+        SystemSnapshot memory pre = _systemSnapshot();
         (ITargetControllerReplay.SystemState memory preState, ITargetControllerReplay.ReserveData memory srBefore,) =
             controller.systemReserveState();
+        uint256 srCollectedBefore = controller.collectedFeeBal(PERP_SR);
 
         uint256 srUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(PERP_SR);
         uint256 jrUnderlyingBefore = IERC20Replay(CBBTC).balanceOf(PERP_JR);
@@ -466,6 +495,7 @@ contract TargetRealHolderExitReplayTest is Test {
         ) = controller.flashRedeem2(perpSrOut, 0, 0);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
+        SystemSnapshot memory post = _systemSnapshot();
         (ITargetControllerReplay.SystemState memory postState,,) = controller.systemReserveState();
         uint256 srUnderlyingAfter = IERC20Replay(CBBTC).balanceOf(PERP_SR);
         uint256 jrUnderlyingAfter = IERC20Replay(CBBTC).balanceOf(PERP_JR);
@@ -475,6 +505,7 @@ contract TargetRealHolderExitReplayTest is Test {
         assertEq(srUnderlyingAfter, 0, "target SR does not fund exit with idle cbBTC");
         assertEq(jrFee.totalFeePerc, 0, "inactive JR total fee return");
         assertEq(jrFee.protocolFeePerc, 0, "inactive JR protocol fee return");
+        assertEq(controller.collectedFeeBal(PERP_SR), srCollectedBefore, "zero SR fee must not be retained");
         assertEq(
             IERC20Replay(CBBTC).balanceOf(SMART_ACCOUNT) - userUnderlyingBefore,
             underlyingOut,
@@ -483,6 +514,12 @@ contract TargetRealHolderExitReplayTest is Test {
         assertEq(
             controllerUnderlyingBefore, controllerUnderlyingAfter, "Controller only routes cbBTC during the atomic exit"
         );
+        _assertSrExitFeeCompatibility(pre, post, srFee, true);
+
+        emit log_named_uint("flash pre subDR", pre.subDR);
+        emit log_named_uint("flash post subDR", post.subDR);
+        emit log_named_uint("flash pre vmDR", pre.vmDR);
+        emit log_named_uint("flash post vmDR", post.vmDR);
 
         (uint256 cbbtcIntoJr, uint256 grossFromJr, uint256 paidToHolder, uint256 movedTrancheCount) =
             _assertSrFlashLiquidityTrace(logs, srBefore, underlyingOut);
@@ -515,6 +552,117 @@ contract TargetRealHolderExitReplayTest is Test {
             postState.perpSr.reserveValue,
             preState.perpJr.reserveValue,
             postState.perpJr.reserveValue
+        );
+    }
+
+    /// @notice Control vector: the same natural SR balance and strict prestate as the flash
+    ///         vector, but redeemed as a reserve basket rather than for cbBTC.
+    /// @dev This is a target-fork synthetic call using a holder's natural balance after its
+    ///      natural Vault redemption. It is not asserted to be a historical target transaction.
+    function testRouterHistoricalSrBasketExitFeeControl() public {
+        _selectStrictFork(SINGLE_ASSET_REDEEM_TX, SINGLE_ASSET_REDEEM_BLOCK);
+        _assertAndEmitVersion(
+            4, 0, CONTROLLER, CONTROLLER_IMPLEMENTATION, CONTROLLER_PROXY_CODEHASH, CONTROLLER_IMPLEMENTATION_CODEHASH
+        );
+        _assertAndEmitVersion(
+            4, 1, FEE_POLICY, FEE_POLICY_IMPLEMENTATION, FEE_POLICY_PROXY_CODEHASH, FEE_POLICY_IMPLEMENTATION_CODEHASH
+        );
+        ITargetControllerReplay controller = ITargetControllerReplay(CONTROLLER);
+
+        vm.prank(SMART_ACCOUNT);
+        (, uint256 perpSrOut) = IUsdVaultReplay(USD_VAULT).redeem(ROUTER_NOTES_IN);
+        assertEq(perpSrOut, ROUTER_VAULT_PERP_SR_OUT, "natural Vault Perp SR output");
+        vm.prank(SMART_ACCOUNT);
+        assertTrue(IERC20Replay(PERP_SR).approve(CONTROLLER, perpSrOut), "Controller approval");
+
+        SystemSnapshot memory pre = _systemSnapshot();
+        vm.prank(SMART_ACCOUNT);
+        (
+            ITargetControllerReplay.ReserveAmounts memory srOut,
+            ITargetControllerReplay.ReserveAmounts memory jrOut,
+            ITargetControllerReplay.FeePerc memory srFee,
+            ITargetControllerReplay.FeePerc memory jrFee
+        ) = controller.redeem2(perpSrOut, 0, 0);
+        SystemSnapshot memory post = _systemSnapshot();
+
+        assertEq(jrOut.underlyingAmt, 0, "inactive JR underlying");
+        assertEq(jrOut.trancheAmts.length, 0, "inactive JR tranches");
+        assertEq(jrFee.totalFeePerc, 0, "inactive JR total fee");
+        assertEq(jrFee.protocolFeePerc, 0, "inactive JR protocol fee");
+        _assertSrExitFeeCompatibility(pre, post, srFee, false);
+
+        emit log_named_uint("basket SR underlying out", srOut.underlyingAmt);
+        emit log_named_uint("basket SR tranche count", srOut.trancheAmts.length);
+        emit log_named_uint("basket pre subDR", pre.subDR);
+        emit log_named_uint("basket post subDR", post.subDR);
+        emit log_named_uint("basket pre vmDR", pre.vmDR);
+        emit log_named_uint("basket post vmDR", post.vmDR);
+    }
+
+    /// @notice Separates the target FeePolicy curve from the local Controller state construction.
+    /// @dev The input DR pair is SYNTHETIC: it comes from the local multi-epoch diagnostic and is
+    ///      evaluated by the target's public view function. No target state or balance is altered.
+    function testTargetFeePolicySyntheticLocalHighVmDr() public {
+        _selectStrictFork(SINGLE_ASSET_REDEEM_TX, SINGLE_ASSET_REDEEM_BLOCK);
+        _assertAndEmitVersion(
+            5, 0, FEE_POLICY, FEE_POLICY_IMPLEMENTATION, FEE_POLICY_PROXY_CODEHASH, FEE_POLICY_IMPLEMENTATION_CODEHASH
+        );
+        FeePolicy target = FeePolicy(FEE_POLICY);
+        FeePolicy cleanroom = _deployConfiguredCleanroomPolicy(target);
+        FeePolicy.OpSystemChange memory change = FeePolicy.OpSystemChange({
+            subDRPre: LOCAL_HIGH_FEE_PRE_SUB_DR,
+            subDRPost: LOCAL_HIGH_FEE_POST_SUB_DR,
+            vmDRPre: LOCAL_HIGH_FEE_PRE_VM_DR,
+            vmDRPost: LOCAL_HIGH_FEE_POST_VM_DR
+        });
+        FeePolicy.OpFeeInput memory input =
+            FeePolicy.OpFeeInput({isPerpSrOp: true, isFlashOp: true, systemDeviation: change});
+        FeePolicy.OpFees memory targetSr = target.computeOpFees(input);
+        FeePolicy.OpFees memory localSr = cleanroom.computeOpFees(input);
+
+        assertEq(targetSr.totalFeePerc, localSr.totalFeePerc, "synthetic high-VM SR total fee differential");
+        assertEq(targetSr.protocolFeePerc, localSr.protocolFeePerc, "synthetic high-VM SR protocol fee differential");
+        emit log_named_uint("synthetic target SR flash total fee WAD", targetSr.totalFeePerc);
+        emit log_named_uint("synthetic local SR flash total fee WAD", localSr.totalFeePerc);
+    }
+
+    /// @notice Checks the target Controller's active-side fee return against both target FeePolicy
+    ///         and a locally deployed FeePolicy configured only from public target parameters.
+    /// @dev This isolates fee arithmetic from the Controller's reserve-recovery implementation.
+    function _assertSrExitFeeCompatibility(
+        SystemSnapshot memory pre,
+        SystemSnapshot memory post,
+        ITargetControllerReplay.FeePerc memory returnedSr,
+        bool isFlash
+    ) private {
+        FeePolicy target = FeePolicy(FEE_POLICY);
+        FeePolicy cleanroom = _deployConfiguredCleanroomPolicy(target);
+        FeePolicy.OpSystemChange memory change = FeePolicy.OpSystemChange({
+            subDRPre: pre.subDR, subDRPost: post.subDR, vmDRPre: pre.vmDR, vmDRPost: post.vmDR
+        });
+        FeePolicy.OpFeeInput memory input =
+            FeePolicy.OpFeeInput({isPerpSrOp: true, isFlashOp: isFlash, systemDeviation: change});
+        FeePolicy.OpFees memory targetSr = target.computeOpFees(input);
+        FeePolicy.OpFees memory localSr = cleanroom.computeOpFees(input);
+
+        assertEq(returnedSr.totalFeePerc, targetSr.totalFeePerc, "returned SR total fee");
+        assertEq(returnedSr.protocolFeePerc, targetSr.protocolFeePerc, "returned SR protocol fee");
+        assertEq(targetSr.totalFeePerc, localSr.totalFeePerc, "SR total fee differential");
+        assertEq(targetSr.protocolFeePerc, localSr.protocolFeePerc, "SR protocol fee differential");
+
+        emit SrExitFeeCompatibility(
+            isFlash,
+            pre.subDR,
+            post.subDR,
+            pre.vmDR,
+            post.vmDR,
+            returnedSr.totalFeePerc,
+            returnedSr.protocolFeePerc,
+            targetSr.totalFeePerc,
+            targetSr.protocolFeePerc,
+            localSr.totalFeePerc,
+            localSr.protocolFeePerc,
+            true
         );
     }
 
