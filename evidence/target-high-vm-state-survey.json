@@ -1,0 +1,40 @@
+{
+  "task": "TARGET_HIGH_VM_STATE_SURVEY",
+  "classification": "TARGET-CONFIRMED fixed block-end public state; bounded no-observation result",
+  "scope": {
+    "network": "Base",
+    "chain_id": 8453,
+    "method": "local Foundry block forks and public systemDeviations() calls",
+    "target_mutation": "none",
+    "candidate_blocks": 11,
+    "readable_blocks": 9
+  },
+  "version_lock": {
+    "controller_proxy": "0x682f3a053b0260dad4ebeee3924b1618b330a200",
+    "controller_implementation": "0x16e324bae2098317477129a5e71f770bff51f02a",
+    "proxy_codehash": "0x2439ee0ade6a1d06e3704a98bcd13ba2efd1426e8bf25d3456caa16f741f2e2e",
+    "implementation_codehash": "0xc18d3bcb6fb9e0f54b93f7d431901e13ee879a86502da786841e2f12d9606e31"
+  },
+  "local_high_vm_reference": "1060773479096730879",
+  "samples": [
+    {"block": 51000000, "readable": false},
+    {"block": 51500000, "readable": false},
+    {"block": 51777385, "readable": true, "sub_dr": "1025799406232600248", "vm_dr": "1002206743712286605"},
+    {"block": 52250000, "readable": true, "sub_dr": "1058124255418572710", "vm_dr": "998063048432670782"},
+    {"block": 52750000, "readable": true, "sub_dr": "1051140705255981599", "vm_dr": "1000127970148566184"},
+    {"block": 53243583, "readable": true, "sub_dr": "1037957360646473772", "vm_dr": "1003759218472700709"},
+    {"block": 53750000, "readable": true, "sub_dr": "1044088086984864517", "vm_dr": "1002269182964640096"},
+    {"block": 54250000, "readable": true, "sub_dr": "1059521693190810143", "vm_dr": "998594484041626227"},
+    {"block": 54750000, "readable": true, "sub_dr": "1055112499925392702", "vm_dr": "998792678872971450"},
+    {"block": 54990962, "readable": true, "sub_dr": "1049678448816785329", "vm_dr": "1000925651512358813"},
+    {"block": 57015384, "readable": true, "sub_dr": "1049008142808840695", "vm_dr": "1001085976679671604"}
+  ],
+  "result": {
+    "minimum_vm_dr": "998063048432670782",
+    "maximum_vm_dr": "1003759218472700709",
+    "samples_at_or_above_105_percent_vm_dr": 0,
+    "natural_high_vm_flash_exit_replayed": false,
+    "conclusion": "No high-vmDR candidate was observed in the fixed sample set; this does not prove historical absence outside the sample."
+  },
+  "probe": "evidence/probe-tests/TargetHighVmStateSurvey.t.sol"
+}
