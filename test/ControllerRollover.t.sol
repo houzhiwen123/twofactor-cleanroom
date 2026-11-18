@@ -243,234 +243,232 @@ contract MockControllerRolloverIssuer is IBondIssuerController {
     }
 }
 
-    contract MockControllerOracleRegistry {
-        address public oracle;
+contract MockControllerOracleRegistry {
+    address public oracle;
 
-        function setOracle(address oracle_) external {
-            oracle = oracle_;
-        }
-
-        function oracleOf(address) external view returns (address) {
-            return oracle;
-        }
+    function setOracle(address oracle_) external {
+        oracle = oracle_;
     }
 
-    contract MockControllerOracle {
-        RolloverCallRecorder public immutable recorder;
+    function oracleOf(address) external view returns (address) {
+        return oracle;
+    }
+}
 
-        constructor(RolloverCallRecorder recorder_) {
-            recorder = recorder_;
-        }
+contract MockControllerOracle {
+    RolloverCallRecorder public immutable recorder;
 
-        function cachePrice() external {
-            recorder.record(0);
-        }
-
-        function resetCache() external {
-            recorder.record(11);
-        }
+    constructor(RolloverCallRecorder recorder_) {
+        recorder = recorder_;
     }
 
-    contract ControllerRolloverTest is Test {
-        address internal constant RANDOM_CALLER = address(0xBEEF);
-
-        address internal manager;
-        PerpController internal controller;
-        RolloverCallRecorder internal recorder;
-        MockControllerRolloverPlanner internal planner;
-        MockControllerRolloverPerp internal sr;
-        MockControllerRolloverPerp internal jr;
-        MockControllerRolloverIssuer internal issuer;
-        MockControllerOracleRegistry internal registry;
-        MockControllerOracle internal oracle;
-
-        function setUp() public {
-            recorder = new RolloverCallRecorder();
-            registry = new MockControllerOracleRegistry();
-            oracle = new MockControllerOracle(recorder);
-            registry.setOracle(address(oracle));
-            manager = address(registry);
-            planner = new MockControllerRolloverPlanner(manager);
-            sr = new MockControllerRolloverPerp(recorder, manager, true, 100_000_000);
-            jr = new MockControllerRolloverPerp(recorder, manager, false, 386_465_700);
-            issuer = new MockControllerRolloverIssuer(
-                recorder, manager, address(0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1), address(0xe027)
-            );
-
-            PerpController implementation = new PerpController();
-            ERC1967Proxy proxy = new ERC1967Proxy(
-                address(implementation), abi.encodeCall(PerpController.init, (address(0xCB), address(sr), address(jr)))
-            );
-            controller = PerpController(address(proxy));
-            controller.pauseUserOps(false);
-            controller.updatePerpBalancer(address(planner));
-            controller.updateIssuer(address(issuer));
-        }
-
-        function testPermissionlessStandardRolloverPreservesTargetCallOrderAndZeroEntries() public {
-            vm.prank(RANDOM_CALLER);
-            controller.rollover();
-
-            assertEq(recorder.count(), 12);
-            assertEq(recorder.op(0), 1);
-            assertEq(recorder.op(1), 2);
-            assertEq(recorder.op(2), 3);
-            assertEq(recorder.op(3), 4);
-            assertEq(recorder.op(4), 5);
-            assertEq(recorder.op(5), 6);
-            assertEq(recorder.op(6), 7);
-            assertEq(recorder.op(7), 8);
-            assertEq(recorder.op(8), 9);
-            assertEq(recorder.op(9), 10);
-            assertEq(recorder.op(10), 10);
-            assertEq(recorder.op(11), 10);
-
-            assertEq(sr.transferRecipient(), address(jr));
-            assertEq(sr.transferredUnderlying(), 0);
-            assertEq(sr.transferCount(), 1);
-            (address token, uint256 amount) = sr.transferred(0);
-            _assertTokenAmount(token, amount, 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 3_133_547_705_520);
-
-            assertEq(jr.handledUnderlying(), 0);
-            assertEq(jr.handledCount(), 1);
-            (token, amount) = jr.handled(0);
-            _assertTokenAmount(token, amount, 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 3_133_547_705_520);
-
-            assertEq(jr.depositManager(), manager);
-            assertEq(jr.depositCount(), 3);
-            (bytes32 bondID, uint256 depositAmount) = jr.depositAt(0);
-            _assertBondDeposit(
-                bondID, depositAmount, 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 0
-            );
-            (bondID, depositAmount) = jr.depositAt(1);
-            _assertBondDeposit(
-                bondID, depositAmount, 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 6_411_258
-            );
-            (bondID, depositAmount) = jr.depositAt(2);
-            _assertBondDeposit(
-                bondID, depositAmount, 0xff73192993e9aaaf7db24d86d5156c9c9eac5bfeadff2a6ffc2fd3bd8e74181b, 77_245_228
-            );
-
-            assertEq(jr.transferRecipient(), address(sr));
-            assertEq(jr.transferredUnderlying(), 0);
-            assertEq(jr.transferCount(), 3);
-            (token, amount) = jr.transferred(0);
-            _assertTokenAmount(token, amount, 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0);
-            (token, amount) = jr.transferred(1);
-            _assertTokenAmount(token, amount, 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 243_440_724_687);
-            (token, amount) = jr.transferred(2);
-            _assertTokenAmount(token, amount, 0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1, 2_890_107_281_474);
-            assertEq(sr.loggedCount(), 3);
-            assertEq(sr.loggedToken(0), 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68);
-            assertEq(sr.loggedToken(1), 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300);
-            assertEq(sr.loggedToken(2), 0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1);
-            assertEq(controller.lastRebalanceTimestampSec(), 0);
-        }
-
-        function testNoWorkAndBelowCleanupRevertBeforeAssetCalls() public {
-            planner.setUnderlyingValRolled(0);
-            vm.expectRevert(PerpController.InsufficientRollover.selector);
-            controller.rollover();
-            assertEq(recorder.count(), 0);
-
-            planner.setUnderlyingValRolled(controller.minCleanupVal() - 1);
-            vm.expectRevert(PerpController.InsufficientRollover.selector);
-            controller.rollover();
-            assertEq(recorder.count(), 0);
-        }
-
-        function testPlannerFailureIsAtomic() public {
-            planner.setFailPlanning(true);
-            vm.expectRevert(MockControllerRolloverPlanner.PlannerFailure.selector);
-            controller.rollover();
-            assertEq(recorder.count(), 0);
-        }
-
-        function testCleanupBoundaryIsInclusive() public {
-            planner.setUnderlyingValRolled(controller.minCleanupVal());
-            controller.rollover();
-            assertEq(recorder.count(), 12);
-        }
-
-        function testPauseAndDownstreamFailureAreAtomic() public {
-            controller.pauseSystemOps(true);
-            vm.expectRevert(PerpController.SystemOpsPaused.selector);
-            controller.rollover();
-            assertEq(recorder.count(), 0);
-
-            controller.pauseSystemOps(false);
-            jr.setFailDeposits(true);
-            vm.expectRevert(bytes("deposit failure"));
-            controller.rollover();
-            assertEq(recorder.count(), 0);
-        }
-
-        function testUpkeepNoWorkRevertsAtomically() public {
-            controller.setUnderlyingOracle();
-            vm.expectRevert(PerpController.NoOp.selector);
-            vm.prank(RANDOM_CALLER);
-            controller.upkeep();
-            assertEq(recorder.count(), 0);
-        }
-
-        function testUpkeepIssueOnlyPreservesObservedCallOrder() public {
-            controller.setUnderlyingOracle();
-            issuer.setIssued(true);
-            vm.prank(RANDOM_CALLER);
-            controller.upkeep();
-            _assertUpkeepCallOrder();
-        }
-
-        function testUpkeepMaturityOnlyPreservesObservedCallOrder() public {
-            controller.setUnderlyingOracle();
-            sr.setRecoverResult(true);
-            vm.prank(RANDOM_CALLER);
-            controller.upkeep();
-            _assertUpkeepCallOrder();
-        }
-
-        function testUpkeepMaturityAndIssuePreservesObservedCallOrder() public {
-            controller.setUnderlyingOracle();
-            jr.setRecoverResult(true);
-            issuer.setIssued(true);
-            vm.prank(RANDOM_CALLER);
-            controller.upkeep();
-            _assertUpkeepCallOrder();
-        }
-
-        function testUpkeepSystemPauseRevertsBeforeSubcalls() public {
-            controller.setUnderlyingOracle();
-            controller.pauseSystemOps(true);
-            vm.expectRevert(PerpController.SystemOpsPaused.selector);
-            controller.upkeep();
-            assertEq(recorder.count(), 0);
-        }
-
-        function _assertUpkeepCallOrder() private view {
-            assertEq(recorder.count(), 7);
-            assertEq(recorder.op(0), 0);
-            assertEq(recorder.op(1), 1);
-            assertEq(recorder.op(2), 2);
-            assertEq(recorder.op(3), 3);
-            assertEq(recorder.op(4), 4);
-            assertEq(recorder.op(5), 5);
-            assertEq(recorder.op(6), 11);
-            assertEq(controller.lastRebalanceTimestampSec(), 0);
-        }
-
-        function _assertTokenAmount(address token, uint256 amount, address expectedToken, uint256 expectedAmount)
-            private
-            pure
-        {
-            assertEq(token, expectedToken);
-            assertEq(amount, expectedAmount);
-        }
-
-        function _assertBondDeposit(bytes32 bondID, uint256 amount, bytes32 expectedBondID, uint256 expectedAmount)
-            private
-            pure
-        {
-            assertEq(bondID, expectedBondID);
-            assertEq(amount, expectedAmount);
-        }
+    function cachePrice() external {
+        recorder.record(0);
     }
+
+    function resetCache() external {
+        recorder.record(11);
+    }
+}
+
+contract ControllerRolloverTest is Test {
+    address internal constant RANDOM_CALLER = address(0xBEEF);
+
+    address internal manager;
+    PerpController internal controller;
+    RolloverCallRecorder internal recorder;
+    MockControllerRolloverPlanner internal planner;
+    MockControllerRolloverPerp internal sr;
+    MockControllerRolloverPerp internal jr;
+    MockControllerRolloverIssuer internal issuer;
+    MockControllerOracleRegistry internal registry;
+    MockControllerOracle internal oracle;
+
+    function setUp() public {
+        recorder = new RolloverCallRecorder();
+        registry = new MockControllerOracleRegistry();
+        oracle = new MockControllerOracle(recorder);
+        registry.setOracle(address(oracle));
+        manager = address(registry);
+        planner = new MockControllerRolloverPlanner(manager);
+        sr = new MockControllerRolloverPerp(recorder, manager, true, 100_000_000);
+        jr = new MockControllerRolloverPerp(recorder, manager, false, 386_465_700);
+        issuer = new MockControllerRolloverIssuer(
+            recorder, manager, address(0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1), address(0xe027)
+        );
+
+        PerpController implementation = new PerpController();
+        ERC1967Proxy proxy = new ERC1967Proxy(
+            address(implementation), abi.encodeCall(PerpController.init, (address(0xCB), address(sr), address(jr)))
+        );
+        controller = PerpController(address(proxy));
+        controller.pauseUserOps(false);
+        controller.updatePerpBalancer(address(planner));
+        controller.updateIssuer(address(issuer));
+    }
+
+    function testPermissionlessStandardRolloverPreservesTargetCallOrderAndZeroEntries() public {
+        vm.prank(RANDOM_CALLER);
+        controller.rollover();
+
+        assertEq(recorder.count(), 12);
+        assertEq(recorder.op(0), 1);
+        assertEq(recorder.op(1), 2);
+        assertEq(recorder.op(2), 3);
+        assertEq(recorder.op(3), 4);
+        assertEq(recorder.op(4), 5);
+        assertEq(recorder.op(5), 6);
+        assertEq(recorder.op(6), 7);
+        assertEq(recorder.op(7), 8);
+        assertEq(recorder.op(8), 9);
+        assertEq(recorder.op(9), 10);
+        assertEq(recorder.op(10), 10);
+        assertEq(recorder.op(11), 10);
+
+        assertEq(sr.transferRecipient(), address(jr));
+        assertEq(sr.transferredUnderlying(), 0);
+        assertEq(sr.transferCount(), 1);
+        (address token, uint256 amount) = sr.transferred(0);
+        _assertTokenAmount(token, amount, 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 3_133_547_705_520);
+
+        assertEq(jr.handledUnderlying(), 0);
+        assertEq(jr.handledCount(), 1);
+        (token, amount) = jr.handled(0);
+        _assertTokenAmount(token, amount, 0x7C82fD6DCA95554b8Ad5B3207Ea5aEb6028cf91B, 3_133_547_705_520);
+
+        assertEq(jr.depositManager(), manager);
+        assertEq(jr.depositCount(), 3);
+        (bytes32 bondID, uint256 depositAmount) = jr.depositAt(0);
+        _assertBondDeposit(bondID, depositAmount, 0x342b85e9d38918a8718c6ea642ea0df75e75c938bc45a6efde8c1dbaa3ef108d, 0);
+        (bondID, depositAmount) = jr.depositAt(1);
+        _assertBondDeposit(
+            bondID, depositAmount, 0x93dcba573477147233c33c344a994ff99eedbe3ac9c31c2c5198f72add177ca8, 6_411_258
+        );
+        (bondID, depositAmount) = jr.depositAt(2);
+        _assertBondDeposit(
+            bondID, depositAmount, 0xff73192993e9aaaf7db24d86d5156c9c9eac5bfeadff2a6ffc2fd3bd8e74181b, 77_245_228
+        );
+
+        assertEq(jr.transferRecipient(), address(sr));
+        assertEq(jr.transferredUnderlying(), 0);
+        assertEq(jr.transferCount(), 3);
+        (token, amount) = jr.transferred(0);
+        _assertTokenAmount(token, amount, 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68, 0);
+        (token, amount) = jr.transferred(1);
+        _assertTokenAmount(token, amount, 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300, 243_440_724_687);
+        (token, amount) = jr.transferred(2);
+        _assertTokenAmount(token, amount, 0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1, 2_890_107_281_474);
+        assertEq(sr.loggedCount(), 3);
+        assertEq(sr.loggedToken(0), 0x15a5Ff3B2D9c05301F31DaF788aa72380bA34A68);
+        assertEq(sr.loggedToken(1), 0x2b97045571Ec78aE1010Df47b3e275eCdAE53300);
+        assertEq(sr.loggedToken(2), 0x1b33Fea0a5f8685Cba207A2aC06426427FE2d2B1);
+        assertEq(controller.lastRebalanceTimestampSec(), 0);
+    }
+
+    function testNoWorkAndBelowCleanupRevertBeforeAssetCalls() public {
+        planner.setUnderlyingValRolled(0);
+        vm.expectRevert(PerpController.InsufficientRollover.selector);
+        controller.rollover();
+        assertEq(recorder.count(), 0);
+
+        planner.setUnderlyingValRolled(controller.minCleanupVal() - 1);
+        vm.expectRevert(PerpController.InsufficientRollover.selector);
+        controller.rollover();
+        assertEq(recorder.count(), 0);
+    }
+
+    function testPlannerFailureIsAtomic() public {
+        planner.setFailPlanning(true);
+        vm.expectRevert(MockControllerRolloverPlanner.PlannerFailure.selector);
+        controller.rollover();
+        assertEq(recorder.count(), 0);
+    }
+
+    function testCleanupBoundaryIsInclusive() public {
+        planner.setUnderlyingValRolled(controller.minCleanupVal());
+        controller.rollover();
+        assertEq(recorder.count(), 12);
+    }
+
+    function testPauseAndDownstreamFailureAreAtomic() public {
+        controller.pauseSystemOps(true);
+        vm.expectRevert(PerpController.SystemOpsPaused.selector);
+        controller.rollover();
+        assertEq(recorder.count(), 0);
+
+        controller.pauseSystemOps(false);
+        jr.setFailDeposits(true);
+        vm.expectRevert(bytes("deposit failure"));
+        controller.rollover();
+        assertEq(recorder.count(), 0);
+    }
+
+    function testUpkeepNoWorkRevertsAtomically() public {
+        controller.setUnderlyingOracle();
+        vm.expectRevert(PerpController.NoOp.selector);
+        vm.prank(RANDOM_CALLER);
+        controller.upkeep();
+        assertEq(recorder.count(), 0);
+    }
+
+    function testUpkeepIssueOnlyPreservesObservedCallOrder() public {
+        controller.setUnderlyingOracle();
+        issuer.setIssued(true);
+        vm.prank(RANDOM_CALLER);
+        controller.upkeep();
+        _assertUpkeepCallOrder();
+    }
+
+    function testUpkeepMaturityOnlyPreservesObservedCallOrder() public {
+        controller.setUnderlyingOracle();
+        sr.setRecoverResult(true);
+        vm.prank(RANDOM_CALLER);
+        controller.upkeep();
+        _assertUpkeepCallOrder();
+    }
+
+    function testUpkeepMaturityAndIssuePreservesObservedCallOrder() public {
+        controller.setUnderlyingOracle();
+        jr.setRecoverResult(true);
+        issuer.setIssued(true);
+        vm.prank(RANDOM_CALLER);
+        controller.upkeep();
+        _assertUpkeepCallOrder();
+    }
+
+    function testUpkeepSystemPauseRevertsBeforeSubcalls() public {
+        controller.setUnderlyingOracle();
+        controller.pauseSystemOps(true);
+        vm.expectRevert(PerpController.SystemOpsPaused.selector);
+        controller.upkeep();
+        assertEq(recorder.count(), 0);
+    }
+
+    function _assertUpkeepCallOrder() private view {
+        assertEq(recorder.count(), 7);
+        assertEq(recorder.op(0), 0);
+        assertEq(recorder.op(1), 1);
+        assertEq(recorder.op(2), 2);
+        assertEq(recorder.op(3), 3);
+        assertEq(recorder.op(4), 4);
+        assertEq(recorder.op(5), 5);
+        assertEq(recorder.op(6), 11);
+        assertEq(controller.lastRebalanceTimestampSec(), 0);
+    }
+
+    function _assertTokenAmount(address token, uint256 amount, address expectedToken, uint256 expectedAmount)
+        private
+        pure
+    {
+        assertEq(token, expectedToken);
+        assertEq(amount, expectedAmount);
+    }
+
+    function _assertBondDeposit(bytes32 bondID, uint256 amount, bytes32 expectedBondID, uint256 expectedAmount)
+        private
+        pure
+    {
+        assertEq(bondID, expectedBondID);
+        assertEq(amount, expectedAmount);
+    }
+}

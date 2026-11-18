@@ -319,23 +319,23 @@ contract FullProtocolStatefulHandler is Test {
                 abi.encodeCall(
                     PairRouter.deposit,
                     (IPairRouter.DepositParams({
-                        usdVault: address(usdVault),
-                        underlyingVault: address(jrVault),
-                        strategy: dexStrategy,
-                        recipient: actor,
-                        underlyingIn: amount,
-                        minUsdFromTrade: 0,
-                        underlyingToTrade: tradeUnderlying,
-                        srUnderlyingIn: srUnderlying,
-                        jrUnderlyingIn: jrUnderlying,
-                        minUsdNotes: type(uint256).max,
-                        minUnderlyingNotes: type(uint256).max,
-                        minSubDr: 0,
-                        maxSubDr: type(uint256).max,
-                        minVmDr: 0,
-                        maxVmDr: type(uint256).max,
-                        healthCheck: false
-                    }))
+                            usdVault: address(usdVault),
+                            underlyingVault: address(jrVault),
+                            strategy: dexStrategy,
+                            recipient: actor,
+                            underlyingIn: amount,
+                            minUsdFromTrade: 0,
+                            underlyingToTrade: tradeUnderlying,
+                            srUnderlyingIn: srUnderlying,
+                            jrUnderlyingIn: jrUnderlying,
+                            minUsdNotes: type(uint256).max,
+                            minUnderlyingNotes: type(uint256).max,
+                            minSubDr: 0,
+                            maxSubDr: type(uint256).max,
+                            minVmDr: 0,
+                            maxVmDr: type(uint256).max,
+                            healthCheck: false
+                        }))
                 )
             );
         if (ok || _failureFingerprint(actor) != beforeState) atomicityBroken = true;
@@ -359,22 +359,22 @@ contract FullProtocolStatefulHandler is Test {
                 abi.encodeCall(
                     PairRouter.redeem,
                     (IPairRouter.RedeemParams({
-                        usdVault: address(usdVault),
-                        underlyingVault: address(jrVault),
-                        strategy: dexStrategy,
-                        usdNotes: usdNotes,
-                        underlyingNotes: jrNotes,
-                        maxUsdRetained: type(uint256).max,
-                        underlyingToTrade: 0,
-                        runUpkeep: false,
-                        minUsdOut: type(uint256).max,
-                        minUnderlyingOut: type(uint256).max,
-                        minSubDr: 0,
-                        maxSubDr: type(uint256).max,
-                        minVmDr: 0,
-                        maxVmDr: type(uint256).max,
-                        healthCheck: false
-                    }))
+                            usdVault: address(usdVault),
+                            underlyingVault: address(jrVault),
+                            strategy: dexStrategy,
+                            usdNotes: usdNotes,
+                            underlyingNotes: jrNotes,
+                            maxUsdRetained: type(uint256).max,
+                            underlyingToTrade: 0,
+                            runUpkeep: false,
+                            minUsdOut: type(uint256).max,
+                            minUnderlyingOut: type(uint256).max,
+                            minSubDr: 0,
+                            maxSubDr: type(uint256).max,
+                            minVmDr: 0,
+                            maxVmDr: type(uint256).max,
+                            healthCheck: false
+                        }))
                 )
             );
         if (ok || _failureFingerprint(actor) != beforeState) atomicityBroken = true;

@@ -4,11 +4,11 @@
 separate: yes means the cited scope has an offline regression; provisional means some semantics
 remain unverified. All paths below are repository-relative.
 
-Current verification baseline: **84 offline tests passed, 0 failed**. Runtime sizes are Controller
-`23,981` bytes, PerpToken `10,846` bytes, PerpBalancer `8,652` bytes, and BondsManager `13,771`
-bytes; each remains below the project's `24,000`-byte guard. Controller margin to that stricter
-project guard is only `19` bytes, so no additional Controller behavior should be added without
-first moving or removing bytecode.
+Current verification baseline: **308 offline Forge tests passed, 0 failed** (Foundry v1.9.0). Runtime
+sizes are Controller `21,519` bytes, PerpToken `11,424` bytes, PerpBalancer `6,877` bytes, and
+BondsManager `12,968` bytes. Controller is below CI's `22,500`-byte Controller ceiling with a
+`981`-byte margin; the other contracts remain below the `24,000`-byte general guard. The historical
+84-test baseline is frozen in `docs/BASELINE_84.md`.
 
 | feature | 黑盒已验证 (yes/no/partial + evidence file:lines, repo-relative) | 已实现 (yes/no/provisional) | 离线回归测试 (test names) |
 |---|---|---|---|
